@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 1
+open_count: 3
 waived_count: 0
 fixed_count: 0
-total_count: 1
-last_updated: 2026-10-28T11:34:31.328Z
+total_count: 3
+last_updated: 2026-10-28T11:54:19.947Z
 ---
 
 # Broken Windows Ledger
@@ -16,6 +16,8 @@ last_updated: 2026-10-28T11:34:31.328Z
 | id | phase | kind | file | line | description | status | reason | recorded_at | resolved_at |
 |----|-------|------|------|------|-------------|--------|--------|-------------|-------------|
 | 1 | 01 | stub | src/main.tsx | 4 | React entry remains an intentional setup shell; dashboard/player UI is deferred to later Phase 1 plans. | open |  | 2026-10-28T11:34:31.328Z |  |
+| 2 | 01 | deviation | src/backend/Program.cs |  | Renderer-to-backend direct HTTP was replaced with sender-checked IPC and per-run token authentication. | open |  | 2026-10-28T11:54:19.596Z |  |
+| 3 | 01 | deviation | src/main.ts |  | Corrected Forge backend and renderer resource paths to match assembled resource directory names. | open |  | 2026-10-28T11:54:19.947Z |  |
 
 ````json
 [
@@ -29,6 +31,32 @@ last_updated: 2026-10-28T11:34:31.328Z
     "status": "open",
     "reason": "",
     "recorded_at": "2026-10-28T11:34:31.328Z",
+    "resolved_at": null,
+    "milestone": null
+  },
+  {
+    "id": 2,
+    "kind": "deviation",
+    "phase": "01",
+    "file": "src/backend/Program.cs",
+    "line": null,
+    "description": "Renderer-to-backend direct HTTP was replaced with sender-checked IPC and per-run token authentication.",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-10-28T11:54:19.596Z",
+    "resolved_at": null,
+    "milestone": null
+  },
+  {
+    "id": 3,
+    "kind": "deviation",
+    "phase": "01",
+    "file": "src/main.ts",
+    "line": null,
+    "description": "Corrected Forge backend and renderer resource paths to match assembled resource directory names.",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-10-28T11:54:19.947Z",
     "resolved_at": null,
     "milestone": null
   }
