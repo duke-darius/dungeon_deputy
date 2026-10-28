@@ -64,7 +64,10 @@ Audit run through the GSD package-legitimacy check against npm on 2026-10-28. Re
 | Package | Registry | Age / latest observed version | Downloads | Source Repo | Verdict | Disposition |
 |---------|----------|-------------------------------|-----------|-------------|---------|-------------|
 | `electron` | npm | ~1 day / 45.1.0 | 7,636,299/wk | github.com/electron/electron | [SUS] | Human verification checkpoint before install; no declared postinstall. |
-| `electron-builder` | npm | ~8 days / 26.18.0 | 4,999,391/wk | github.com/electron-userland/electron-builder | [SUS] | Human verification checkpoint before install; no declared postinstall. |
+| `electron-builder` | npm | ~8 days / 26.18.0 | 4,999,391/wk | github.com/electron-userland/electron-builder | [SUS] | Excluded; Electron Forge is selected, so this package will not be installed. |
+| `@electron-forge/cli` | npm | ~29 days / 8.0.1 | 823,518/wk | github.com/electron/forge | [SUS] | Human verification checkpoint before install; no declared postinstall. |
+| `@electron-forge/maker-squirrel` | npm | ~29 days / 8.0.1 | 323,610/wk | github.com/electron/forge | [SUS] | Human verification checkpoint before install; no declared postinstall. |
+| `@electron-forge/maker-zip` | npm | ~29 days / 8.0.1 | 717,902/wk | github.com/electron/forge | [SUS] | Human verification checkpoint before install; no declared postinstall. |
 | `typescript` | npm | ~112 days / 7.0.2 | 267,244,286/wk | github.com/microsoft/TypeScript | OK | Approved; no declared postinstall. |
 | `vite` | npm | ~7 days / 8.3.5 | 171,580,460/wk | github.com/vitejs/vite | [SUS] | Human verification checkpoint before install; no declared postinstall. |
 | `react` | npm | ~14 days / 19.3.1 | 165,732,882/wk | github.com/facebook/react | [SUS] | Human verification checkpoint before install; no declared postinstall. |
@@ -75,7 +78,7 @@ Audit run through the GSD package-legitimacy check against npm on 2026-10-28. Re
 | `@types/react-dom` | npm | ~49 days / 19.3.0 | 127,180,405/wk | github.com/DefinitelyTyped/DefinitelyTyped | OK | Approved; no declared postinstall. |
 
 **Packages removed due to [SLOP] verdict:** none.  
-**Packages flagged as suspicious [SUS]:** `electron`, `electron-builder`, `vite`, `react`, `react-dom`, `@vitejs/plugin-react`, `@types/node` — add a human verification checkpoint before each install. `electron-builder` is not selected and must not be installed. The exact Electron Forge CLI/maker packages require their own GSD package legitimacy audit before recommendation or installation; audit status is not inferred from electron-builder.
+**Selected packages flagged as suspicious [SUS]:** `electron`, `@electron-forge/cli`, `@electron-forge/maker-squirrel`, `@electron-forge/maker-zip`, `vite`, `react`, `react-dom`, `@vitejs/plugin-react`, and `@types/node` — these nine selected packages each have an individual blocking human verification checkpoint before installation. `electron-builder` is also `[SUS]`, but is excluded; it has no checkpoint because the plan will not install it. Forge packages are recent but report the official `electron/forge` repository and no declared postinstall scripts.
 
 ## Architecture Patterns
 
