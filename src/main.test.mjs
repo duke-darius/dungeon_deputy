@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { chooseExternalDisplay } from './display-policy.mjs';
+import { mapToScreen, screenToMap, zoomAt, ZOOM_MIN, ZOOM_MAX } from './renderer/src/map/camera.mjs';
 const main = await readFile(new URL('./main.ts', import.meta.url), 'utf8');
 const preload = await readFile(new URL('./preload.cts', import.meta.url), 'utf8');
 test('main owns Electron display and backend lifecycle securely', () => {
@@ -10,6 +11,8 @@ test('main owns Electron display and backend lifecycle securely', () => {
   assert.match(main, /contextIsolation: true/); assert.match(main, /sandbox: true/); assert.match(main, /nodeIntegration: false/);
   assert.match(main, /waitForBackend/); assert.match(main, /backend\.kill\(\)/);
   assert.match(main, /validPreferences/); assert.match(main, /document\.body\.style\.background='black'/);
+  assert.match(main, /resolve\(app\.getPath\('userData'\), 'data'\)/);
+  assert.match(main, /DUNGEON_DEPUTY_DATA_DIR: dataDirectory/);
 });
 test('public preload exposes only public presentation retrieval', () => {
   assert.match(preload, /const api = publicWindow\s*\? Object\.freeze\(\{ getPresentation/);
@@ -40,4 +43,13 @@ test('scene state changes do not toggle or recreate the fullscreen player window
   assert.match(main, /publicWindow\.setBounds\(selected\.bounds\);\s*if \(!publicWindow\.isFullScreen\(\)\) publicWindow\.setFullScreen\(true\)/);
   assert.match(main, /display-metrics-changed', \(_event, display\) => safeTopology\(display\.id\)/);
   assert.doesNotMatch(main, /BrowserWindow\.getAllWindows\(\).*destroy/);
+});
+test('map camera coordinates invert under pan and zoom', () => {
+  const point={x:217,y:103}, camera={x:41,y:-17,zoom:1.75};
+  assert.deepEqual(screenToMap(mapToScreen(point,camera),camera),point);
+});
+test('cursor anchored zoom preserves its map coordinate and clamps', () => {
+  const camera={x:32,y:-11,zoom:1}, cursor={x:300,y:190};
+  assert.deepEqual(screenToMap(cursor,zoomAt(camera,cursor,1.4)),screenToMap(cursor,camera));
+  assert.equal(zoomAt(camera,cursor,100).zoom,ZOOM_MAX);assert.equal(zoomAt(camera,cursor,.001).zoom,ZOOM_MIN);
 });
