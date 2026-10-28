@@ -7,7 +7,7 @@
     "dev": "node scripts/dev.mjs",
     "dev:renderer": "vite --host 127.0.0.1",
     "dev:electron": "electron .",
-    "build:electron": "tsc -p tsconfig.electron.json",
+    "build:electron": "tsc -p tsconfig.electron.json && node scripts/verify-electron-output.mjs",
     "build": "tsc --noEmit && npm run build:electron && vite build && npm run build:backend",
     "build:backend": "dotnet build src/backend/DungeonDeputy.Api.csproj -c Release",
     "test": "node --test src/main.test.mjs src/renderer/src/*.test.mjs && dotnet test src/backend.tests/DungeonDeputy.Api.Tests.csproj -c Release",
