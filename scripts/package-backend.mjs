@@ -1,20 +1,13 @@
 import { spawnSync } from 'node:child_process';
+import { mkdirSync, rmSync } from 'node:fs';
 import { resolve } from 'node:path';
-
-const supported = new Set(['win-x64', 'osx-x64', 'osx-arm64']);
-const rid = process.argv[2];
-const dryRun = process.argv.includes('--dry-run');
-
-if (!supported.has(rid)) {
-  console.error(`Usage: node scripts/package-backend.mjs <${[...supported].join('|')}> [--dry-run]`);
-  process.exitCode = 2;
-} else {
-  const project = resolve('src/backend/DungeonDeputy.Api.csproj');
-  const args = ['publish', project, '-c', 'Release', '-r', rid, '--self-contained', 'true'];
-  if (dryRun) console.log(`dotnet ${args.join(' ')}`);
-  else {
-    const result = spawnSync('dotnet', args, { stdio: 'inherit' });
-    if (result.error) throw result.error;
-    process.exitCode = result.status ?? 1;
-  }
+const allowed = new Set(['win-x64', 'osx-x64', 'osx-arm64']);
+const requested = process.argv.slice(2).filter(a => !a.startsWith('--'));
+const rids = requested.length ? requested : [...allowed];
+for (const rid of rids) {
+  if (!allowed.has(rid)) throw new Error(`Unsupported runtime identifier: ${rid}`);
+  const output = resolve('artifacts', `backend-${rid}`);
+  rmSync(output, { recursive: true, force: true }); mkdirSync(output, { recursive: true });
+  const result = spawnSync('dotnet', ['publish', 'src/backend/DungeonDeputy.Api.csproj', '-c', 'Release', '-r', rid, '--self-contained', 'true', '-o', output], { stdio: 'inherit' });
+  if (result.status !== 0) process.exit(result.status ?? 1);
 }
