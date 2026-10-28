@@ -99,12 +99,12 @@ function createWindows() {
   if (external && prefs.displayId === null) { prefs.displayId = external.id; void savePreferences(); }
   activeDisplayId = external?.id ?? null;
   displayStateInitialized = true;
-  const dm = new BrowserWindow({ width: 1440, height: 900, show: false, webPreferences: { preload: join(app.getAppPath(), 'dist/main/preload.js'), contextIsolation: true, sandbox: true, nodeIntegration: false } });
+  const dm = new BrowserWindow({ width: 1440, height: 900, show: false, webPreferences: { preload: join(app.getAppPath(), 'dist/main/preload.cjs'), contextIsolation: true, sandbox: true, nodeIntegration: false } });
   windows.set('dm', dm); dm.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   dm.webContents.on('will-navigate', (e, url) => { const allowed = app.isPackaged ? url.startsWith('file:') : url.startsWith('http://127.0.0.1:5173/'); if (!allowed) e.preventDefault(); });
   load(dm, 'index.html'); dm.once('ready-to-show', () => dm.show());
   const target: Display = external ?? primary;
-  const pub = new BrowserWindow({ x: external ? target.bounds.x : primary.bounds.x + 80, y: external ? target.bounds.y : primary.bounds.y + 80, width: external ? target.bounds.width : 960, height: external ? target.bounds.height : 540, frame: true, fullscreen: !!external, show: false, backgroundColor: '#000000', webPreferences: { preload: join(app.getAppPath(), 'dist/main/preload.js'), contextIsolation: true, sandbox: true, nodeIntegration: false, additionalArguments: ['--window-role=public'] } });
+  const pub = new BrowserWindow({ x: external ? target.bounds.x : primary.bounds.x + 80, y: external ? target.bounds.y : primary.bounds.y + 80, width: external ? target.bounds.width : 960, height: external ? target.bounds.height : 540, frame: true, fullscreen: !!external, show: false, backgroundColor: '#000000', webPreferences: { preload: join(app.getAppPath(), 'dist/main/preload.cjs'), contextIsolation: true, sandbox: true, nodeIntegration: false, additionalArguments: ['--window-role=public'] } });
   windows.set('public', pub); pub.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   pub.webContents.on('will-navigate', (e, url) => { const allowed = app.isPackaged ? url.startsWith('file:') : url.startsWith('http://127.0.0.1:5173/'); if (!allowed) e.preventDefault(); });
   load(pub, 'public.html'); pub.once('ready-to-show', () => pub.show());

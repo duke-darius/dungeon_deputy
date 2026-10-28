@@ -1,6 +1,6 @@
 import { access } from 'node:fs/promises';
 
-const required = ['dist/main/main.js', 'dist/main/preload.js', 'dist/main/display-policy.mjs'];
+const required = ['dist/main/main.js', 'dist/main/preload.cjs', 'dist/main/display-policy.mjs'];
 for (const path of required) {
   try {
     await access(path);

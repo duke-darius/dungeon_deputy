@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { chooseExternalDisplay } from './display-policy.mjs';
 const main = await readFile(new URL('./main.ts', import.meta.url), 'utf8');
-const preload = await readFile(new URL('./preload.ts', import.meta.url), 'utf8');
+const preload = await readFile(new URL('./preload.cts', import.meta.url), 'utf8');
 test('main owns Electron display and backend lifecycle securely', () => {
   assert.match(main, /screen\.getAllDisplays\(\)/);
   assert.match(main, /display-added/); assert.match(main, /display-removed/); assert.match(main, /display-metrics-changed/);
@@ -15,6 +15,12 @@ test('public preload exposes only public presentation retrieval', () => {
   assert.match(preload, /const api = publicWindow\s*\? Object\.freeze\(\{ getPresentation/);
   assert.match(main, /allowedSender\('public', event\)/);
   assert.doesNotMatch(preload.slice(preload.indexOf('? Object.freeze'), preload.indexOf(': Object.freeze')), /command:|preferences:|displays:/);
+});
+test('sandboxed preload uses CommonJS output rather than unsupported ESM imports', async () => {
+  const tsconfig = await readFile(new URL('../tsconfig.electron.json', import.meta.url), 'utf8');
+  const buildCheck = await readFile(new URL('../scripts/verify-electron-output.mjs', import.meta.url), 'utf8');
+  assert.match(tsconfig, /src\/preload\.cts/);
+  assert.match(buildCheck, /dist\/main\/preload\.cjs/);
 });
 test('display fallback uses only an external display and preserves an explicit preference', () => {
   const displays = [{ id: 1 }, { id: 2 }, { id: 3 }];

@@ -5,5 +5,5 @@
     "allowJs": true, "checkJs": false,
     "types": ["node", "electron"], "esModuleInterop": true
   },
-  "include": ["src/main.ts", "src/preload.ts", "src/display-policy.mjs"]
+  "include": ["src/main.ts", "src/preload.cts", "src/display-policy.mjs"]
 }
