@@ -1,5 +1,6 @@
 using System.Net;
 using DungeonDeputy.Api;
+using DungeonDeputy.Api.Maps;
 
 var builder = WebApplication.CreateBuilder(args);
 var portValue = Environment.GetEnvironmentVariable("DUNGEON_DEPUTY_PORT");
@@ -8,6 +9,7 @@ if (!int.TryParse(portValue, out var port) || port is < 1 or > 65535)
 
 builder.WebHost.ConfigureKestrel(options => options.Listen(IPAddress.Loopback, port));
 builder.Services.AddSingleton<PresentationState>();
+builder.Services.AddSingleton<MapService>();
 var app = builder.Build();
 
 app.Use(async (context, next) =>
@@ -35,6 +37,14 @@ app.MapPost("/api/blackout", (PresentationState state) =>
     state.Blackout();
     return Results.Ok(state.PublicPresentation);
 });
+app.MapGet("/api/map", (MapService maps) => Results.Ok(maps.Get()));
+app.MapPut("/api/map/draft", (MapDocument map, MapService maps) => maps.Save(map) ? Results.NoContent() : Results.BadRequest());
+app.MapPost("/api/map/blank", (MapService maps) =>
+{
+    var current = maps.Get().Draft;
+    return maps.Save(current with { Id = Guid.NewGuid().ToString("N"), Name = "Untitled map", Image = "", Tokens = [] }) ? Results.Ok(maps.Get()) : Results.BadRequest();
+});
+app.MapPost("/api/map/show", (MapService maps) => { maps.Publish(); return Results.Ok(maps.Get()); });
 
 app.Run();
 

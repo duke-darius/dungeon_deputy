@@ -32,8 +32,8 @@ async function savePreferences() {
   await mkdir(app.getPath('userData'), { recursive: true });
   await writeFile(join(app.getPath('userData'), 'preferences.json'), JSON.stringify(prefs), { mode: 0o600 });
 }
-function api(path: string, method = 'GET') {
-  return fetch(`${backendUrl}${path}`, { method, headers: { 'X-Dungeon-Token': backendToken, Accept: 'application/json' } });
+function api(path: string, method = 'GET', body?: unknown) {
+  return fetch(`${backendUrl}${path}`, { method, headers: { 'X-Dungeon-Token': backendToken, Accept: 'application/json', ...(body === undefined ? {} : { 'Content-Type': 'application/json' }) }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
 }
 async function waitForBackend(child: ChildProcess) {
   const end = Date.now() + 15000;
@@ -52,7 +52,9 @@ async function startBackend() {
   const executable = process.platform === 'win32' ? 'DungeonDeputy.Api.exe' : 'DungeonDeputy.Api';
   const backendRid = process.platform === 'win32' ? 'win-x64' : process.platform === 'darwin' ? `osx-${process.arch}` : 'linux-x64';
   const path = app.isPackaged ? join(process.resourcesPath, `backend-${backendRid}`, executable) : join(app.getAppPath(), 'artifacts', `backend-${backendRid}`, executable);
-  backend = spawn(path, [], { env: { ...process.env, DUNGEON_DEPUTY_PORT: String(port), DUNGEON_DEPUTY_TOKEN: backendToken }, stdio: 'ignore', windowsHide: true });
+  const dataDirectory = join(app.getPath('userData'), 'data');
+  await mkdir(dataDirectory, { recursive: true });
+  backend = spawn(path, [], { env: { ...process.env, DUNGEON_DEPUTY_PORT: String(port), DUNGEON_DEPUTY_TOKEN: backendToken, DUNGEON_DEPUTY_DATA_DIR: dataDirectory }, stdio: 'ignore', windowsHide: true });
   backend.once('exit', () => { if (!quitting) { for (const win of windows.values()) if (!win.isDestroyed()) void win.webContents.executeJavaScript("document.body.style.background='black'"); app.quit(); } });
   await waitForBackend(backend);
 }
@@ -64,9 +66,9 @@ function installIpc() {
   for (const channel of ['dm:command', 'dm:preferences', 'display:list', 'public:presentation']) {
     ipcMain.removeHandler(channel);
   }
-  ipcMain.handle('dm:command', async (event, path: unknown, method: unknown) => {
-    if (!allowedSender('dm', event) || typeof path !== 'string' || !/^\/api\/(scenes|presentation|selection\/[a-z-]+|show\/[a-z-]+|blackout)$/.test(path) || !['GET', 'POST'].includes(String(method))) throw new Error('Denied');
-    const response = await api(path, String(method));
+  ipcMain.handle('dm:command', async (event, path: unknown, method: unknown, body?: unknown) => {
+    if (!allowedSender('dm', event) || typeof path !== 'string' || !/^\/api\/(scenes|presentation|selection\/[a-z-]+|show\/[a-z-]+|blackout|map|map\/draft|map\/blank|map\/show)$/.test(path) || !['GET', 'POST', 'PUT'].includes(String(method))) throw new Error('Denied');
+    const response = await api(path, String(method), body);
     if (!response.ok) throw new Error(`Presentation service returned ${response.status}.`);
     return response.status === 204 ? null : response.json();
   });
