@@ -14,6 +14,15 @@ test('main owns Electron display and backend lifecycle securely', () => {
   assert.match(main, /resolve\(app\.getPath\('userData'\), 'data'\)/);
   assert.match(main, /DUNGEON_DEPUTY_DATA_DIR: dataDirectory/);
 });
+test('package smoke publishes to an isolated staging directory', async () => {
+  const smoke = await readFile(new URL('../scripts/package-smoke.mjs', import.meta.url), 'utf8');
+  const publisher = await readFile(new URL('../scripts/package-backend.mjs', import.meta.url), 'utf8');
+  const forge = await readFile(new URL('../forge.config.ts', import.meta.url), 'utf8');
+  assert.match(smoke, /mkdtempSync\(resolve\('artifacts', 'package-smoke-build-'\)\)/);
+  assert.match(smoke, /DUNGEON_DEPUTY_BACKEND_ROOT: buildRoot/);
+  assert.match(publisher, /process\.env\.DUNGEON_DEPUTY_BACKEND_ROOT \?\? 'artifacts'/);
+  assert.match(forge, /process\.env\.DUNGEON_DEPUTY_BACKEND_ROOT \?\? 'artifacts'/);
+});
 test('public preload exposes only public presentation retrieval', () => {
   assert.match(preload, /const api = publicWindow\s*\? Object\.freeze\(\{ getPresentation/);
   assert.match(main, /allowedSender\('public', event\)/);

@@ -1,16 +1,18 @@
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdtempSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 import { spawn } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 const rid = process.platform === 'win32' ? 'win-x64' : process.platform === 'darwin' ? `osx-${process.arch}` : null;
 if (!rid) throw new Error(`Package smoke unsupported on ${process.platform}`);
-const backend = resolve('artifacts', `backend-${rid}`);
-const built = spawnSync('node', ['scripts/package-backend.mjs', rid], { stdio: 'inherit' });
-if (built.status !== 0) process.exit(built.status ?? 1);
-const made = spawnSync(process.platform === 'win32' ? 'npx.cmd' : 'npx', ['electron-forge', 'package'], { stdio: 'inherit', shell: process.platform === 'win32' });
-if (made.status !== 0) process.exit(made.status ?? 1);
+mkdirSync('artifacts', { recursive: true });
+const buildRoot = mkdtempSync(resolve('artifacts', 'package-smoke-build-'));
+const buildEnv = { ...process.env, DUNGEON_DEPUTY_BACKEND_ROOT: buildRoot };
+const built = spawnSync('node', ['scripts/package-backend.mjs', rid], { stdio: 'inherit', env: buildEnv });
+if (built.status !== 0) { rmSync(buildRoot, { recursive: true, force: true }); process.exit(built.status ?? 1); }
+const made = spawnSync(process.platform === 'win32' ? 'npx.cmd' : 'npx', ['electron-forge', 'package'], { stdio: 'inherit', shell: process.platform === 'win32', env: buildEnv });
+if (made.status !== 0) { rmSync(buildRoot, { recursive: true, force: true }); process.exit(made.status ?? 1); }
 const packagedResources = resolve('out', `dungeon-deputy-${process.platform}-${process.arch}`, 'resources');
 const packagedBackend = resolve(packagedResources, `backend-${rid}`);
 if (!existsSync(resolve(packagedBackend, process.platform === 'win32' ? 'DungeonDeputy.Api.exe' : 'DungeonDeputy.Api'))) throw new Error('Packaged backend resource is missing.');
@@ -93,4 +95,5 @@ try {
 } finally {
   await stopBackend();
   rmSync(userData, { recursive: true, force: true });
+  rmSync(buildRoot, { recursive: true, force: true });
 }
