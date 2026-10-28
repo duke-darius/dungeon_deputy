@@ -7,7 +7,7 @@
     "dev": "vite --host 127.0.0.1",
     "build": "tsc --noEmit && vite build && npm run build:backend",
     "build:backend": "dotnet build src/backend/DungeonDeputy.Api.csproj -c Release",
-    "test": "dotnet test src/backend.tests/DungeonDeputy.Api.Tests.csproj -c Release",
+    "test": "node --test src/renderer/src/*.test.mjs && dotnet test src/backend.tests/DungeonDeputy.Api.Tests.csproj -c Release",
     "package:smoke": "node scripts/package-backend.mjs win-x64 --dry-run",
     "start": "node scripts/run-backend.mjs",
     "package": "electron-forge make"

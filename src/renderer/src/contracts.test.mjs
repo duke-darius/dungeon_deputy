@@ -17,3 +17,10 @@ test('unknown public scenes fail closed and scene IDs are allowlisted', () => {
   assert.equal(publicView({ mode: 'scene', sceneId: '../../private' }).mode, 'black');
   assert.equal(sceneById('../../private'), undefined);
 });
+
+test('black state and malformed DTOs produce a clean black projection', () => {
+  assert.deepEqual(publicView({ mode: 'black', sceneId: null, title: null, description: null }), {
+    mode: 'black', sceneId: null, title: null, description: null,
+  });
+  assert.equal(publicView({ mode: 'scene', sceneId: 'ashen-road', title: 1, description: 'x' }).mode, 'black');
+});
