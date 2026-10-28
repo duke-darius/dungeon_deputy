@@ -47,7 +47,8 @@ async function startBackend() {
   backendUrl = `http://127.0.0.1:${port}`;
   backendToken = randomBytes(32).toString('hex');
   const executable = process.platform === 'win32' ? 'DungeonDeputy.Api.exe' : 'DungeonDeputy.Api';
-  const path = app.isPackaged ? join(process.resourcesPath, 'backend', executable) : join(app.getAppPath(), 'artifacts', `backend-${process.platform === 'win32' ? 'win-x64' : process.platform === 'darwin' ? `osx-${process.arch}` : 'linux-x64'}`, executable);
+  const backendRid = process.platform === 'win32' ? 'win-x64' : process.platform === 'darwin' ? `osx-${process.arch}` : 'linux-x64';
+  const path = app.isPackaged ? join(process.resourcesPath, `backend-${backendRid}`, executable) : join(app.getAppPath(), 'artifacts', `backend-${backendRid}`, executable);
   backend = spawn(path, [], { env: { ...process.env, DUNGEON_DEPUTY_PORT: String(port), DUNGEON_DEPUTY_TOKEN: backendToken }, stdio: 'ignore', windowsHide: true });
   backend.once('exit', () => { if (!quitting) { for (const win of windows.values()) if (!win.isDestroyed()) void win.webContents.executeJavaScript("document.body.style.background='black'"); app.quit(); } });
   await waitForBackend(backend);
@@ -83,7 +84,7 @@ function installIpc() {
   });
 }
 function load(win: BrowserWindow, route: string) {
-  if (app.isPackaged) void win.loadFile(join(process.resourcesPath, 'renderer', route));
+  if (app.isPackaged) void win.loadFile(join(process.resourcesPath, 'dist', route));
   else void win.loadURL(`http://127.0.0.1:5173/${route}`);
 }
 function createWindows() {

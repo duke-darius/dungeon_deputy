@@ -11,9 +11,13 @@ if (!existsSync(resolve(backend, process.platform === 'win32' ? 'DungeonDeputy.A
 }
 const made = spawnSync(process.platform === 'win32' ? 'npx.cmd' : 'npx', ['electron-forge', 'package'], { stdio: 'inherit', shell: process.platform === 'win32' });
 if (made.status !== 0) process.exit(made.status ?? 1);
+const packagedResources = resolve('out', `dungeon-deputy-${process.platform}-${process.arch}`, 'resources');
+const packagedBackend = resolve(packagedResources, `backend-${rid}`);
+if (!existsSync(resolve(packagedBackend, process.platform === 'win32' ? 'DungeonDeputy.Api.exe' : 'DungeonDeputy.Api'))) throw new Error('Packaged backend resource is missing.');
+for (const asset of ['index.html', 'public.html', 'scenes/ashen-road.svg', 'scenes/moonlit-fen.svg', 'scenes/old-bridge.svg']) if (!existsSync(resolve(packagedResources, 'dist', asset))) throw new Error(`Packaged renderer resource is missing: ${asset}`);
 const token = 'smoke-' + Math.random().toString(36).slice(2);
 const port = 29000 + Math.floor(Math.random() * 1000);
-const executable = resolve(backend, process.platform === 'win32' ? 'DungeonDeputy.Api.exe' : 'DungeonDeputy.Api');
+const executable = resolve(packagedBackend, process.platform === 'win32' ? 'DungeonDeputy.Api.exe' : 'DungeonDeputy.Api');
 const child = spawn(executable, [], { env: { ...process.env, DUNGEON_DEPUTY_PORT: String(port), DUNGEON_DEPUTY_TOKEN: token }, stdio: 'ignore' });
 try {
   let ready = false;
