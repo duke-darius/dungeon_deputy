@@ -44,6 +44,14 @@ test('scene state changes do not toggle or recreate the fullscreen player window
   assert.match(main, /display-metrics-changed', \(_event, display\) => safeTopology\(display\.id\)/);
   assert.doesNotMatch(main, /BrowserWindow\.getAllWindows\(\).*destroy/);
 });
+test('map publish and blackout update public content without changing window lifecycle', () => {
+  assert.match(main, /windows\.set\('public', pub\)/);
+  assert.match(main, /const pub = new BrowserWindow/);
+  assert.doesNotMatch(main, /load\(pub,[\s\S]*api\('\/api\/map\/show'[\s\S]*load\(pub/);
+  assert.match(main, /public:presentation[\s\S]*api\('\/api\/presentation'\)/);
+  assert.match(main, /api\('\/api\/blackout', 'POST'\)/);
+  assert.doesNotMatch(main, /\/api\/map\/show.*safeTopology|\/api\/map\/show.*setFullScreen/);
+});
 test('map camera coordinates invert under pan and zoom', () => {
   const point={x:217,y:103}, camera={x:41,y:-17,zoom:1.75};
   assert.deepEqual(screenToMap(mapToScreen(point,camera),camera),point);

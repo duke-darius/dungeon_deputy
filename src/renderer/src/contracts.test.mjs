@@ -24,3 +24,9 @@ test('black state and malformed DTOs produce a clean black projection', () => {
   });
   assert.equal(publicView({ mode: 'scene', sceneId: 'ashen-road', title: 1, description: 'x' }).mode, 'black');
 });
+
+test('public map projection preserves allowlisted camelCase visual fields only', () => {
+  const output=publicView({mode:'map',id:'tavern',image:'tavern.svg',gridVisible:true,scale:48,tokens:[{id:'hero-1',name:'Mira',kind:'hero',color:'#b89255',x:10,y:20,artwork:'hero.svg',notes:'private'}],campaignId:'secret'});
+  assert.deepEqual(output,{mode:'map',id:'tavern',image:'tavern.svg',gridVisible:true,scale:48,tokens:[{id:'hero-1',name:'Mira',kind:'hero',color:'#b89255',x:10,y:20,artwork:'hero.svg'}]});
+  assert.equal(publicView({...output,tokens:[{...output.tokens[0],artwork:'../../secret.svg'}]}).mode,'black');
+});

@@ -67,7 +67,7 @@ function installIpc() {
     ipcMain.removeHandler(channel);
   }
   ipcMain.handle('dm:command', async (event, path: unknown, method: unknown, body?: unknown) => {
-    if (!allowedSender('dm', event) || typeof path !== 'string' || !/^\/api\/(scenes|presentation|selection\/[a-z-]+|show\/[a-z-]+|blackout|map|map\/draft|map\/blank|map\/show)$/.test(path) || !['GET', 'POST', 'PUT'].includes(String(method))) throw new Error('Denied');
+    if (!allowedSender('dm', event) || typeof path !== 'string' || !/^\/api\/(scenes|presentation|selection\/[a-z-]+|show\/[a-z-]+|blackout|map|map\/draft|map\/blank|map\/show|map\/token(?:\/[a-zA-Z0-9-]+)?)$/.test(path) || !['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].includes(String(method))) throw new Error('Denied');
     const response = await api(path, String(method), body);
     if (!response.ok) throw new Error(`Presentation service returned ${response.status}.`);
     return response.status === 204 ? null : response.json();

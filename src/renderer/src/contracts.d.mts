@@ -1,8 +1,13 @@
 export type PublicPresentation = {
-  mode: 'black' | 'scene';
+  mode: 'black' | 'scene' | 'map';
   sceneId: string | null;
   title: string | null;
   description: string | null;
+  id?: string;
+  image?: string;
+  gridVisible?: boolean;
+  scale?: number;
+  tokens?: Array<{id:string;name:string;kind:string;color:string;x:number;y:number;artwork:string}>;
 };
 export type Scene = { id: string; title: string; description: string; image: string };
 export const SCENES: Scene[];
