@@ -4,7 +4,7 @@ Evidence recorded for the current Windows host after the integration corrections
 
 | Check | Result | Scope / caveat |
 |---|---|---|
-| Node tests via `npm test` | **Passed: 9/9** | Built-in Node tests, including a sandboxed-preload output check. |
+| Node tests via `npm test` | **Passed: 10/10** | Built-in Node tests, including fullscreen stability on scene changes. |
 | .NET tests via `npm test` | **Passed: 6/6** | Correct project: `src/backend.tests/DungeonDeputy.Api.Tests.csproj`; includes per-run token enforcement for `/health`. |
 | Standalone .NET test command | `dotnet test src/backend.tests/DungeonDeputy.Api.Tests.csproj -c Release` | Exact test project; do not use `src/backend/DungeonDeputy.Api.csproj` as the test project. |
 | `npm run build` | **Passed** | Frontend, Electron, and backend build. |
@@ -24,6 +24,7 @@ Evidence recorded for the current Windows host after the integration corrections
 - Protected the health endpoint with the backend token.
 - Refreshed the display list in the dashboard.
 - Compiled the sandboxed Electron preload as CommonJS `.cjs` and verified the emitted runtime file before launch/package.
+- Limited fullscreen repositioning to actual display-topology changes; scene selection and blackout no longer trigger fullscreen toggles or window recreation.
 
 Tests were rerun after these corrections. No new npm dependencies were added.
 

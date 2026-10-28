@@ -5,8 +5,8 @@ Use a fresh launch after setup in [README](../README.md). Stage 1 is the scene-p
 1. Start the app with `npm run dev` and confirm the DM dashboard is available independently of the player display.
 2. Select each bundled scene and inspect its private preview. Confirm selecting/previewing alone does not change the public output.
 3. Use the explicit **Show on table** action. Confirm the player output changes to the selected scene and contains no dashboard controls or DM-only content.
-4. Select and show a different scene; verify the public scene changes only after the explicit action.
-5. Activate **Black out**. Confirm public output is entirely black; restoring a scene requires another deliberate show action.
+4. Select and show a different scene; verify the public scene changes only after the explicit action and the same fullscreen window remains in place without exposing the taskbar.
+5. Activate **Black out**. Confirm public output is entirely black, the player window stays fullscreen, and restoring a scene requires another deliberate show action.
 6. With one display, confirm the public preview is a normal movable window and does not take over or mirror the dashboard.
 7. If a second physical display is available, select it and check public window placement. Disconnect, reconnect, and reassign it; confirm the display selection refreshes and unsafe output is not exposed. These physical checks have not yet been performed for this review.
 8. Review [verification status](verification-status.md) and [known limitations](known-limitations.md). Only platforms/hardware actually exercised may be accepted as verified.

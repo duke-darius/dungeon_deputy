@@ -72,7 +72,12 @@ function installIpc() {
   });
   ipcMain.handle('dm:preferences', async (event, value?: unknown) => {
     if (!allowedSender('dm', event)) throw new Error('Denied');
-    if (value !== undefined) { prefs = validPreferences(value); await savePreferences(); safeTopology(); }
+    if (value !== undefined) {
+      const previousDisplayId = prefs.displayId;
+      prefs = validPreferences(value);
+      await savePreferences();
+      if (prefs.displayId !== previousDisplayId) safeTopology();
+    }
     return prefs;
   });
   ipcMain.handle('display:list', (event) => {
@@ -115,6 +120,7 @@ function safeTopology() {
   const selected = chooseExternalDisplay(all, primary.id, prefs.displayId);
   if (prefs.displayId !== null && !selected) { prefs.displayId = null; void savePreferences(); }
   const nextDisplayId = selected?.id ?? null;
+  if (displayStateInitialized && nextDisplayId === activeDisplayId) return;
   if (displayStateInitialized && nextDisplayId !== activeDisplayId) void api('/api/blackout', 'POST').catch(() => {});
   activeDisplayId = nextDisplayId;
   if (selected && prefs.displayId === null) { prefs.displayId = selected.id; void savePreferences(); }

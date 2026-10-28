@@ -34,3 +34,8 @@ test('topology recovery blacks out when the selected external display changes', 
   assert.match(main, /frame: true, fullscreen: !!external/);
   assert.match(main, /filter\(d => d\.id !== primaryId\)/);
 });
+test('scene state changes do not toggle or recreate the fullscreen player window', () => {
+  assert.match(main, /const previousDisplayId = prefs\.displayId;[\s\S]*if \(prefs\.displayId !== previousDisplayId\) safeTopology\(\)/);
+  assert.match(main, /if \(displayStateInitialized && nextDisplayId === activeDisplayId\) return;/);
+  assert.doesNotMatch(main, /BrowserWindow\.getAllWindows\(\).*destroy/);
+});
