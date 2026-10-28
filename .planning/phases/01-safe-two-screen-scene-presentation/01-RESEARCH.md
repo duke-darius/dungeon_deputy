@@ -43,7 +43,7 @@ The npm package gate classified some well-known dependencies as `SUS` because th
 | Library | Version observed | Purpose | When to Use |
 |---------|-----------------|---------|-------------|
 | `@vitejs/plugin-react` | 6.1.2 (published 2026-10-05) | React transform and fast refresh | Renderer development/build. |
-| `electron-builder` | 26.18.0 (published 2026-10-20) | Desktop packaging | Stage 1 must prove the installed-app shape, with platform-specific packaging limitations documented. |
+| Electron Forge | Current compatible release | Desktop packaging | Single official packaging lifecycle with platform makers and signing integrations; selected instead of electron-builder to match STACK.md. |
 | `@types/react` | 19.3.0 | React TypeScript types | Type-checking React renderer. |
 | `@types/react-dom` | 19.3.0 | React DOM TypeScript types | Type-checking renderer bootstrap. |
 | `@types/node` | 26.6.5 | Node/Electron main TypeScript types | Type-checking Electron main/preload. |
@@ -75,7 +75,7 @@ Audit run through the GSD package-legitimacy check against npm on 2026-10-28. Re
 | `@types/react-dom` | npm | ~49 days / 19.3.0 | 127,180,405/wk | github.com/DefinitelyTyped/DefinitelyTyped | OK | Approved; no declared postinstall. |
 
 **Packages removed due to [SLOP] verdict:** none.  
-**Packages flagged as suspicious [SUS]:** `electron`, `electron-builder`, `vite`, `react`, `react-dom`, `@vitejs/plugin-react`, `@types/node` — add a human verification checkpoint before each install.
+**Packages flagged as suspicious [SUS]:** `electron`, `electron-builder`, `vite`, `react`, `react-dom`, `@vitejs/plugin-react`, `@types/node` — add a human verification checkpoint before each install. `electron-builder` is not selected and must not be installed. The exact Electron Forge CLI/maker packages require their own GSD package legitimacy audit before recommendation or installation; audit status is not inferred from electron-builder.
 
 ## Architecture Patterns
 
