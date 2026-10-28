@@ -134,7 +134,7 @@ Phases with standard patterns (skip research-phase unless implementation details
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | MEDIUM | Official current docs support core direction, but exact package patches, Forge integration, RIDs and real packaging remain to verify; Context7 quota was unavailable. |
+| Stack | MEDIUM | Official current docs support core direction, but exact package patches, Forge integration, RIDs and real packaging remain to verify; authenticated Context7 confirmed Electron display API names, while platform packaging remains untested. |
 | Features | HIGH | Stage scope, ordering, dependencies and anti-features follow the authoritative brief and PROJECT.md; market evidence is explicitly weak and did not drive recommendations. |
 | Architecture | HIGH | Boundaries follow project requirements and official Electron/.NET guidance; implementation details for display behavior and packaging still require physical/platform testing. |
 | Pitfalls | LOW | Research source confidence is explicitly LOW under its provider classifier despite citations to official docs; use as concrete risk hypotheses and validate via tests/hardware. |
@@ -149,6 +149,7 @@ Phases with standard patterns (skip research-phase unless implementation details
 - **Display preference stability:** Treat display IDs as best-effort only; re-enumerate and allow reselection/fallback.
 - **Later-stage data/network risks:** Validate SRD provenance/licensing in Stage 5; revisit threat model and authorization before Stage 6 LAN access. Do not resolve these uncertainties by adding scope to Stage 1.
 - **Version freshness:** Research versions were current as of 2026-10-28; resolve stable patches and lock them at project bootstrap.
+- **Package verification:** The Phase 1 npm legitimacy gate flagged several just-published stable packages `[SUS]` due recency, despite high downloads and known repositories. Preserve the blocking human verification checkpoints before installing them; see `.planning/phases/01-safe-two-screen-scene-presentation/01-RESEARCH.md`.
 
 ## Sources
 
