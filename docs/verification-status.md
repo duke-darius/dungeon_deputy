@@ -25,6 +25,7 @@ Evidence recorded for the current Windows host after the integration corrections
 - Refreshed the display list in the dashboard.
 - Compiled the sandboxed Electron preload as CommonJS `.cjs` and verified the emitted runtime file before launch/package.
 - Limited fullscreen repositioning to actual display-topology changes; scene selection and blackout no longer trigger fullscreen toggles or window recreation.
+- Reapplied bounds on same-display metrics changes without leaving fullscreen.
 
 Tests were rerun after these corrections. No new npm dependencies were added.
 

@@ -114,13 +114,17 @@ function createWindows() {
   pub.webContents.on('will-navigate', (e, url) => { const allowed = app.isPackaged ? url.startsWith('file:') : url.startsWith('http://127.0.0.1:5173/'); if (!allowed) e.preventDefault(); });
   load(pub, 'public.html'); pub.once('ready-to-show', () => pub.show());
 }
-function safeTopology() {
+function safeTopology(metricsDisplayId?: number) {
   const all = screen.getAllDisplays(); const primary = screen.getPrimaryDisplay();
   const publicWindow = windows.get('public'); if (!publicWindow || publicWindow.isDestroyed()) return;
   const selected = chooseExternalDisplay(all, primary.id, prefs.displayId);
   if (prefs.displayId !== null && !selected) { prefs.displayId = null; void savePreferences(); }
   const nextDisplayId = selected?.id ?? null;
-  if (displayStateInitialized && nextDisplayId === activeDisplayId) return;
+  if (displayStateInitialized && nextDisplayId === activeDisplayId) {
+    if (selected && metricsDisplayId === selected.id) publicWindow.setBounds(selected.bounds);
+    else if (!selected && metricsDisplayId === primary.id) publicWindow.setBounds({ x: primary.bounds.x + 80, y: primary.bounds.y + 80, width: 960, height: 540 });
+    return;
+  }
   if (displayStateInitialized && nextDisplayId !== activeDisplayId) void api('/api/blackout', 'POST').catch(() => {});
   activeDisplayId = nextDisplayId;
   if (selected && prefs.displayId === null) { prefs.displayId = selected.id; void savePreferences(); }
@@ -132,7 +136,8 @@ function safeTopology() {
 }
 app.whenReady().then(async () => {
   screen.getAllDisplays(); await loadPreferences(); installIpc(); await startBackend(); createWindows();
-  screen.on('display-added', safeTopology); screen.on('display-removed', safeTopology); screen.on('display-metrics-changed', safeTopology);
+  screen.on('display-added', () => safeTopology()); screen.on('display-removed', () => safeTopology());
+  screen.on('display-metrics-changed', (_event, display) => safeTopology(display.id));
 }).catch(error => { console.error(error); app.quit(); });
 app.on('before-quit', () => { quitting = true; if (backend && backend.exitCode === null) backend.kill(); });
 app.on('window-all-closed', () => app.quit());
