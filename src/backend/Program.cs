@@ -51,7 +51,7 @@ app.MapPost("/api/map/blank", (MapService maps) =>
     var current = maps.Get().Draft;
     return maps.Save(current with { Id = Guid.NewGuid().ToString("N"), Name = "Untitled map", Image = "", Tokens = [] }) ? Results.Ok(maps.Get()) : Results.BadRequest();
 });
-app.MapPost("/api/map/show", (MapService maps) => { maps.Publish(); return Results.Ok(maps.Get()); });
+app.MapPost("/api/map/show", (MapService maps, PresentationState presentation) => { var approved = maps.Publish(); var publicMap = maps.GetPublic()!; presentation.ShowMap(publicMap); return Results.Ok(new MapState(maps.Get().Draft, approved)); });
 
 app.Run();
 

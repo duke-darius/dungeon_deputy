@@ -1,4 +1,5 @@
 using DungeonDeputy.Api.Maps;
+using DungeonDeputy.Api;
 using Microsoft.Extensions.Configuration;
 using Xunit;
 
@@ -19,6 +20,22 @@ public sealed class MapApiTests : IDisposable
         var reopened=Open().Get();
         Assert.Equal("Private revision",reopened.Draft.Name); Assert.Equal("The Crooked Tankard",reopened.Approved!.Name);
         Assert.NotEqual(reopened.Draft.Tokens[0].X,reopened.Approved.Tokens[0].X);
+    }
+    [Fact]
+    public void PublicMapShowSnapshotsDraftAndBlackoutSurvivesMapRefresh()
+    {
+        var service=Open(); var presentation=new PresentationState();
+        var draft=service.Get().Draft;
+        Assert.Null(service.GetPublic());
+        service.Publish(); presentation.ShowMap(service.GetPublic()!);
+        var approved=service.GetPublic()!;
+        Assert.Equal("map", approved.Mode); Assert.Equal(draft.Id, approved.Id); Assert.Equal(7, approved.Tokens.Count);
+        Assert.True(service.Save(draft with { Id="private-change", Image="", Tokens=[] }));
+        var afterDraftEdit=service.GetPublic()!;
+        Assert.Equal((approved.Id,approved.Image,approved.GridVisible,approved.Scale,approved.Tokens[0]),(afterDraftEdit.Id,afterDraftEdit.Image,afterDraftEdit.GridVisible,afterDraftEdit.Scale,afterDraftEdit.Tokens[0]));
+        presentation.Blackout();
+        _=service.Get();
+        Assert.Equal("black", ((PublicPresentation)presentation.PublicPresentation).Mode);
     }
     [Fact]
     public void BlankMapCanBeSavedAndReopened()

@@ -1,6 +1,8 @@
+using DungeonDeputy.Api.Maps;
+
 namespace DungeonDeputy.Api;
 
-public sealed record PublicPresentation(string Mode, string? SceneId, string? Title, string? Description);
+public sealed record PublicPresentation(string Mode, string? SceneId, string? Title, string? Description, string? Id = null, string? Image = null, bool? GridVisible = null, double? Scale = null, List<MapToken>? Tokens = null);
 
 public sealed class PresentationState
 {
@@ -14,10 +16,11 @@ public sealed class PresentationState
 
     private string? _selectedScene;
     private PublicPresentation _public = new("black", null, null, null);
+    private PublicPresentation _active = new("black", null, null, null);
 
     public string? SelectedSceneId => _selectedScene;
     public IReadOnlyCollection<string> SceneIds => Scenes.Keys.ToArray();
-    public PublicPresentation PublicPresentation => _public;
+    public PublicPresentation PublicPresentation => _active;
 
     public bool Select(string sceneId)
     {
@@ -32,8 +35,11 @@ public sealed class PresentationState
         if (candidate is null || !Scenes.TryGetValue(candidate, out var scene)) return false;
         _selectedScene = candidate;
         _public = new PublicPresentation("scene", candidate, scene.Title, scene.Description);
+        _active = _public;
         return true;
     }
 
-    public void Blackout() => _public = new PublicPresentation("black", null, null, null);
+    public void ShowMap(PublicMap map) => _active = new PublicPresentation(map.Mode, null, null, null, map.Id, map.Image, map.GridVisible, map.Scale, map.Tokens);
+
+    public void Blackout() { _public = new PublicPresentation("black", null, null, null); _active = _public; }
 }

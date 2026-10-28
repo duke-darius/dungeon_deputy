@@ -8,6 +8,7 @@ public sealed record MapToken(string Id, string Name, string Kind, string Color,
 public sealed record MapDocument(string CampaignId, string SessionId, string Id, string Name, string Image, bool GridVisible, double Scale, List<MapToken> Tokens);
 public sealed record MapState(MapDocument Draft, MapDocument? Approved);
 public sealed record TokenCommand(string? Name, string? Kind, string? Color, string? Artwork, double? X, double? Y);
+public sealed record PublicMap(string Mode, string Id, string Image, bool GridVisible, double Scale, List<MapToken> Tokens);
 
 public sealed class MapService
 {
@@ -82,5 +83,6 @@ public sealed class MapService
         if (draft.Tokens.Count >= 100 || token is null || draft.Tokens.Any(t => t.Id == token.Id)) return false;
         return Save(draft with { Tokens = [.. draft.Tokens, token] });
     }
-    public void Publish() { using var db = Connect(); db.Open(); using var transaction = db.BeginTransaction(); using var cmd = db.CreateCommand(); cmd.Transaction=transaction; cmd.CommandText = "INSERT INTO approved_map(id,document) SELECT 1,document FROM map_draft WHERE id=1 ON CONFLICT(id) DO UPDATE SET document=excluded.document"; cmd.ExecuteNonQuery(); transaction.Commit(); }
+    public MapDocument Publish() { using var db = Connect(); db.Open(); using var transaction = db.BeginTransaction(); using var cmd = db.CreateCommand(); cmd.Transaction=transaction; cmd.CommandText = "INSERT INTO approved_map(id,document) SELECT 1,document FROM map_draft WHERE id=1 ON CONFLICT(id) DO UPDATE SET document=excluded.document"; cmd.ExecuteNonQuery(); transaction.Commit(); return Get().Approved!; }
+    public PublicMap? GetPublic() { var approved=Get().Approved; return approved is null ? null : new("map", approved.Id, approved.Image, approved.GridVisible, approved.Scale, approved.Tokens.Select(t => new MapToken(t.Id,t.Name,t.Kind,t.Color,t.X,t.Y,t.Artwork)).ToList()); }
 }
