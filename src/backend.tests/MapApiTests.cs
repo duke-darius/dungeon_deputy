@@ -26,5 +26,12 @@ public sealed class MapApiTests : IDisposable
         var service=Open(); var map=service.Get().Draft with { Id="blank",Name="Blank",Image="",GridVisible=false,Tokens=[] };
         Assert.True(service.Save(map)); Assert.Equal("blank",Open().Get().Draft.Id);
     }
+    [Fact]
+    public void DraftValidationRejectsInvalidTokenColorAndUnboundedCoordinates()
+    {
+        var service=Open(); var draft=service.Get().Draft;
+        Assert.False(service.Save(draft with { Tokens=[draft.Tokens[0] with { Color="url(javascript:alert(1))" }] }));
+        Assert.False(service.Save(draft with { Tokens=[draft.Tokens[0] with { X=double.PositiveInfinity }] }));
+    }
     public void Dispose() { try { Directory.Delete(_directory,true); } catch {} }
 }

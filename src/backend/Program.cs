@@ -3,13 +3,17 @@ using DungeonDeputy.Api;
 using DungeonDeputy.Api.Maps;
 
 var builder = WebApplication.CreateBuilder(args);
+var dataDirectory = builder.Configuration["DUNGEON_DEPUTY_DATA_DIR"] ?? Environment.GetEnvironmentVariable("DUNGEON_DEPUTY_DATA_DIR");
+if (string.IsNullOrWhiteSpace(dataDirectory))
+    throw new InvalidOperationException("DUNGEON_DEPUTY_DATA_DIR is required; launch the backend through Dungeon Deputy so it can use your per-user data folder.");
+Directory.CreateDirectory(Path.GetFullPath(dataDirectory));
 var portValue = Environment.GetEnvironmentVariable("DUNGEON_DEPUTY_PORT");
 if (!int.TryParse(portValue, out var port) || port is < 1 or > 65535)
     throw new InvalidOperationException("DUNGEON_DEPUTY_PORT must be a valid TCP port.");
 
 builder.WebHost.ConfigureKestrel(options => options.Listen(IPAddress.Loopback, port));
 builder.Services.AddSingleton<PresentationState>();
-builder.Services.AddSingleton<MapService>();
+builder.Services.AddSingleton(new MapService(builder.Configuration));
 var app = builder.Build();
 
 app.Use(async (context, next) =>
