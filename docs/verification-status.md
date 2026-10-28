@@ -30,4 +30,4 @@ Tests were rerun after these corrections. No new npm dependencies were added.
 
 ## Acceptance status
 
-Automated and packaging checks pass for the scope above, but Phase 1 is **awaiting human review**, not approved. The physical Windows display workflow and macOS remain unverified. Review the [demo checklist](phase-1-demo.md), then explicitly approve Phase 1 or report defects before any Phase 2 work.
+**Phase 1 approved by the user on 2026-10-28.** This approval completes the review checkpoint and authorizes proceeding to Phase 2 planning/implementation. It does not change the evidence above: physical HDMI/second-display hot-plug behavior and macOS x64/arm64 remain unverified, and no such tests are claimed.

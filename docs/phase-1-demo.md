@@ -20,4 +20,4 @@ Use a fresh launch after setup in [README](../README.md). Stage 1 is the scene-p
 
 ## Review outcome
 
-**Awaiting user acceptance.** Please run/review the workflow and reply with explicit Phase 1 approval, or list defects and the OS/device/display configuration tested. Do not proceed to Phase 2 before explicit approval.
+**Phase 1 approved by the user on 2026-10-28.** Approval completes the Stage 1 review checkpoint; it is not a claim that the unperformed physical display or macOS tests were completed. Their status remains as recorded above. Phase 2 may proceed as a separate phase; no Phase 2 implementation is part of this plan.
