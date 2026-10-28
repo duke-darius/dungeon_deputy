@@ -64,7 +64,7 @@ status: complete
 1. **Task 2: Install only the approved PixiJS package** - `f804504` (chore)
 2. **Task 2 exact-version correction** - `c9ec683` (fix)
 
-**Plan metadata:** pending
+**Plan metadata:** `bc9b28e` (docs: summary and state outputs)
 
 ## Self-Check: PASSED
 
