@@ -89,7 +89,7 @@ status: complete
 1. **Task 1: Implement tested token and approval state transitions** — `77a961b` (`feat`)
 2. **Task 2: Expose the seven-token tavern editor and token inspector** — `2f0e7d7` (`feat`)
 
-**Plan metadata:** pending SDK metadata commit.
+**Plan metadata:** `a60fdb8` (summary/state/roadmap/requirements), `91ef232` (planning progress index).
 
 ## Verification
 
