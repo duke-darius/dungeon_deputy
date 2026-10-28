@@ -132,7 +132,8 @@ function safeTopology(metricsDisplayId?: number) {
     publicWindow.setFullScreen(false); publicWindow.setBounds({ x: primary.bounds.x + 80, y: primary.bounds.y + 80, width: 960, height: 540 });
     return;
   }
-  publicWindow.setFullScreen(false); publicWindow.setBounds(selected.bounds); publicWindow.setFullScreen(true);
+  publicWindow.setBounds(selected.bounds);
+  if (!publicWindow.isFullScreen()) publicWindow.setFullScreen(true);
 }
 app.whenReady().then(async () => {
   screen.getAllDisplays(); await loadPreferences(); installIpc(); await startBackend(); createWindows();
