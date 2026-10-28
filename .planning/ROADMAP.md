@@ -45,12 +45,12 @@ Plans:
   1. The DM can create/edit a map with an optional square grid and adjust zoom, pan, and scale.
   2. The DM can build a tavern encounter with four heroes and three goblins, add/move/rename/recolor/remove tokens, and show the approved map state on HDMI.
   3. The DM can save a campaign/session, quit and relaunch, and recover that map and all token positions.
-**Plans:** 3/5 plans executed
+**Plans:** 4/5 plans executed
 Plans:
 - [x] 02-01-PLAN.md — Review and pin the approved PixiJS package
 - [x] 02-02-PLAN.md — Build the saved tavern/blank map editing tracer
 - [x] 02-03-PLAN.md — Add full token editing, bundled artwork attribution, and explicit public map approval
-- [ ] 02-04-PLAN.md — Publish an allowlisted map in the existing player window
+- [x] 02-04-PLAN.md — Publish an allowlisted map in the existing player window
 - [ ] 02-05-PLAN.md — Verify packaged save/reload, document demo, and review Stage 2
 **UI hint**: yes
 
@@ -123,7 +123,7 @@ Phases execute in the specified stage order: 1 → 2 → 3 → 4 → 5 → 6 →
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Safe Two-Screen Scene Presentation | 5/5 | Complete (user approved) | 2026-10-28 |
-| 2. Playable Digital Battle Map | 3/5 | In Progress | - |
+| 2. Playable Digital Battle Map | 4/5 | In Progress | - |
 | 3. Fog of War and Encounter Control | 0/TBD | Not started | - |
 | 4. Soundboard, Scenes, and 12-Key Control | 0/TBD | Not started | - |
 | 5. Offline 2024 SRD Compendium | 0/TBD | Not started | - |

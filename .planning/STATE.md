@@ -3,16 +3,16 @@ gsd_state_version: "1.0"
 current_phase: 2
 current_phase_name: Playable Digital Battle Map
 status: executing
-stopped_at: Completed 02-03-PLAN.md
-last_updated: "2026-10-28T15:57:22.400Z"
+stopped_at: Completed 02-04-PLAN.md
+last_updated: "2026-10-28T16:09:20.415Z"
 last_activity: 2026-10-28
 last_activity_desc: Completed Phase 2 Plan 02
-state_head: 2f0e7d7db90ed7ca2dad3c2687fafc9421c288f4
+state_head: fc07908c81f57dc9882df575acbdaf843599040d
 progress:
   total_phases: 7
   completed_phases: 1
   total_plans: 10
-  completed_plans: 8
+  completed_plans: 9
   percent: 14
 ---
 
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-10-28)
 ## Current Position
 
 Phase: 2 (Playable Digital Battle Map) — EXECUTING
-Plan: 4 of 5
+Plan: 5 of 5
 Status: Ready to execute
 Last activity: 2026-10-28 — Completed Phase 2 Plan 02
 
@@ -63,6 +63,7 @@ Progress: ░░░░░░░░░░ [█░░░░░░░░░] 14%
 | Phase 02 P01 | 2min | 2 tasks | 2 files |
 | Phase 02 P02 | 45min | 3 tasks | 17 files |
 | Phase 02 P03 | 8min | 2 tasks | 12 files |
+| Phase 02 P04 | 11 min | 2 tasks | 13 files |
 
 ## Accumulated Context
 
@@ -89,6 +90,7 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase 02]: Public approval interaction stays out of this tracer; subsequent phase handles publication UI.
 - [Phase 02]: Keep authenticated token mutations confined to the separate private draft until explicit approval.
 - [Phase 02]: Bundle original hero/goblin assets identified only by catalog keys; do not add npm packages.
+- [Phase 02]: Keep public map updates on polling until Phase 6/CHAR-04; explicit Show snapshots draft, while blackout overrides active presentation.
 
 ### Pending Todos
 
@@ -108,6 +110,6 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 
 ## Session Continuity
 
-Last session: 2026-10-28T15:57:22.377Z
-Stopped at: Completed 02-03-PLAN.md
+Last session: 2026-10-28T16:09:20.392Z
+Stopped at: Completed 02-04-PLAN.md
 Resume file: None
