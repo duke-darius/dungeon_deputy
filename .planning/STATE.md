@@ -1,19 +1,19 @@
 ---
 gsd_state_version: "1.0"
-current_phase: 1
-current_phase_name: Safe Two-Screen Scene Presentation
-status: awaiting_review
-stopped_at: Phase 1 review checkpoint after 01-05 Task 1
-last_updated: "2026-10-28"
+current_phase: 2
+current_phase_name: Playable Digital Battle Map
+status: ready_to_plan
+stopped_at: Phase 1 approved; Phase 2 implementation not started
+last_updated: "2026-10-28T14:33:46.862Z"
 last_activity: 2026-10-28
 last_activity_desc: Stage 1 docs committed; awaiting explicit user acceptance
-state_head: 69622cc
+state_head: b708e5d9a6e5784365e93cce58914d1dc9a8101a
 progress:
   total_phases: 7
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 5
-  completed_plans: 4
-  percent: 0
+  completed_plans: 5
+  percent: 14
 ---
 
 # Project State
@@ -23,16 +23,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-10-28)
 
 **Core value:** The DM can privately control the session while showing only approved visuals on the table display.
-**Current focus:** Phase 1 — Safe Two-Screen Scene Presentation
+**Current focus:** Phase 2 — Playable Digital Battle Map
 
 ## Current Position
 
-Phase: 1 (Safe Two-Screen Scene Presentation) — AWAITING USER REVIEW
-Plan: 5 of 5
-Status: Awaiting explicit Phase 1 acceptance; do not start Phase 2.
-Last activity: 2026-10-28 — Stage 1 documentation committed; human review checkpoint reached.
+Phase: 2 (Playable Digital Battle Map)
+Plan: Not planned
+Status: Phase 1 explicitly approved by the user; Phase 2 is authorized but implementation has not started.
+Last activity: 2026-10-28 — Phase 1 approval recorded and Plan 05 completed.
 
-Progress: ░░░░░░░░░░ [░░░░░░░░░░] 0%
+Progress: ░░░░░░░░░░ [█░░░░░░░░░] 14%
 
 ## Performance Metrics
 
@@ -59,6 +59,7 @@ Progress: ░░░░░░░░░░ [░░░░░░░░░░] 0%
 | Phase 01 P02 | 7min | 2 tasks | 15 files |
 | Phase 1 P3 | 6min | 2 tasks | 19 files |
 | Phase 01 P04 | 9min | 2 tasks | 15 files |
+| Phase 1 P5 | 4min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -76,12 +77,13 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase 1]: Use separate private/public Vite routes and the built-in Node test runner without adding dependencies.
 - [Phase 01]: Use sender-checked narrow IPC and random per-run token; keep private backend calls in Electron main.
 - [Phase 01]: Public renderer receives only presentation retrieval; invalid display assignment uses windowed fallback.
-- [Phase 1 Plan 05]: Automated Windows checks passed; physical display workflow and macOS remain unverified pending user review.
+- [Phase 1 Plan 05]: Automated Windows checks are recorded; physical display workflow and macOS remain unverified despite Phase 1 approval.
+- [Phase 1]: Phase 1 explicitly approved by the user on 2026-10-28; approval does not imply HDMI hot-plug or macOS verification.
+- [Phase 1]: For Phase 6, include immediate SignalR push updates for public scene and blackout state; defer implementation until that phase.
 
 ### Pending Todos
 
-- Human reviewer: run the Stage 1 demo checklist and explicitly approve Phase 1 or report defects/device/OS tested.
-- Do not begin Phase 2 until explicit approval.
+- Phase 2 planning may proceed; implementation has not started in this execution.
 
 ### Blockers/Concerns
 
@@ -97,6 +99,6 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 
 ## Session Continuity
 
-Last session: 2026-10-28
-Stopped at: Phase 1 human review checkpoint (01-05 Task 2)
-Resume file: .planning/phases/01-safe-two-screen-scene-presentation/01-05-PLAN.md
+Last session: 2026-10-28T14:33:46.840Z
+Stopped at: Phase 1 approved; Phase 2 implementation not started
+Resume file: None

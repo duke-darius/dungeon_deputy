@@ -6,8 +6,8 @@ DungeonDeputy grows through seven independently runnable, user-visible stages, f
 
 ## Phases
 
-- [ ] **Phase 1: Safe Two-Screen Scene Presentation** - Deliver the Stage 1 private-control/public-display workflow and stop for verification and review.
-- [ ] **Phase 2: Playable Digital Battle Map** - Edit maps and tokens, then save and resume their positions.
+- [x] **Phase 1: Safe Two-Screen Scene Presentation** - Deliver the Stage 1 private-control/public-display workflow; user approved Phase 1 on 2026-10-28. Physical HDMI/hot-plug and macOS verification remain unverified.
+- [ ] **Phase 2: Playable Digital Battle Map** - Edit maps and tokens, then save and resume their positions. (Authorized to proceed; implementation not started.)
 - [ ] **Phase 3: Fog of War and Encounter Control** - Run a basic encounter while keeping hidden information private.
 - [ ] **Phase 4: Soundboard, Scenes, and 12-Key Control** - Trigger sound and scene cues during play.
 - [ ] **Phase 5: Offline 2024 SRD Compendium** - Search licensed local rules data and add monsters to encounters.
@@ -27,13 +27,13 @@ DungeonDeputy grows through seven independently runnable, user-visible stages, f
   3. The DM can privately preview one of the bundled demo scenes, explicitly publish it, and change the public scene without exposing private controls or content.
   4. The DM can immediately blackout the player display, and disconnect/reconnect/reassignment leaves public output in a safe recoverable state.
   5. The app works offline, remembers appropriate preferences, and has reproducible run instructions; Windows/macOS verification is reported only for platforms physically tested.
-**Plans:** 4/5 plans executed
+**Plans:** 5/5 plans executed
 Plans:
 - [x] 01-01-PLAN.md — Verify audited npm package identities before installation
 - [x] 01-02-PLAN.md — Establish verified stack, runnable scripts, and backend contract
 - [x] 01-03-PLAN.md — Build private dashboard and fail-closed public scene renderer
 - [x] 01-04-PLAN.md — Implement secure Electron display lifecycle and Forge packaging
-- [ ] 01-05-PLAN.md — Document developer setup, Stage 1 demo, evidence, and review stop
+- [x] 01-05-PLAN.md — Document developer setup, Stage 1 demo, evidence, and review stop
 **UI hint**: yes
 
 ### Phase 2: Playable Digital Battle Map
@@ -115,8 +115,8 @@ Phases execute in the specified stage order: 1 → 2 → 3 → 4 → 5 → 6 →
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Safe Two-Screen Scene Presentation | 4/5 | In Progress | - |
-| 2. Playable Digital Battle Map | 0/TBD | Not started | - |
+| 1. Safe Two-Screen Scene Presentation | 5/5 | Complete (user approved) | 2026-10-28 |
+| 2. Playable Digital Battle Map | 0/TBD | Ready for planning; not started | - |
 | 3. Fog of War and Encounter Control | 0/TBD | Not started | - |
 | 4. Soundboard, Scenes, and 12-Key Control | 0/TBD | Not started | - |
 | 5. Offline 2024 SRD Compendium | 0/TBD | Not started | - |
