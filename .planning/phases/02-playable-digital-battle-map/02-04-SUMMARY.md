@@ -85,7 +85,7 @@ status: complete
 1. Task 1: Implement explicit publish and backend-approved snapshot tests — 2d344f1 (feat)
 2. Task 2: Render approved map in place on the existing player window — fc07908 (feat)
 
-Plan metadata commit: pending.
+Plan metadata commits: 0e12c63 (summary/state/roadmap) and 2768a05 (planning state timestamp).
 
 ## Verification
 - dotnet test src/backend.tests/DungeonDeputy.Api.Tests.csproj -c Release — passed (12 tests).
