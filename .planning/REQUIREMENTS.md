@@ -9,7 +9,7 @@
 
 - [ ] **DISP-01**: The DM can launch the packaged desktop app and use a private dashboard separate from the player-facing display.
 - [ ] **DISP-02**: The DM can view available displays, select the table display, and use a safe windowed player preview when only one display is available.
-- [ ] **DISP-03**: The DM can choose from bundled demo scenes, preview privately, show a selected scene on the player display, and change the public scene without exposing DM-only content.
+- [x] **DISP-03**: The DM can choose from bundled demo scenes, preview privately, show a selected scene on the player display, and change the public scene without exposing DM-only content.
 - [ ] **DISP-04**: The DM can immediately blackout the player display, and the app responds safely when the external display is disconnected, reconnected, or reassigned.
 - [ ] **DISP-05**: The app remembers appropriate display/session preferences and can be run with reproducible developer instructions.
 
@@ -71,7 +71,7 @@ None currently identified beyond the staged roadmap. Additional licensed rule co
 |-------------|-------|--------|
 | DISP-01 | Phase 1 | Pending |
 | DISP-02 | Phase 1 | Pending |
-| DISP-03 | Phase 1 | Pending |
+| DISP-03 | Phase 1 | Complete |
 | DISP-04 | Phase 1 | Pending |
 | DISP-05 | Phase 1 | Pending |
 | MAP-01 | Phase 2 | Pending |
