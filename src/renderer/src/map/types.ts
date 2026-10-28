@@ -1,3 +1,3 @@
-export type MapToken = { Id:string; Name:string; Kind:string; Color:string; X:number; Y:number; Artwork:string };
-export type MapDocument = { CampaignId:string; SessionId:string; Id:string; Name:string; Image:string; GridVisible:boolean; Scale:number; Tokens:MapToken[] };
-export type MapState = { Draft:MapDocument; Approved:MapDocument|null };
+export type MapToken = { id:string; name:string; kind:string; color:string; x:number; y:number; artwork:string };
+export type MapDocument = { campaignId:string; sessionId:string; id:string; name:string; image:string; gridVisible:boolean; scale:number; tokens:MapToken[] };
+export type MapState = { draft:MapDocument; approved:MapDocument|null };

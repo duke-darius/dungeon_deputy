@@ -85,4 +85,16 @@ public sealed class PresentationApiTests : IClassFixture<WebApplicationFactory<P
         var response = await _client.GetAsync("/health");
         Assert.Equal(System.Net.HttpStatusCode.Unauthorized, response.StatusCode);
     }
+
+    [Fact]
+    public async Task MapApiUsesCamelCasePropertiesExpectedByTheRenderer()
+    {
+        using var document = JsonDocument.Parse(await _client.GetStringAsync("/api/map"));
+        var root = document.RootElement;
+        Assert.True(root.TryGetProperty("draft", out var draft));
+        Assert.False(root.TryGetProperty("Draft", out _));
+        Assert.True(draft.TryGetProperty("tokens", out var tokens));
+        Assert.True(tokens[0].TryGetProperty("id", out _));
+        Assert.True(tokens[0].TryGetProperty("artwork", out _));
+    }
 }
