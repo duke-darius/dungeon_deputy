@@ -15,9 +15,9 @@
 
 ### Battle maps and session state
 
-- [ ] **MAP-01**: The DM can create/edit a map scene with an optional square grid and basic zoom, pan, and scale controls.
+- [x] **MAP-01**: The DM can create/edit a map scene with an optional square grid and basic zoom, pan, and scale controls.
 - [ ] **MAP-02**: The DM can add, move, rename, recolor, and remove digital character and monster tokens on the map.
-- [ ] **MAP-03**: The DM can save a campaign/session and restore maps and token positions after restarting the app.
+- [x] **MAP-03**: The DM can save a campaign/session and restore maps and token positions after restarting the app.
 
 ### Encounters
 
@@ -75,9 +75,9 @@ None currently identified beyond the staged roadmap. Additional licensed rule co
 | DISP-03 | Phase 1 | Complete |
 | DISP-04 | Phase 1 | Complete |
 | DISP-05 | Phase 1 | Complete |
-| MAP-01 | Phase 2 | Pending |
+| MAP-01 | Phase 2 | Complete |
 | MAP-02 | Phase 2 | Pending |
-| MAP-03 | Phase 2 | Pending |
+| MAP-03 | Phase 2 | Complete |
 | ENCT-01 | Phase 3 | Pending |
 | ENCT-02 | Phase 3 | Pending |
 | ENCT-03 | Phase 3 | Pending |
