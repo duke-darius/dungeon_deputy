@@ -41,6 +41,7 @@
 - [ ] **CHAR-01**: The DM can create/edit SRD-only characters for a supported selection of classes/species, with supported ability, proficiency, HP, AC, inventory, spell/resource, and level calculations in the .NET domain layer.
 - [ ] **CHAR-02**: Players can join from a phone on the local network using a session code or QR invitation, without account registration or internet access.
 - [ ] **CHAR-03**: Players can view their assigned sheets and submit permitted edits/actions; changes sync with the DM, while the DM remains authoritative for combat and hidden information.
+- [ ] **CHAR-04**: In the SignalR stage, DM-approved scene changes and blackout are pushed immediately to the table display and connected player sheets without polling delay; each client receives only its authorized public state.
 
 ### Optional AI assistance
 
@@ -88,6 +89,7 @@ None currently identified beyond the staged roadmap. Additional licensed rule co
 | CHAR-01 | Phase 6 | Pending |
 | CHAR-02 | Phase 6 | Pending |
 | CHAR-03 | Phase 6 | Pending |
+| CHAR-04 | Phase 6 | Pending |
 | AI-01 | Phase 7 | Pending |
 | AI-02 | Phase 7 | Pending |
 | AI-03 | Phase 7 | Pending |

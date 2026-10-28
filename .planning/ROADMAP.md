@@ -88,11 +88,12 @@ Plans:
 **Goal**: The DM can manage supported SRD-only characters and players can securely access their assigned sheets over the local network without accounts or internet.
 **Mode:** mvp
 **Depends on**: Phase 5 (SRD definitions) and Phase 3 (encounter authority)
-**Requirements**: CHAR-01, CHAR-02, CHAR-03
+**Requirements**: CHAR-01, CHAR-02, CHAR-03, CHAR-04
 **Success Criteria** (what must be TRUE):
   1. The DM can create/edit supported SRD-only characters and see supported ability, proficiency, HP, AC, inventory, spell/resource, and level calculations.
   2. Players can join from phones on the local network using a session code or QR invitation without registration or internet access.
   3. Two players can join from phones on the same Wi-Fi, view their assigned sheets, and submit permitted inventory/resource edits that appear on the DM laptop; a DM HP change synchronizes back to the relevant player without exposing other players' or hidden data.
+  4. SignalR immediately pushes DM-approved scene changes and blackout to the table display and connected player sheets without polling delay; each client receives only its authorized public state.
 **Plans**: TBD
 **UI hint**: yes
 

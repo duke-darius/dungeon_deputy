@@ -21,6 +21,7 @@ The DM can privately control the session while showing only approved visuals on 
 - [ ] Stage 1 works on Windows and macOS; a single-display setup has a safe windowed preview.
 - [ ] The app is built incrementally as independently runnable vertical slices, verified before moving to the next stage.
 - [ ] Local play remains possible offline; player-facing and DM-private state remain separated.
+- [ ] When SignalR is introduced in Stage 6, DM-approved scene/blackout changes reach the table display and connected player sheets immediately, without polling delay or exposing unauthorized state.
 
 ### Out of Scope
 
@@ -57,6 +58,7 @@ The DM can privately control the session while showing only approved visuals on 
 | Keep the DM dashboard and player display as separate windows with separate content boundaries | HDMI output is public; private DM content must never be mirrored | — Pending |
 | Begin with scene presentation and blackout, not map/game systems | This is Stage 1's smallest complete, testable workflow | — Pending |
 | Use the Anthropic `frontend-design` skill for UI work | The UI should have an intentional visual identity grounded in tabletop play, not a generic dashboard template | — Pending |
+| Add push-based public scene and blackout updates during the SignalR stage | Remove the current polling delay while keeping the DM authoritative and public state allowlisted | — Pending |
 
 ## Evolution
 
