@@ -43,7 +43,7 @@ The visible acceptance target is a tavern encounter with four heroes and three g
 - Choose the smallest reliable PixiJS scene graph and pointer pan/zoom implementation; add no viewport helper unless it is justified and separately audited.
 - Choose a simple relational schema/API shape for campaign/session, maps, and tokens; use parameterized SQL and transactions.
 - Choose whether moves are sent on drag end or via small throttled updates, while ensuring failed saves are clearly surfaced and public state stays DM-approved.
-- Choose the simplest imported map-image workflow needed for the demo, provided bundled maps work offline and rights/attribution are documented.
+- Choose the simplest imported map-image workflow needed for the demo, provided bundled maps work offline and each bundled SVG contains its own XML-commented source/license/rights attribution; repeat that attribution in the final Phase 2 demo documentation (no adjacent asset README is required).
 - Choose test boundaries for map transforms, grid snapping/scale calculations, persistence round trips, and public/private projection.
 
 </decisions>

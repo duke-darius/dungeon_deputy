@@ -49,7 +49,7 @@ Plans:
 Plans:
 - [ ] 02-01-PLAN.md — Review and pin the approved PixiJS package
 - [ ] 02-02-PLAN.md — Build the saved tavern/blank map editing tracer
-- [ ] 02-03-PLAN.md — Add full token editing and explicit public map approval
+- [ ] 02-03-PLAN.md — Add full token editing, bundled artwork attribution, and explicit public map approval
 - [ ] 02-04-PLAN.md — Publish an allowlisted map in the existing player window
 - [ ] 02-05-PLAN.md — Verify packaged save/reload, document demo, and review Stage 2
 **UI hint**: yes
