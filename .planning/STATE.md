@@ -2,12 +2,12 @@
 gsd_state_version: "1.0"
 current_phase: 1
 current_phase_name: Safe Two-Screen Scene Presentation
-status: executing
-stopped_at: Completed 01-04-PLAN.md
-last_updated: "2026-10-28T11:56:04.051Z"
+status: awaiting_review
+stopped_at: Phase 1 review checkpoint after 01-05 Task 1
+last_updated: "2026-10-28"
 last_activity: 2026-10-28
-last_activity_desc: Phase 1 execution started
-state_head: 7f753e73d7b00dbe8a2c053ffa34398a43dbeb79
+last_activity_desc: Stage 1 docs committed; awaiting explicit user acceptance
+state_head: 69622cc
 progress:
   total_phases: 7
   completed_phases: 0
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-10-28)
 
 ## Current Position
 
-Phase: 1 (Safe Two-Screen Scene Presentation) — EXECUTING
+Phase: 1 (Safe Two-Screen Scene Presentation) — AWAITING USER REVIEW
 Plan: 5 of 5
-Status: Ready to execute
-Last activity: 2026-10-28 — Phase 1 execution started
+Status: Awaiting explicit Phase 1 acceptance; do not start Phase 2.
+Last activity: 2026-10-28 — Stage 1 documentation committed; human review checkpoint reached.
 
 Progress: ░░░░░░░░░░ [░░░░░░░░░░] 0%
 
@@ -76,14 +76,18 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase 1]: Use separate private/public Vite routes and the built-in Node test runner without adding dependencies.
 - [Phase 01]: Use sender-checked narrow IPC and random per-run token; keep private backend calls in Electron main.
 - [Phase 01]: Public renderer receives only presentation retrieval; invalid display assignment uses windowed fallback.
+- [Phase 1 Plan 05]: Automated Windows checks passed; physical display workflow and macOS remain unverified pending user review.
 
 ### Pending Todos
 
-None yet.
+- Human reviewer: run the Stage 1 demo checklist and explicitly approve Phase 1 or report defects/device/OS tested.
+- Do not begin Phase 2 until explicit approval.
 
 ### Blockers/Concerns
 
-- Phase 1 packaging, backend lifecycle, display hot-plug behavior, and physical cross-platform acceptance need validation during planning/execution.
+- Physical HDMI/second-display hot-plug workflow not tested.
+- macOS x64 and arm64 packaging/runtime/hardware not tested.
+- Browser screenshot unavailable because no visible desktop tab was available; do not fabricate one.
 
 ## Deferred Items
 
@@ -93,6 +97,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-28T11:56:04.033Z
-Stopped at: Completed 01-04-PLAN.md
-Resume file: None
+Last session: 2026-10-28
+Stopped at: Phase 1 human review checkpoint (01-05 Task 2)
+Resume file: .planning/phases/01-safe-two-screen-scene-presentation/01-05-PLAN.md
