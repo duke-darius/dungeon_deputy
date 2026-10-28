@@ -46,7 +46,9 @@ public sealed class PresentationApiTests : IClassFixture<WebApplicationFactory<P
     public PresentationApiTests(WebApplicationFactory<Program> factory)
     {
         Environment.SetEnvironmentVariable("DUNGEON_DEPUTY_PORT", "43128");
+        Environment.SetEnvironmentVariable("DUNGEON_DEPUTY_TOKEN", "test-token");
         _client = factory.CreateClient();
+        _client.DefaultRequestHeaders.Add("X-Dungeon-Token", "test-token");
     }
 
     [Fact]

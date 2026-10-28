@@ -10,6 +10,24 @@ builder.WebHost.ConfigureKestrel(options => options.Listen(IPAddress.Loopback, p
 builder.Services.AddSingleton<PresentationState>();
 var app = builder.Build();
 
+app.Use(async (context, next) =>
+{
+    if (context.Request.Path == "/health")
+    {
+        await next();
+        return;
+    }
+    var token = Environment.GetEnvironmentVariable("DUNGEON_DEPUTY_TOKEN");
+    var supplied = context.Request.Headers["X-Dungeon-Token"].ToString();
+    if (string.IsNullOrEmpty(token) || !System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(
+        System.Text.Encoding.UTF8.GetBytes(token), System.Text.Encoding.UTF8.GetBytes(supplied)))
+    {
+        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+        return;
+    }
+    await next();
+});
+
 app.MapGet("/health", () => Results.Ok(new { status = "ready" }));
 app.MapGet("/api/scenes", (PresentationState state) => Results.Ok(state.SceneIds));
 app.MapGet("/api/presentation", (PresentationState state) => Results.Ok(state.PublicPresentation));

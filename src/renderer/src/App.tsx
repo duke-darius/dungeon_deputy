@@ -8,6 +8,8 @@ export default function App() {
   const [shown, setShown] = useState<PublicPresentation>({ mode: 'black', sceneId: null, title: null, description: null });
   const [connected, setConnected] = useState(false);
   const [message, setMessage] = useState('Connecting to the local presentation service…');
+  const [displays, setDisplays] = useState<Array<{id: number; label: string}>>([]);
+  const [displayId, setDisplayId] = useState<number | null>(null);
   const preview = sceneById(previewId)!;
 
   const refresh = useCallback(async () => {
@@ -29,9 +31,16 @@ export default function App() {
     return () => window.clearInterval(timer);
   }, [refresh]);
 
+  useEffect(() => {
+    void Promise.all([window.dungeonDeputy.displays?.(), window.dungeonDeputy.preferences?.()]).then(([items, saved]) => {
+      setDisplays(items ?? []); setDisplayId(saved?.displayId ?? null);
+      if (saved?.sceneId && sceneById(saved.sceneId)) setPreviewId(saved.sceneId);
+    }).catch(() => setMessage('Display preferences could not be loaded.'));
+  }, []);
+
   async function select(id: string) {
     setPreviewId(id);
-    try { await command(`/api/selection/${encodeURIComponent(id)}`, 'POST'); }
+    try { await command(`/api/selection/${encodeURIComponent(id)}`, 'POST'); await window.dungeonDeputy.preferences?.({ sceneId: id, displayId }); }
     catch (error) { setMessage(error instanceof Error ? error.message : 'Could not save the private selection.'); setConnected(false); }
   }
 
@@ -72,6 +81,7 @@ export default function App() {
           {shown.mode === 'scene' ? <><img src={sceneById(shown.sceneId)?.image} alt="" /><div><span>Showing on table</span><strong>{shown.title}</strong></div></> : <><span className="black-preview" /><div><span>Showing on table</span><strong>Black screen</strong></div></>}
         </div>
         {message && <p className="service-message" role="status">{message}</p>}
+        <label className="table-hint">Player display <select value={displayId ?? ''} onChange={async event => { const id = event.target.value ? Number(event.target.value) : null; setDisplayId(id); await window.dungeonDeputy.preferences?.({ sceneId: previewId, displayId: id }); }}><option value="">Automatic / windowed preview</option>{displays.map(display => <option key={display.id} value={display.id}>{display.label}</option>)}</select></label>
         <p className="table-hint">Your private preview stays hidden until you choose to show it.</p>
         <div className="actions"><button className="show-button" onClick={() => void show()} disabled={!connected}>Show on table</button><button className="blackout-button" onClick={() => void blackout()}>Black out</button></div>
         <p className="action-footnote">Black out hides the public scene immediately.</p>
