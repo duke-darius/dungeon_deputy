@@ -32,3 +32,16 @@ Tests were rerun after these corrections. No new npm dependencies were added.
 ## Acceptance status
 
 **Phase 1 approved by the user on 2026-10-28.** This approval completes the review checkpoint and authorizes proceeding to Phase 2 planning/implementation. It does not change the evidence above: physical HDMI/second-display hot-plug behavior and macOS x64/arm64 remain unverified, and no such tests are claimed.
+
+## Phase 2 automated evidence (Windows x64 host)
+
+| Check | Result | Scope / caveat |
+|---|---|---|
+| `npm test` | **Passed: 18 Node tests and 12 .NET tests** | Includes nested `src/renderer/src/map/*.test.mjs`, camelCase public projection contract, map camera/lifecycle, and stable player-window regression. |
+| `npm run build` | **Passed** | TypeScript, Electron output, Vite renderer, and .NET Release backend; backend build reported 0 warnings and 0 errors. |
+| `npm run package:smoke` | **Passed on Windows x64** | Packages the app, runs the published `win-x64` backend in a temporary per-run user-data folder with a unique token, exercises authenticated tavern draft Save and explicit Show, mutates draft without republishing, stops/restarts the actual packaged backend, verifies draft and approved snapshots independently restore, then explicitly Shows the edited draft. No SQL is used to fake app behavior. |
+| Unauthorized map request | **Passed in package smoke** | `/api/map` without the per-run token returns HTTP 401. |
+| macOS x64 / arm64 | **Unverified** | No macOS host was used. |
+| Physical HDMI / external display and fullscreen behavior | **Unverified** | Automated same-window regression is covered by tests; no physical display was exercised. |
+
+One Electron Forge Node deprecation warning about child-process shell arguments appeared during package smoke; packaging and all assertions completed successfully. No dependencies were installed for Plan 02-05. Human visual/functional acceptance remains pending; see [Phase 2 demo](phase-2-demo.md).

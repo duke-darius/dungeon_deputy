@@ -1,6 +1,6 @@
 # DungeonDeputy
 
-DungeonDeputy is a local-first desktop app for keeping the Dungeon Master's controls private while showing only an explicitly approved scene on a player-facing display. Stage 1 provides the separate dashboard and public display, three bundled offline demo scenes, explicit scene publication, blackout, and a windowed fallback. Map editing and later-stage gameplay features are not part of this release.
+DungeonDeputy is a local-first desktop app for keeping the Dungeon Master's controls private while showing only explicitly approved visuals on a player-facing display. Phase 2 adds a private tavern/blank map editor, grid and camera controls, editable tokens, explicit map publication, blackout, and per-user SQLite save/reload. Later-stage encounter features remain out of scope.
 
 ## Requirements
 
@@ -48,6 +48,6 @@ Forge places packaged artifacts under `out/make/` (Windows Squirrel installer ou
 
 For an installed package, launch it using the installer/application produced under `out/make/`. The Windows package smoke command builds the Electron and renderer assets, stages the Windows package resources, and starts/probes the packaged backend; it is not a physical display acceptance test.
 
-## Stage 1 review
+## Phase 2 review
 
-Follow [the demo checklist](docs/phase-1-demo.md), read [verification status](docs/verification-status.md) and [known limitations](docs/known-limitations.md), then provide explicit Phase 1 acceptance or report defects. Do not begin Stage 2 until that review is approved.
+Follow [the Phase 2 demo checklist](docs/phase-2-demo.md), read [verification status](docs/verification-status.md) and [known limitations](docs/known-limitations.md), then provide explicit Phase 2 acceptance or report defects. Phase 3 has not started and must wait for this review.
