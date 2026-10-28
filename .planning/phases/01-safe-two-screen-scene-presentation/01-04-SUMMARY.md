@@ -13,12 +13,12 @@ provides:
   - Forge packaging and Windows resource/backend smoke validation
 affects: [01-05, packaging, desktop-security]
 actuals:
-  tokens: 6931
+  tokens: 11539
   tasks: 2
-  commits: 3
-commits: 3
+  commits: 6
+commits: 6
 plan_head_before: 2d0bd932d07b6c34f2816aa2ab4038d3c02ae06b
-plan_head_after: 024f29cc9b1a382e3ec7251970cb65cdf5212f31
+plan_head_after: b53b63a9a481822e2801902e9c0c701071c60e31
 tech-stack:
   added: []
   patterns: [sender-validated IPC, per-run backend bearer token, Electron Forge extra resources]
@@ -77,7 +77,7 @@ status: complete
 
 ## Performance
 
-- **Duration:** 9 min
+- **Duration:** 11 min
 - **Started:** 2026-10-28T11:44:00Z (approximate)
 - **Completed:** 2026-10-28T11:53:02Z
 - **Tasks:** 2
@@ -96,6 +96,7 @@ status: complete
 1. **Task 1: Wire secure Electron windows and owned backend lifecycle** - `5122a65` (feat)
 2. **Task 2: Implement display topology, preferences, and Forge resource packaging** - `755e17d` (build)
 3. **Task 2 follow-up: Resolve assembled Forge resource paths** - `024f29c` (fix)
+4. **Task 2 follow-up: Apply display selection immediately** - `b53b63a` (fix)
 
 ## Files Created/Modified
 
@@ -112,6 +113,7 @@ status: complete
 - Renderer-to-backend HTTP was replaced with main-process fetches and sender-checked IPC to remove CORS and renderer access to the private API.
 - The public bridge is purpose-limited to presentation retrieval; DM command/preferences/display capabilities are not exposed there.
 - Display assignment fallback is windowed and movable; public output starts black and no fallback moves it onto DM content.
+- Explicitly selecting a display immediately repositions the public window; local Vite HMR is allowed by the otherwise restrictive CSP.
 
 ## Deviations from Plan
 
@@ -133,10 +135,18 @@ status: complete
 - **Verification:** `npm run package:smoke` passed on Windows.
 - **Committed in:** `024f29c`
 
+**3. [Rule 1 - Display selection behavior] Apply saved display changes immediately**
+- **Found during:** Task 2
+- **Issue:** Persisting a new display selection did not itself reposition the already-created player window.
+- **Fix:** Revalidate topology and apply safe window placement after each DM preference update; permit the local Vite websocket required by dev-server HMR.
+- **Files modified:** `src/main.ts`, `src/renderer/index.html`, `src/renderer/public.html`
+- **Verification:** `npm test`, `npm run build`, and `npm run package:smoke` passed.
+- **Committed in:** `b53b63a`
+
 ---
 
-**Total deviations:** 2 auto-fixed (Rule 2: 1, Rule 1: 1)
-**Impact on plan:** Both changes were necessary to preserve the private/public security boundary and make the packaged app launch its resources correctly. No new npm dependencies were added.
+**Total deviations:** 3 auto-fixed (Rule 2: 1, Rule 1: 2)
+**Impact on plan:** The changes preserve the private/public security boundary, make packaging launch its resources correctly, and ensure display choices take effect. No new npm dependencies were added.
 
 ## Issues Encountered
 
@@ -162,7 +172,7 @@ None - no external service configuration required.
 
 - Summary exists at the required phase path.
 - Task commits `5122a65`, `755e17d`, and `024f29c` are ancestors of plan head `024f29c`.
-- Commits measured from plan ledger: 3; plan head before: `2d0bd932d07b6c34f2816aa2ab4038d3c02ae06b`; plan head after: `024f29cc9b1a382e3ec7251970cb65cdf5212f31`.
+- Commits measured from plan ledger at summary update: 6; plan head before: `2d0bd932d07b6c34f2816aa2ab4038d3c02ae06b`; plan head after: `b53b63a9a481822e2801902e9c0c701071c60e31`.
 
 ---
 *Phase: 01-safe-two-screen-scene-presentation*
