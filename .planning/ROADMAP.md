@@ -45,7 +45,13 @@ Plans:
   1. The DM can create/edit a map with an optional square grid and adjust zoom, pan, and scale.
   2. The DM can build a tavern encounter with four heroes and three goblins, add/move/rename/recolor/remove tokens, and show the approved map state on HDMI.
   3. The DM can save a campaign/session, quit and relaunch, and recover that map and all token positions.
-**Plans**: TBD
+**Plans:** 5 plans
+Plans:
+- [ ] 02-01-PLAN.md — Review and pin the approved PixiJS package
+- [ ] 02-02-PLAN.md — Build the saved tavern/blank map editing tracer
+- [ ] 02-03-PLAN.md — Add full token editing and explicit public map approval
+- [ ] 02-04-PLAN.md — Publish an allowlisted map in the existing player window
+- [ ] 02-05-PLAN.md — Verify packaged save/reload, document demo, and review Stage 2
 **UI hint**: yes
 
 ### Phase 3: Fog of War and Encounter Control
