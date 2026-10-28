@@ -1,0 +1,50 @@
+{
+  "name": "dungeon-deputy",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "tsc --noEmit && vite build && npm run build:backend",
+    "build:backend": "dotnet build src/backend/DungeonDeputy.Api.csproj -c Release",
+    "test": "dotnet test src/backend.tests/DungeonDeputy.Api.Tests.csproj -c Release",
+    "package:smoke": "node scripts/package-backend.mjs win-x64 --dry-run",
+    "start": "node scripts/run-backend.mjs",
+    "package": "electron-forge make"
+  },
+  "dependencies": {
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@electron-forge/cli": "8.0.1",
+    "@electron-forge/maker-squirrel": "8.0.1",
+    "@electron-forge/maker-zip": "8.0.1",
+    "@types/node": "26.6.5",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.1.2",
+    "electron": "45.1.0",
+    "typescript": "7.0.2",
+    "vite": "8.3.5"
+  },
+  "config": {
+    "forge": {
+      "packagerConfig": {},
+      "makers": [
+        {
+          "name": "@electron-forge/maker-squirrel",
+          "platforms": [
+            "win32"
+          ]
+        },
+        {
+          "name": "@electron-forge/maker-zip",
+          "platforms": [
+            "darwin"
+          ]
+        }
+      ]
+    }
+  }
+}
