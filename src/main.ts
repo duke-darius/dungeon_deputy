@@ -69,7 +69,7 @@ function installIpc() {
   });
   ipcMain.handle('dm:preferences', async (event, value?: unknown) => {
     if (!allowedSender('dm', event)) throw new Error('Denied');
-    if (value !== undefined) { prefs = validPreferences(value); await savePreferences(); }
+    if (value !== undefined) { prefs = validPreferences(value); await savePreferences(); safeTopology(); }
     return prefs;
   });
   ipcMain.handle('display:list', (event) => {
