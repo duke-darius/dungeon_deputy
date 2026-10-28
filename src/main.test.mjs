@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { chooseExternalDisplay } from './display-policy.mjs';
 const main = await readFile(new URL('./main.ts', import.meta.url), 'utf8');
 const preload = await readFile(new URL('./preload.ts', import.meta.url), 'utf8');
 test('main owns Electron display and backend lifecycle securely', () => {
@@ -14,4 +15,16 @@ test('public preload exposes only public presentation retrieval', () => {
   assert.match(preload, /const api = publicWindow\s*\? Object\.freeze\(\{ getPresentation/);
   assert.match(main, /allowedSender\('public', event\)/);
   assert.doesNotMatch(preload.slice(preload.indexOf('? Object.freeze'), preload.indexOf(': Object.freeze')), /command:|preferences:|displays:/);
+});
+test('display fallback uses only an external display and preserves an explicit preference', () => {
+  const displays = [{ id: 1 }, { id: 2 }, { id: 3 }];
+  assert.equal(chooseExternalDisplay(displays, 1, null)?.id, 2);
+  assert.equal(chooseExternalDisplay(displays, 1, 3)?.id, 3);
+  assert.equal(chooseExternalDisplay(displays, 1, 9), undefined);
+  assert.equal(chooseExternalDisplay([{ id: 1 }], 1, null), undefined);
+});
+test('topology recovery blacks out when the selected external display changes', () => {
+  assert.match(main, /nextDisplayId !== activeDisplayId\) void api\('\/api\/blackout', 'POST'\)/);
+  assert.match(main, /frame: true, fullscreen: !!external/);
+  assert.match(main, /filter\(d => d\.id !== primaryId\)/);
 });

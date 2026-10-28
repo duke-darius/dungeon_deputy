@@ -12,11 +12,6 @@ var app = builder.Build();
 
 app.Use(async (context, next) =>
 {
-    if (context.Request.Path == "/health")
-    {
-        await next();
-        return;
-    }
     var token = Environment.GetEnvironmentVariable("DUNGEON_DEPUTY_TOKEN");
     var supplied = context.Request.Headers["X-Dungeon-Token"].ToString();
     if (string.IsNullOrEmpty(token) || !System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(

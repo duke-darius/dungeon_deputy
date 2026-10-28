@@ -5,7 +5,7 @@ DungeonDeputy is a local-first desktop app for keeping the Dungeon Master's cont
 ## Requirements
 
 - Windows x64 or macOS on a supported x64/arm64 host for development. macOS build targets are configured, but have not been verified on macOS.
-- Node.js and npm (versions compatible with the lockfile and Electron 45).
+- Node.js 24 and npm 11 for the verified development setup (Node 24.11.1/npm 11.6.2 were used for the Windows checks).
 - .NET 10 SDK for building/running backend development and backend tests. The packaged backend is self-contained and does not require users to install .NET.
 
 ## Install, build, run
@@ -38,17 +38,13 @@ Do not substitute `src/backend/DungeonDeputy.Api.csproj`: that is the API applic
 
 ## Package and launch
 
-First publish the backend for the current host as above, then create the Forge package:
+First publish the backend for the current host as above, then create the Forge installer/package:
 
 ```sh
 npm run package
 ```
 
-Forge places packaged artifacts under `out/make/` (Windows Squirrel installer output; macOS ZIP output). To launch the app from the repository using its generated Electron entrypoint, after backend publish/package preparation, run:
-
-```sh
-npm run start
-```
+Forge places packaged artifacts under `out/make/` (Windows Squirrel installer output; macOS ZIP output). Install and launch the generated artifact from there. `npm run start` is only a direct Electron development launch and expects the Vite dev server to already be running; use `npm run dev` for the complete development workflow.
 
 For an installed package, launch it using the installer/application produced under `out/make/`. The Windows package smoke command builds the Electron and renderer assets, stages the Windows package resources, and starts/probes the packaged backend; it is not a physical display acceptance test.
 

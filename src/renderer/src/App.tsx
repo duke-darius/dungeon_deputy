@@ -32,10 +32,16 @@ export default function App() {
   }, [refresh]);
 
   useEffect(() => {
-    void Promise.all([window.dungeonDeputy.displays?.(), window.dungeonDeputy.preferences?.()]).then(([items, saved]) => {
+    void Promise.all([window.dungeonDeputy?.displays?.() ?? [], window.dungeonDeputy?.preferences?.() ?? null]).then(([items, saved]) => {
       setDisplays(items ?? []); setDisplayId(saved?.displayId ?? null);
       if (saved?.sceneId && sceneById(saved.sceneId)) setPreviewId(saved.sceneId);
     }).catch(() => setMessage('Display preferences could not be loaded.'));
+    const refreshDisplays = () => {
+      const desktop = window.dungeonDeputy;
+      if (desktop?.displays) void desktop.displays().then(items => setDisplays(items ?? [])).catch(() => {});
+    };
+    const timer = window.setInterval(refreshDisplays, 1500);
+    return () => window.clearInterval(timer);
   }, []);
 
   async function select(id: string) {
@@ -81,7 +87,7 @@ export default function App() {
           {shown.mode === 'scene' ? <><img src={sceneById(shown.sceneId)?.image} alt="" /><div><span>Showing on table</span><strong>{shown.title}</strong></div></> : <><span className="black-preview" /><div><span>Showing on table</span><strong>Black screen</strong></div></>}
         </div>
         {message && <p className="service-message" role="status">{message}</p>}
-        <label className="table-hint">Player display <select value={displayId ?? ''} onChange={async event => { const id = event.target.value ? Number(event.target.value) : null; setDisplayId(id); await window.dungeonDeputy.preferences?.({ sceneId: previewId, displayId: id }); }}><option value="">Automatic / windowed preview</option>{displays.map(display => <option key={display.id} value={display.id}>{display.label}</option>)}</select></label>
+        <label className="table-hint">Player display <select value={displayId ?? ''} onChange={async event => { const id = event.target.value ? Number(event.target.value) : null; setDisplayId(id); await window.dungeonDeputy.preferences?.({ sceneId: previewId, displayId: id }); }}><option value="">Automatic display (windowed when none is available)</option>{displays.map(display => <option key={display.id} value={display.id}>{display.label}</option>)}</select></label>
         <p className="table-hint">Your private preview stays hidden until you choose to show it.</p>
         <div className="actions"><button className="show-button" onClick={() => void show()} disabled={!connected}>Show on table</button><button className="blackout-button" onClick={() => void blackout()}>Black out</button></div>
         <p className="action-footnote">Black out hides the public scene immediately.</p>

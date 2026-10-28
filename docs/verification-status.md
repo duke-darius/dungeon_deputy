@@ -5,7 +5,7 @@ Evidence recorded for the current Windows host after the integration corrections
 | Check | Result | Scope / caveat |
 |---|---|---|
 | Node tests via `npm test` | **Passed: 8/8** | Built-in Node tests. |
-| .NET tests via `npm test` | **Passed: 5/5** | Correct project: `src/backend.tests/DungeonDeputy.Api.Tests.csproj`. |
+| .NET tests via `npm test` | **Passed: 6/6** | Correct project: `src/backend.tests/DungeonDeputy.Api.Tests.csproj`; includes per-run token enforcement for `/health`. |
 | Standalone .NET test command | `dotnet test src/backend.tests/DungeonDeputy.Api.Tests.csproj -c Release` | Exact test project; do not use `src/backend/DungeonDeputy.Api.csproj` as the test project. |
 | `npm run build` | **Passed** | Frontend, Electron, and backend build. |
 | `npm run package:backend -- win-x64` | **Passed** | Self-contained Windows x64 backend publish. |

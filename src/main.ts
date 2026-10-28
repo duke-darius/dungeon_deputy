@@ -3,6 +3,7 @@ import { spawn, type ChildProcess } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
+import { chooseExternalDisplay } from './display-policy.mjs';
 
 type Role = 'dm' | 'public';
 type Preferences = { sceneId: string; displayId: number | null };
@@ -14,6 +15,8 @@ let backendUrl = '';
 let backendToken = '';
 let prefs: Preferences = fallback;
 let quitting = false;
+let activeDisplayId: number | null = null;
+let displayStateInitialized = false;
 
 export function validPreferences(value: unknown): Preferences {
   if (!value || typeof value !== 'object') return fallback;
@@ -74,7 +77,8 @@ function installIpc() {
   });
   ipcMain.handle('display:list', (event) => {
     if (!allowedSender('dm', event)) throw new Error('Denied');
-    return screen.getAllDisplays().map(d => ({ id: d.id, label: `Display ${d.id}`, bounds: d.bounds }));
+    const primaryId = screen.getPrimaryDisplay().id;
+    return screen.getAllDisplays().filter(d => d.id !== primaryId).map(d => ({ id: d.id, label: `Display ${d.id}`, bounds: d.bounds }));
   });
   ipcMain.handle('public:presentation', async event => {
     if (!allowedSender('public', event)) throw new Error('Denied');
@@ -90,15 +94,17 @@ function load(win: BrowserWindow, route: string) {
 function createWindows() {
   const displays = screen.getAllDisplays();
   const primary = screen.getPrimaryDisplay();
-  const external = displays.find(d => d.id === prefs.displayId && d.id !== primary.id) ?? displays.find(d => d.id !== primary.id);
+  const external = chooseExternalDisplay(displays, primary.id, prefs.displayId);
+  if (prefs.displayId !== null && !external) { prefs.displayId = null; void savePreferences(); }
   if (external && prefs.displayId === null) { prefs.displayId = external.id; void savePreferences(); }
-  if (prefs.displayId !== null && !displays.some(d => d.id === prefs.displayId)) { prefs.displayId = null; void savePreferences(); }
+  activeDisplayId = external?.id ?? null;
+  displayStateInitialized = true;
   const dm = new BrowserWindow({ width: 1440, height: 900, show: false, webPreferences: { preload: join(app.getAppPath(), 'dist/main/preload.js'), contextIsolation: true, sandbox: true, nodeIntegration: false } });
   windows.set('dm', dm); dm.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   dm.webContents.on('will-navigate', (e, url) => { const allowed = app.isPackaged ? url.startsWith('file:') : url.startsWith('http://127.0.0.1:5173/'); if (!allowed) e.preventDefault(); });
   load(dm, 'index.html'); dm.once('ready-to-show', () => dm.show());
   const target: Display = external ?? primary;
-  const pub = new BrowserWindow({ x: external ? target.bounds.x : primary.bounds.x + 80, y: external ? target.bounds.y : primary.bounds.y + 80, width: external ? target.bounds.width : 960, height: external ? target.bounds.height : 540, frame: false, fullscreen: !!external, show: false, backgroundColor: '#000000', webPreferences: { preload: join(app.getAppPath(), 'dist/main/preload.js'), contextIsolation: true, sandbox: true, nodeIntegration: false, additionalArguments: ['--window-role=public'] } });
+  const pub = new BrowserWindow({ x: external ? target.bounds.x : primary.bounds.x + 80, y: external ? target.bounds.y : primary.bounds.y + 80, width: external ? target.bounds.width : 960, height: external ? target.bounds.height : 540, frame: true, fullscreen: !!external, show: false, backgroundColor: '#000000', webPreferences: { preload: join(app.getAppPath(), 'dist/main/preload.js'), contextIsolation: true, sandbox: true, nodeIntegration: false, additionalArguments: ['--window-role=public'] } });
   windows.set('public', pub); pub.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   pub.webContents.on('will-navigate', (e, url) => { const allowed = app.isPackaged ? url.startsWith('file:') : url.startsWith('http://127.0.0.1:5173/'); if (!allowed) e.preventDefault(); });
   load(pub, 'public.html'); pub.once('ready-to-show', () => pub.show());
@@ -106,10 +112,14 @@ function createWindows() {
 function safeTopology() {
   const all = screen.getAllDisplays(); const primary = screen.getPrimaryDisplay();
   const publicWindow = windows.get('public'); if (!publicWindow || publicWindow.isDestroyed()) return;
-  const selected = all.find(d => d.id === prefs.displayId && d.id !== primary.id);
-  if (!selected || !all.some(d => d.id !== primary.id)) {
+  const selected = chooseExternalDisplay(all, primary.id, prefs.displayId);
+  if (prefs.displayId !== null && !selected) { prefs.displayId = null; void savePreferences(); }
+  const nextDisplayId = selected?.id ?? null;
+  if (displayStateInitialized && nextDisplayId !== activeDisplayId) void api('/api/blackout', 'POST').catch(() => {});
+  activeDisplayId = nextDisplayId;
+  if (selected && prefs.displayId === null) { prefs.displayId = selected.id; void savePreferences(); }
+  if (!selected) {
     publicWindow.setFullScreen(false); publicWindow.setBounds({ x: primary.bounds.x + 80, y: primary.bounds.y + 80, width: 960, height: 540 });
-    if (prefs.displayId !== null) { prefs.displayId = null; void savePreferences(); }
     return;
   }
   publicWindow.setFullScreen(false); publicWindow.setBounds(selected.bounds); publicWindow.setFullScreen(true);

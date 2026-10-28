@@ -21,7 +21,7 @@ const executable = resolve(packagedBackend, process.platform === 'win32' ? 'Dung
 const child = spawn(executable, [], { env: { ...process.env, DUNGEON_DEPUTY_PORT: String(port), DUNGEON_DEPUTY_TOKEN: token }, stdio: 'ignore' });
 try {
   let ready = false;
-  for (let i = 0; i < 75; i++) { try { if ((await fetch(`http://127.0.0.1:${port}/health`)).ok) { ready = true; break; } } catch {} await new Promise(r => setTimeout(r, 200)); }
+  for (let i = 0; i < 75; i++) { try { if ((await fetch(`http://127.0.0.1:${port}/health`, { headers: { 'X-Dungeon-Token': token } })).ok) { ready = true; break; } } catch {} await new Promise(r => setTimeout(r, 200)); }
   if (!ready) throw new Error('Published backend readiness check failed.');
   const unauthorized = await fetch(`http://127.0.0.1:${port}/api/presentation`);
   const authorized = await fetch(`http://127.0.0.1:${port}/api/presentation`, { headers: { 'X-Dungeon-Token': token } });

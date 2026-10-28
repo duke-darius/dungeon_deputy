@@ -76,4 +76,12 @@ public sealed class PresentationApiTests : IClassFixture<WebApplicationFactory<P
         var response = await _client.PostAsync("/api/selection/%2e%2e%2fprivate", null);
         Assert.Equal(System.Net.HttpStatusCode.NotFound, response.StatusCode);
     }
+
+    [Fact]
+    public async Task HealthEndpointRequiresThePerRunToken()
+    {
+        _client.DefaultRequestHeaders.Remove("X-Dungeon-Token");
+        var response = await _client.GetAsync("/health");
+        Assert.Equal(System.Net.HttpStatusCode.Unauthorized, response.StatusCode);
+    }
 }
