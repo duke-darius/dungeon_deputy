@@ -64,7 +64,7 @@ coverage:
         ref: "src/backend.tests/MapApiTests.cs#DraftAndApprovedSnapshotRemainIndependentAcrossDatabaseReopen"
         status: pass
     human_judgment: false
-duration: 45min
+duration: 14min
 completed: 2026-10-28
 status: complete
 ---
@@ -75,9 +75,9 @@ status: complete
 
 ## Performance
 
-- **Duration:** approximately 45 minutes
-- **Started:** 2026-10-28T15:01:00Z
-- **Completed:** 2026-10-28T15:46:30Z
+- **Duration:** approximately 14 minutes
+- **Started:** 2026-10-28T15:35:00Z
+- **Completed:** 2026-10-28T15:49:19Z
 - **Tasks:** 3
 - **Files modified:** 17
 
