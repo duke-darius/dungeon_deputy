@@ -149,7 +149,7 @@ Phases with standard patterns (skip research-phase unless implementation details
 - **Display preference stability:** Treat display IDs as best-effort only; re-enumerate and allow reselection/fallback.
 - **Later-stage data/network risks:** Validate SRD provenance/licensing in Stage 5; revisit threat model and authorization before Stage 6 LAN access. Do not resolve these uncertainties by adding scope to Stage 1.
 - **Version freshness:** Research versions were current as of 2026-10-28; resolve stable patches and lock them at project bootstrap.
-- **Package verification:** The Phase 1 npm legitimacy gate flagged several just-published stable packages `[SUS]` due recency, despite high downloads and known repositories. Preserve the blocking human verification checkpoints before installing them; see `.planning/phases/01-safe-two-screen-scene-presentation/01-RESEARCH.md`.
+- **Package verification:** The Phase 1 npm legitimacy gate flagged several just-published packages `[SUS]` due to recency, including the selected Electron Forge CLI and makers, despite high downloads and known repositories. Preserve an individual blocking human verification checkpoint before installing each; see `.planning/phases/01-safe-two-screen-scene-presentation/01-RESEARCH.md`.
 
 ## Sources
 

@@ -1,0 +1,48 @@
+{
+  "contract": "1.0.0",
+  "flavor": "core",
+  "milestone": null,
+  "phases": [
+    {
+      "number": "1",
+      "name": "Safe Two-Screen Scene Presentation",
+      "status": "pending"
+    },
+    {
+      "number": "2",
+      "name": "Playable Digital Battle Map",
+      "status": "pending"
+    },
+    {
+      "number": "3",
+      "name": "Fog of War and Encounter Control",
+      "status": "pending"
+    },
+    {
+      "number": "4",
+      "name": "Soundboard, Scenes, and 12-Key Control",
+      "status": "pending"
+    },
+    {
+      "number": "5",
+      "name": "Offline 2024 SRD Compendium",
+      "status": "pending"
+    },
+    {
+      "number": "6",
+      "name": "SRD Characters and Local Player Sheets",
+      "status": "pending"
+    },
+    {
+      "number": "7",
+      "name": "Optional AI Preparation and Map Proposals",
+      "status": "pending"
+    }
+  ],
+  "next": {
+    "command": "/gsd-progress --next",
+    "label": "Advance to the next step",
+    "reason": "Phase 1 of 7 · 0% · executing"
+  },
+  "updated_at": "2026-10-28T11:27:02.312Z"
+}
