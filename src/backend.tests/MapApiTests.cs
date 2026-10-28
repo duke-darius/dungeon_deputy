@@ -33,5 +33,16 @@ public sealed class MapApiTests : IDisposable
         Assert.False(service.Save(draft with { Tokens=[draft.Tokens[0] with { Color="url(javascript:alert(1))" }] }));
         Assert.False(service.Save(draft with { Tokens=[draft.Tokens[0] with { X=double.PositiveInfinity }] }));
     }
+    [Fact]
+    public void TokenTransitionsPersistAndRejectUncataloguedArtwork()
+    {
+        var service=Open(); var token=service.Get().Draft.Tokens[0];
+        Assert.True(service.ChangeToken(token.Id,new TokenCommand("Mira the Bold","hero","#123456","goblin.svg",71,92)));
+        var moved=Open().Get().Draft.Tokens[0];
+        Assert.Equal(("Mira the Bold","#123456","goblin.svg",71d,92d),(moved.Name,moved.Color,moved.Artwork,moved.X,moved.Y));
+        Assert.False(service.ChangeToken(token.Id,new TokenCommand(null,null,null,"../../secret.svg",null,null)));
+        Assert.True(service.RemoveToken(token.Id)); Assert.DoesNotContain(service.Get().Draft.Tokens,t=>t.Id==token.Id);
+        Assert.True(service.AddToken(new MapToken("extra","New hero","hero","#123456",0,0)));
+    }
     public void Dispose() { try { Directory.Delete(_directory,true); } catch {} }
 }

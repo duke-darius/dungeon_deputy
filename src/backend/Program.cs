@@ -43,6 +43,9 @@ app.MapPost("/api/blackout", (PresentationState state) =>
 });
 app.MapGet("/api/map", (MapService maps) => Results.Ok(maps.Get()));
 app.MapPut("/api/map/draft", (MapDocument map, MapService maps) => maps.Save(map) ? Results.NoContent() : Results.BadRequest());
+app.MapPost("/api/map/token", (MapToken token, MapService maps) => maps.AddToken(token) ? Results.Ok(maps.Get()) : Results.BadRequest());
+app.MapPatch("/api/map/token/{id}", (string id, TokenCommand change, MapService maps) => maps.ChangeToken(id, change) ? Results.Ok(maps.Get()) : Results.BadRequest());
+app.MapDelete("/api/map/token/{id}", (string id, MapService maps) => maps.RemoveToken(id) ? Results.Ok(maps.Get()) : Results.NotFound());
 app.MapPost("/api/map/blank", (MapService maps) =>
 {
     var current = maps.Get().Draft;
