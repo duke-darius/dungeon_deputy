@@ -2,7 +2,7 @@
 phase: "03"
 slug: "fog-of-war-and-encounter-control"
 status: in_progress
-nyquist_compliant: true
+nyquist_compliant: false
 wave_0_complete: true
 created: "2026-10-29"
 ---
@@ -35,13 +35,16 @@ created: "2026-10-29"
 | 03-03-01 | 03-03 | 4 | ENCT-02, ENCT-03 | T-03-10, T-03-11 | `npm run build` (TypeScript, Electron, Vite or backend build fails); `dotnet test src/backend.tests/DungeonDeputy.Api.Tests.csproj -c Release` (backend public/privacy assertion fails) | `src/renderer/src/map/MapEditor.tsx`, `src/renderer/src/styles.css`, `src/renderer/src/PublicDisplay.tsx`, `src/main.ts`, `src/backend.tests/EncounterApiTests.cs` | pass |
 | 03-03-02 | 03-03 | 4 | ENCT-01, ENCT-02, ENCT-03 | T-03-10, T-03-12 | `npm run test:e2e` (UI/API/persistence/poll/privacy/window/mask assertion, timeout, or renderer error fails) | `scripts/e2e.mjs`, `scripts/e2e/fixtures.mjs`, `scripts/e2e/fixtures.test.mjs` | pass |
 | 03-03-03 | 03-03 | 4 | ENCT-01, ENCT-02, ENCT-03 | T-03-10, T-03-11 | `npm test` (any Node/xUnit failure); `npm run build` (build failure); `npm run test:e2e` (integrated E2E failure) | `docs/phase-3-demo.md`, this validation map and all test files above | pass |
+| 03-05-01 | 03-05 | 5 | ENCT-01, ENCT-03 | T-03-16, T-03-17, T-03-20 | `dotnet test src/backend.tests/DungeonDeputy.Api.Tests.csproj -c Release` (authenticated raster validation, persist-before-publish, cold-start black, or public DTO privacy assertion fails); `npm test` (renderer allowlist/fail-closed assertion fails); `npm run package:smoke` (valid PNG projection or DTO exclusion assertion fails); `npm run build` (production build fails) | `src/backend.tests/MapApiTests.cs`, `src/renderer/src/contracts.test.mjs`, `scripts/package-smoke.mjs` | planned |
+| 03-05-02 | 03-05 | 5 | ENCT-01, ENCT-02 | T-03-18, T-03-19 | `npm test` (stale redraw, pointercancel disposal/no-submit, or blank HP UI assertion fails); `dotnet test src/backend.tests/DungeonDeputy.Api.Tests.csproj -c Release` (atomic reorder, bad/duplicate order rejection, or nullable HP API/service assertion fails); `npm run build` (build fails) | `src/renderer/src/map/MapCanvas.lifecycle.test.mjs`, `src/backend.tests/EncounterApiTests.cs`, `src/backend.tests/EncounterServiceTests.cs` | planned |
+| 03-05-03 | 03-05 | 5 | ENCT-01, ENCT-02, ENCT-03 | T-03-16, T-03-17, T-03-20 | `npm run test:e2e` (same-window black-before-Show, post-Show polling, PNG-only projection, black-unrevealed-pixel, or no-source-path/raw-stroke assertion fails); `npm test` (any Node/xUnit test fails); `npm run build` (production build fails) | `scripts/e2e.mjs`, `docs/phase-3-demo.md`, this validation map | planned |
 
 ## Wave 0 tests
 
-- [x] `src/backend.tests/MapApiTests.cs` - fog persistence/authentication, cold-start black, Show and projection privacy; exercised with `dotnet test` and `npm test`.
+- [ ] `src/backend.tests/MapApiTests.cs` - existing fog persistence/authentication plus planned PNG-only projection MIME/size validation, persist-before-publish, and source/stroke/private-key exclusion; run focused backend tests for 03-05.
 - [x] `src/backend.tests/EncounterApiTests.cs` and `EncounterServiceTests.cs` - private encounter mutations, validation, order, dice and restart persistence; exercised with `dotnet test` and `npm test`.
 - [x] `src/renderer/src/map/fogMask.test.mjs`, `MapCanvas.lifecycle.test.mjs`, and `src/renderer/src/contracts.test.mjs` - mask pixels, order, gesture cleanup and public allowlist; exercised with `npm test`.
-- [x] `scripts/e2e.mjs` / `scripts/e2e/fixtures.mjs` - isolated desktop workflow, cold-start black, filtered Show, persisted encounter state, polling and public mask; exercised with `npm run test:e2e`.
+- [ ] `scripts/e2e.mjs` - planned same-window cold-start black, explicit Show, post-show polling, sanitized PNG-only public payload, and black pixels outside reveal; run `npm run test:e2e` after 03-05.
 - [x] No framework/package installation required.
 
 ## Manual-only verifications
@@ -66,4 +69,4 @@ created: "2026-10-29"
 - [x] `nyquist_compliant: true` for automated scope; human physical/platform caveats remain open.
 - [ ] Phase status/roadmap completion deliberately not marked here.
 
-**Plan coverage:** 03-01, 03-04, 03-02, 03-03. Threat mapping T-03-04 through T-03-15 is inherited from those plans; Plan 03 additionally mitigates T-03-10 through T-03-12 and package-install threat T-03-SC by avoiding new packages. Automation does not attest to physical HDMI or macOS behavior.
+**Plan coverage:** 03-01, 03-04, 03-02, 03-03, 03-05 (planned; Wave 5). Threat mapping T-03-04 through T-03-20 is covered across the phase plans; 03-05 additionally retains package-install threat T-03-SC by avoiding new packages. 03-05 evidence rows are planned and are not claims of completed verification. Automation does not attest to physical HDMI or macOS behavior.
