@@ -1,0 +1,10 @@
+{
+  "command": "node --test --test-reporter=tap .planning/phases/03-fog-of-war-and-encounter-control/03-02-route-red.test.mjs",
+  "exitCode": 1,
+  "output": "TAP version 13\n# Subtest: authenticated encounter endpoint initializes private encounter state\nnot ok 1 - authenticated encounter endpoint initializes private encounter state\n  ---\n  duration_ms: 562.62\n  type: 'test'\n  location: 'F:\\repos\\bytegrain\\dungeon-deputy\\.planning\\phases\\03-fog-of-war-and-encounter-control\\03-02-route-red.test.mjs:18:1'\n  failureType: 'testCodeFailure'\n  error: |-\n    expected initialized encounter state, got 404\n\n    404 !== 200\n  code: 'ERR_ASSERTION'\n  name: 'AssertionError'\n  expected: 200\n  actual: 404\n  operator: 'strictEqual'\n  stack: |-\n    TestContext.<anonymous> (file:///F:/repos/bytegrain/dungeon-deputy/.planning/phases/03-fog-of-war-and-encounter-control/03-02-route-red.test.mjs:47:12)\n    process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    async Test.run (node:internal/test_runner/test:1113:7)\n    async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3)\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 0\n# fail 1\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 604.8875\n",
+  "targetTest": "authenticated encounter endpoint initializes private encounter state",
+  "targetFile": "03-02-route-red.test.mjs",
+  "expected": "Authenticated GET /api/encounter returns 200 with initialized private encounter state.",
+  "actual": "Authenticated GET /api/encounter returned 404 NotFound because the encounter route has not been implemented.",
+  "semanticAssessment": "The target Node TAP test started the actual packaged-from-build backend with an isolated SQLite data directory and per-run token, reached health successfully, authenticated the encounter request, and failed on the intended 404-versus-200 behavior assertion."
+}
