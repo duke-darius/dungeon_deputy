@@ -64,7 +64,7 @@ Plans:
   1. The DM can manually hide and reveal map regions and tokens, and players see no hidden token or unrevealed information.
   2. The DM can manage actor HP and simple conditions, set initiative, advance turns, and make basic dice rolls.
   3. The DM can complete a basic encounter without leaving the main dashboard while only approved visual state is public.
-**Plans:** 6/7 plans executed
+**Plans:** 7/7 plans executed
 Plans:
 - [x] 03-01-PLAN.md — Trace persisted fog and filtered public visibility end-to-end
 - [x] 03-04-PLAN.md — Close fog rendering, brush lifecycle, and authenticated publication gaps
@@ -72,7 +72,7 @@ Plans:
 - [x] 03-03-PLAN.md - Integrate dashboard encounter workflow and verify E2E lifecycle
 - [x] 03-05-PLAN.md — Close CR-01 with sanitized raster publication and public-origin privacy proof (Wave 5; depends on 03-03)
 - [x] 03-06-PLAN.md — Close WR-01 through WR-04 canvas and encounter correctness gaps (Wave 6; depends on 03-05)
-- [ ] 03-07-PLAN.md — Close CR-01 atomic visual mutation race (Wave 7; depends on 03-05, 03-06)
+- [x] 03-07-PLAN.md — Close CR-01 atomic visual mutation race (Wave 7; depends on 03-05, 03-06)
 **UI hint**: yes
 
 ### Phase 4: Soundboard, Scenes, and 12-Key Control
@@ -133,7 +133,7 @@ Phases execute in the specified stage order: 1 → 2 → 3 → 4 → 5 → 6 →
 |-------|----------------|--------|-----------|
 | 1. Safe Two-Screen Scene Presentation | 5/5 | Complete (user approved) | 2026-10-28 |
 | 2. Playable Digital Battle Map | 4/6 | In Progress | - |
-| 3. Fog of War and Encounter Control | 6/6 | In Progress | - |
+| 3. Fog of War and Encounter Control | 7/7 | In Progress | - |
 | 4. Soundboard, Scenes, and 12-Key Control | 0/TBD | Not started | - |
 | 5. Offline 2024 SRD Compendium | 0/TBD | Not started | - |
 | 6. SRD Characters and Local Player Sheets | 0/TBD | Not started | - |

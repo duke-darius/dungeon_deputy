@@ -3,16 +3,16 @@ gsd_state_version: "1.0"
 current_phase: 03
 current_phase_name: Fog of War and Encounter Control
 status: verifying
-stopped_at: Completed 03-06-PLAN.md
-last_updated: "2026-10-29T21:01:36.932Z"
+stopped_at: Completed 03-07-PLAN.md
+last_updated: "2026-10-29T22:10:31.763Z"
 last_activity: 2026-10-29
-last_activity_desc: Phase 03 Plan 05 completed; Plan 06 remains
-state_head: ffd59accd8272d608356f1739c53f0d0b7dc06a1
+last_activity_desc: Phase 03 Plan 07 execution completed; phase verification is next
+state_head: 0522b5e4f114f1a4fc4a797263a80ea9ede20a57
 progress:
   total_phases: 7
   completed_phases: 1
-  total_plans: 17
-  completed_plans: 15
+  total_plans: 18
+  completed_plans: 16
   percent: 14
 ---
 
@@ -28,9 +28,9 @@ See: .planning/PROJECT.md (updated 2026-10-28)
 ## Current Position
 
 Phase: 03 (Fog of War and Encounter Control) — EXECUTING
-Plan: 6 of 6
-Status: Plan 05 complete - Plan 06 ready
-Last activity: 2026-10-29 - Phase 03 Plan 05 execution completed
+Plan: 7 of 7
+Status: Plan 07 complete - ready for phase verification
+Last activity: 2026-10-29 - Phase 03 Plan 07 execution completed
 
 Progress: ░░░░░░░░░░ [█░░░░░░░░░] 14%
 
@@ -70,6 +70,7 @@ Progress: ░░░░░░░░░░ [█░░░░░░░░░] 14%
 | Phase 03 P03 | 12min | 3 tasks | 6 files |
 | Phase 03 P05 | 30min | 2 tasks | 15 files |
 | Phase 03 P06 | 10min | 2 tasks | 12 files |
+| Phase 03 P07 | 14 min | 4 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -106,6 +107,8 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase 03]: Restrict public CSP to data images and embed approved scene SVGs as data URLs.
 - [Phase 03]: Initiative reordering validates the complete unique actor set and persists one transactional ordered list.
 - [Phase 03]: Current and maximum HP remain independently nullable through UI, API, and SQLite persistence.
+- [Phase 03]: Live map visual mutations commit their sanitized raster and state atomically, then refresh only an already-active map presentation.
+- [Phase 03]: E2E verifies public map image hashes after successful UI mutations while preserving explicit cold-start Show.
 
 ### Pending Todos
 
@@ -125,6 +128,6 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 
 ## Session Continuity
 
-Last session: 2026-10-29T21:01:36.899Z
-Stopped at: Completed 03-06-PLAN.md
+Last session: 2026-10-29T22:10:31.730Z
+Stopped at: Completed 03-07-PLAN.md
 Resume file: None

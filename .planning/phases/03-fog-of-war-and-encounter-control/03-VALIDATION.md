@@ -67,7 +67,7 @@ created: "2026-10-29"
 - `npm run test:e2e` - passed after iterating on UI selectors/state synchronization; final evidence: `artifacts/e2e/2026-10-29T21-12-01.188Z-b7022c3b/`.
 - `npm run package:smoke` - passed on Windows x64 after sanitized PNG projection and black-until-Show checks; one Electron Forge shell-argument deprecation warning was non-fatal.
 - `npm run build` - passed after final renderer/backend changes; .NET Release build had 0 warnings and 0 errors.
-- Plan 03-07 validation: `npm test` passed (37 Node tests + 20 xUnit tests); `npm run build` passed; `npm run test:e2e` passed with screenshots/logs at `artifacts/e2e/2026-10-29T22-06-38.973Z-e24bef5d/`.
+- Plan 03-07 validation: `npm test` passed (39 Node tests + 20 xUnit tests); `npm run build` passed; `npm run test:e2e` passed with screenshots/logs at `artifacts/e2e/2026-10-29T22-06-38.973Z-e24bef5d/`.
 
 ## Sign-off
 
