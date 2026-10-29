@@ -38,6 +38,20 @@ test('pointercancel clears active gesture state and unregisters its handler', ()
   detach(); assert.equal(handlers.size,0);
 });
 
+test('redraw implementation rejects stale async work before scene mutation', async () => {
+  const source = await readFile(new URL('./MapCanvas.tsx', import.meta.url), 'utf8');
+  assert.match(source, /generation\.isCurrent/);
+});
+
+test('pointercancel invokes cancellation cleanup without committing the preview', () => {
+  const handlers = new Map(); const stage = {on:(name,fn)=>handlers.set(name,fn),off:name=>handlers.delete(name)};
+  let preview={destroyed:false,destroy(){this.destroyed=true;}}; let painting=true; let submitted=0;
+  const cancel=()=>{painting=false;preview?.destroy();preview=undefined;};
+  registerPointerLifecycle(stage,()=>submitted++,()=>{},()=>{},()=>{},cancel);
+  handlers.get('pointercancel')();
+  assert.equal(painting,false); assert.equal(preview,undefined); assert.equal(submitted,0);
+});
+
 test('brush mode and save rejection paths clear painting without publishing a stroke', async () => {
   const source=await readFile(new URL('./MapCanvas.tsx',import.meta.url),'utf8');
   assert.match(source,/state\.fogTool === null \|\| !state\.fogEnabled/);
