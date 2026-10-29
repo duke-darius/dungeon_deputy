@@ -94,6 +94,55 @@ try {
     capture(name, 'player', 'public.html', publicVisual),
   ]);
   captureFailure = () => screenshot('failure');
+  const captureResponsiveLayouts = async () => {
+    const managerWindowSize = await app.evaluate(({BrowserWindow}) => {
+      const win = BrowserWindow.getAllWindows().find(candidate => new URL(candidate.webContents.getURL()).pathname.endsWith('/index.html'));
+      return win.getSize();
+    });
+    const playerWindowSize = await app.evaluate(({BrowserWindow}) => {
+      const win = BrowserWindow.getAllWindows().find(candidate => new URL(candidate.webContents.getURL()).pathname.endsWith('/public.html'));
+      return win.getSize();
+    });
+    try {
+      for(const [name,width,height] of [['11-responsive-tablet',760,900],['12-responsive-phone',390,844]]){
+        await app.evaluate(({BrowserWindow},size) => {
+          const win = BrowserWindow.getAllWindows().find(candidate => new URL(candidate.webContents.getURL()).pathname.endsWith('/index.html'));
+          win.setSize(size.width,size.height);
+        }, {width,height});
+        assert.deepEqual(await app.evaluate(({BrowserWindow}) => {
+          const win = BrowserWindow.getAllWindows().find(candidate => new URL(candidate.webContents.getURL()).pathname.endsWith('/public.html'));
+          return win.getSize();
+        }), playerWindowSize, 'responsive manager resize changed player BrowserWindow size');
+        await manager.waitForTimeout(150);
+        const layout=await manager.evaluate(()=>({
+          width:document.documentElement.clientWidth,
+          scrollWidth:document.documentElement.scrollWidth,
+          canvas:!!document.querySelector('.map-canvas'),
+          reveal:!![...document.querySelectorAll('.fog-controls button')].find(button=>button.textContent?.trim()==='Reveal'),
+          show:!![...document.querySelectorAll('button')].find(button=>button.textContent?.trim()==='Show encounter'),
+          encounter:!!document.querySelector('[aria-label="Encounter — DM only"]'),
+        }));
+        assert.ok(layout.scrollWidth<=layout.width,`${name} has horizontal overflow (${layout.scrollWidth} > ${layout.width}).`);
+        assert.ok(layout.canvas&&layout.reveal&&layout.show&&layout.encounter,`${name} hides an essential map/fog/encounter control.`);
+        await screenshot(name);
+        log(`RESPONSIVE ${name} manager=${layout.width}px no-horizontal-overflow; player-window-size unchanged`);
+        await assertWindowsStable();
+        if(name==='12-responsive-phone'){
+          await manager.locator('.encounter-inspector').scrollIntoViewIfNeeded();
+          await screenshot('13-responsive-phone-encounter');
+          await manager.locator('.actor-details summary').scrollIntoViewIfNeeded();
+          assert.equal(await manager.getByLabel('Current HP').isVisible(),true,'phone layout must keep actor HP controls reachable by scroll');
+          await screenshot('14-responsive-phone-actor-details');
+          await manager.evaluate(()=>window.scrollTo(0,0));
+        }
+      }
+    } finally {
+      await app.evaluate(({BrowserWindow},size) => {
+        const win = BrowserWindow.getAllWindows().find(candidate => new URL(candidate.webContents.getURL()).pathname.endsWith('/index.html'));
+        win.setSize(size[0],size[1]);
+      }, managerWindowSize);
+    }
+  };
 
   const assertBlack = async () => {
     assert.equal(await player.locator('.public-stage .public-art, .public-stage .public-map').count(), 0, 'public output should be black');
@@ -244,9 +293,11 @@ try {
   await manager.locator('.fog-controls').getByRole('button',{name:'Reveal'}).click();
   const strokeCountBefore=(await readMap(manager)).draft.fogStrokes.length;
   await mapCanvas.focus();
+  assert.equal(await mapCanvas.evaluate(element=>document.activeElement===element),true,'fog canvas receives keyboard focus');
   mutationLogIndex = getLogLines().length;
   await manager.keyboard.press('ArrowRight');
   await manager.keyboard.press('Space');
+  log('KEYBOARD brush focused on canvas; ArrowRight moved the map-space brush; Space committed one reveal dab.');
   const revealedState=await waitForMap(manager,state=>state.draft.fogStrokes.length>strokeCountBefore,'keyboard brush dab');
   completionLogIndex = getLogLines().length;
   await assertPostCommitRasterPoll(player, mutationLogIndex, completionLogIndex, revealedState.draft.imageData, 'keyboard fog stroke', 'POST /api/map/fog/strokes');
@@ -259,6 +310,7 @@ try {
   const maskPixels=await player.locator('.public-map-art').evaluate(async(image,point)=>{await image.decode();const canvas=document.createElement('canvas');canvas.width=1200;canvas.height=760;const c=canvas.getContext('2d');c.drawImage(image,0,0);return {hidden:[...c.getImageData(100,100,1,1).data],revealed:[...c.getImageData(Math.floor(point.x),Math.floor(point.y),1,1).data]};},fogPoint);
   assert.deepEqual(maskPixels.hidden,[0,0,0,255],'unrevealed source pixels must be irreversibly black in the public PNG');
   assert.ok(maskPixels.revealed[0]!==0||maskPixels.revealed[1]!==0||maskPixels.revealed[2]!==0,'revealed terrain remains visible in the public PNG');
+  await screenshot('06a-keyboard-fog-brush',true);
   const filtered=await manager.evaluate(()=>window.dungeonDeputy.command('/api/presentation'));
   assert.equal(filtered.tokens.some(token=>token.id===hero.id),false);
   assert.equal(JSON.stringify(filtered).includes('currentHp'),false);
@@ -304,6 +356,9 @@ try {
   const restoredDto=await manager.evaluate(()=>window.dungeonDeputy.command('/api/presentation'));
   assert.match(restoredDto.imageData,/^data:image\/png;base64,/);
   await screenshot('09-restored-map', true);
+  await manager.getByRole('button',{name:/E2E ranger/}).first().click();
+  await manager.getByLabel('Current HP').waitFor();
+  await captureResponsiveLayouts();
 
   await manager.getByRole('button', { name: /Blank map/ }).click();
   const blank = await waitForMap(manager, state => state.draft?.image === '' && state.draft?.tokens?.length === 0, 'create blank map');
@@ -312,51 +367,6 @@ try {
   assert.equal(await player.locator('.public-map').count(),1,'creating a blank draft must not replace the public snapshot');
   await screenshot('10-blank-map-draft');
   await assertWindowsStable();
-  // Resize only the hidden manager BrowserWindow; player bounds remain untouched.
-  const managerWindowSize = await app.evaluate(({BrowserWindow}) => {
-    const win = BrowserWindow.getAllWindows().find(candidate => new URL(candidate.webContents.getURL()).pathname.endsWith('/index.html'));
-    return win.getSize();
-  });
-  const playerWindowSize = await app.evaluate(({BrowserWindow}) => {
-    const win = BrowserWindow.getAllWindows().find(candidate => new URL(candidate.webContents.getURL()).pathname.endsWith('/public.html'));
-    return win.getSize();
-  });
-  try {
-    for(const [name,width,height] of [['11-responsive-tablet',760,900],['12-responsive-phone',390,844]]){
-      await app.evaluate(({BrowserWindow},size) => {
-        const win = BrowserWindow.getAllWindows().find(candidate => new URL(candidate.webContents.getURL()).pathname.endsWith('/index.html'));
-        win.setSize(size.width,size.height);
-      }, {width,height});
-      assert.deepEqual(await app.evaluate(({BrowserWindow}) => {
-        const win = BrowserWindow.getAllWindows().find(candidate => new URL(candidate.webContents.getURL()).pathname.endsWith('/public.html'));
-        return win.getSize();
-      }), playerWindowSize, 'responsive manager resize changed player BrowserWindow size');
-      await manager.waitForTimeout(150);
-      const layout=await manager.evaluate(()=>({
-        width:document.documentElement.clientWidth,
-        scrollWidth:document.documentElement.scrollWidth,
-        canvas:!!document.querySelector('.map-canvas'),
-        reveal:!![...document.querySelectorAll('.fog-controls button')].find(button=>button.textContent?.trim()==='Reveal'),
-        show:!![...document.querySelectorAll('button')].find(button=>button.textContent?.trim()==='Show encounter'),
-        encounter:!!document.querySelector('[aria-label="Encounter — DM only"]'),
-      }));
-      assert.ok(layout.scrollWidth<=layout.width,`${name} has horizontal overflow (${layout.scrollWidth} > ${layout.width}).`);
-      assert.ok(layout.canvas&&layout.reveal&&layout.show&&layout.encounter,`${name} hides an essential map/fog/encounter control.`);
-      await screenshot(name);
-      log(`RESPONSIVE ${name} manager=${layout.width}px no-horizontal-overflow; player-window-size unchanged`);
-      await assertWindowsStable();
-      if(name==='12-responsive-phone'){
-        await manager.locator('.encounter-inspector').scrollIntoViewIfNeeded();
-        await screenshot('13-responsive-phone-encounter');
-        await manager.evaluate(()=>window.scrollTo(0,0));
-      }
-    }
-  } finally {
-    await app.evaluate(({BrowserWindow},size) => {
-      const win = BrowserWindow.getAllWindows().find(candidate => new URL(candidate.webContents.getURL()).pathname.endsWith('/index.html'));
-      win.setSize(size[0],size[1]);
-    }, managerWindowSize);
-  }
 
   const rendererErrors = getRendererErrors().filter(error=>!error.includes('/maps/tavern.svg'));
   assert.deepEqual(rendererErrors, [], `unexpected Electron renderer errors: ${rendererErrors.join('\n')}`);

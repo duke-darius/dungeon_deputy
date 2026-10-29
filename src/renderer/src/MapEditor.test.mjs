@@ -44,6 +44,12 @@ test('transient status region reserves space instead of overlaying editor contro
   assert.match(styles, /\.map-desk \.map-toast\{position:static/);
 });
 
+test('mutation failures use one actionable retry message', async () => {
+  const editor = await readFile(new URL('./map/MapEditor.tsx', import.meta.url), 'utf8');
+  assert.match(editor, /const RETRY_MESSAGE = 'Couldn’t save this change\. Your last saved state is unchanged; retry the action\.'/);
+  assert.doesNotMatch(editor, /Couldn't save this change|Could not save this change/);
+});
+
 test('map editor keeps responsive primary controls practical and focus-visible', async () => {
   const editor = await readFile(new URL('./map/MapEditor.tsx', import.meta.url), 'utf8');
   const styles = await readFile(new URL('./styles.css', import.meta.url), 'utf8');

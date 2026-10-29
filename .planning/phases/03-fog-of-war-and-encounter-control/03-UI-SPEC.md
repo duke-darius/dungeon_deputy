@@ -84,6 +84,7 @@ Chalk `#e8e0d1` is primary foreground text; muted `#aeb7ac` is secondary text. A
 | Destructive confirmation | Remove actor: “Remove {actor name} from this encounter? This also removes its tracked HP, conditions, and initiative.” Buttons: “Remove actor” / “Keep actor”. |
 
 Use direct sentence-case labels: “Reveal”, “Hide”, “Brush size”, “DM only”, “HP”, “Conditions”, “Initiative”, “Roll d20”, “Set initiative”, “Roll dice”, and “End turn”. Dice result and encounter values remain explicitly labelled “DM only”.
+The current/max HP action is labelled “Save HP values” so the user knows both fields are saved together.
 
 ---
 

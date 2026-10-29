@@ -76,8 +76,8 @@ export default function MapEditor() {
       await command(`/api/selection/${id}`, 'POST');
       await window.dungeonDeputy.preferences?.({ sceneId: id, displayId });
       notify('Private preview updated.');
-    } catch (error) {
-      notify(error instanceof Error ? error.message : 'Scene preview could not be selected.');
+    } catch {
+      notify(RETRY_MESSAGE, 6000);
     }
   };
 
@@ -85,8 +85,8 @@ export default function MapEditor() {
     try {
       setPublicPresentation(await command(`/api/show/${sceneId}`, 'POST') as Presentation);
       notify('Scene shown on table.');
-    } catch (error) {
-      notify(error instanceof Error ? error.message : 'Scene could not be shown.');
+    } catch {
+      notify(RETRY_MESSAGE, 6000);
     }
   };
 
@@ -257,8 +257,8 @@ export default function MapEditor() {
             try {
               await window.dungeonDeputy.preferences?.({ sceneId, displayId: next });
               notify('Display preference saved.');
-            } catch (error) {
-              notify(error instanceof Error ? error.message : 'Display preference could not be saved.');
+            } catch {
+              notify(RETRY_MESSAGE, 6000);
             }
           }}>
             <option value="">Windowed preview (safe fallback)</option>
@@ -342,7 +342,7 @@ export default function MapEditor() {
               <label>🔒 Initiative · DM only <input aria-label="Initiative" type="number" placeholder="—" defaultValue={actor.initiative ?? ''} /><small>{actor.initiativeSource ?? 'Unset'}</small><button disabled={encounterBusy} onClick={event => { const input=event.currentTarget.parentElement?.querySelector('input'); if(input?.value) void encounterCommand(`/api/encounter/actors/${selected}/initiative`, 'PUT', {value:Number(input.value)}); }}>Set initiative</button><button disabled={encounterBusy} onClick={() => void encounterCommand(`/api/encounter/actors/${selected}/initiative/roll`, 'POST')}>Roll d20</button></label>
               </div>
             </details>; })()}
-            <div className="dice-controls"><label>🔒 Roll dice · DM only <select aria-label="Dice" value={die} onChange={event=>setDie(Number(event.target.value))}>{[4,6,8,10,12,20,100].map(side=><option key={side} value={side}>d{side}</option>)}</select><input aria-label="Dice modifier" type="number" value={modifier} onChange={event=>setModifier(Number(event.target.value))}/></label><button disabled={encounterBusy} onClick={() => void encounterCommand('/api/encounter/dice','POST',{sides:die,modifier},'Dice rolled (DM only).')}>Roll dice</button>{encounter.rolls?.length>0 && <p>🔒 DM only · Result: {encounter.rolls.at(-1).total}</p>}</div>
+            <div className="dice-controls"><label><span>🔒 Roll dice · DM only</span><span className="dice-fields"><select aria-label="Dice" value={die} onChange={event=>setDie(Number(event.target.value))}>{[4,6,8,10,12,20,100].map(side=><option key={side} value={side}>d{side}</option>)}</select><input aria-label="Dice modifier" type="number" value={modifier} onChange={event=>setModifier(Number(event.target.value))}/></span></label><button disabled={encounterBusy} onClick={() => void encounterCommand('/api/encounter/dice','POST',{sides:die,modifier},'Dice rolled (DM only).')}>Roll dice</button>{encounter.rolls?.length>0 && <p>🔒 DM only · Result: {encounter.rolls.at(-1).total}</p>}</div>
           </>}
         </section>
 
