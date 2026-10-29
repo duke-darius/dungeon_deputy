@@ -19,8 +19,9 @@
 - A token remains hidden until explicitly made visible, even when its map location is revealed.
 - Newly added tokens start visible; the DM can hide them during setup for an ambush.
 - Fog and token visibility persist with the encounter through application restart.
+- On application restart, load the encounter privately but keep the public display black until the DM explicitly shows the encounter; persisted fog/visibility must never be auto-published during cold start.
 - HP, conditions, initiative, and dice results remain DM-only. Public output is limited to revealed terrain and explicitly visible token visuals; no encounter controls or private combat values enter the public projection.
-- Preserve the Phase 2 decision to defer SignalR until Phase 6/CHAR-04. Phase 3 still needs prompt public updates for completed fog/visibility actions using an appropriately small local mechanism; the player renderer must remain fail-closed.
+- Preserve the Phase 2 decision to defer SignalR until Phase 6/CHAR-04. Phase 3 still needs prompt public updates for completed fog/visibility actions using the existing one-second public polling path; the player renderer must remain fail-closed.
 
 ### Encounter flow
 - The DM can roll a d20 or manually enter initiative for an actor.
@@ -52,9 +53,9 @@
 
 Extend the existing map document and backend authority rather than create a second renderer or install dependencies. The app already uses a singleton `MapService`, SQLite JSON documents, an authenticated loopback API, PixiJS 8.22, and a separate strict public projection. The most straightforward design is to persist terrain visibility (initially hidden; represent revealed regions as normalized circular brush stamps or compact strokes in map coordinates) alongside map state, and token visibility alongside each token; keep encounter-only actor values in a separate private encounter document/table. [VERIFIED: `src/backend/Maps/MapService.cs:7-11, 28-39`; quote: “public sealed record MapToken(string Id, string Name, string Kind, string Color, double X, double Y, string Artwork = \"hero.svg\");” and “CREATE TABLE IF NOT EXISTS map_draft (id INTEGER PRIMARY KEY CHECK(id=1), document TEXT NOT NULL); CREATE TABLE IF NOT EXISTS approved_map (id INTEGER PRIMARY KEY CHECK(id=1), document TEXT NOT NULL);”]
 
-Fog/visibility actions are exceptional to Phase 2's show-map snapshot: after the backend validates and persists a completed action, update the active public map projection directly. No SignalR is needed for this local two-window app: the existing public renderer's one-second `/api/presentation` polling can refresh the live fog state promptly (bounded by a polling interval), and can remain the refresh transport. Ensure the live presentation state is updated as part of the same authoritative backend transition, not via a renderer-only state shortcut. [VERIFIED: `src/renderer/src/PublicDisplay.tsx:13-21` quote: “const timer = window.setInterval(() => void refresh(), 1000);”; `src/backend/Program.cs:14,19-30,54` quote: “options.Listen(IPAddress.Loopback, port)” and “app.Use(async (context, next) =>”]
+Cold start and live publication are separate states. On restart, reconstruct persisted fog and token visibility as private DM state and keep the player display black; only an explicit DM “Show encounter” action publishes the then-current filtered projection. Once published, completed fog strokes and token visibility changes update the active public projection after authoritative persistence, and the existing one-second `/api/presentation` poll delivers that new state. Do not auto-publish at startup, require a separate show action for each subsequent edit, or add SignalR (Phase 6 only). [CITED: `.planning/phases/03-fog-of-war-and-encounter-control/03-CONTEXT.md:23-29`; `src/renderer/src/PublicDisplay.tsx:13-21` quote: “const timer = window.setInterval(() => void refresh(), 1000);”; `src/backend/Program.cs:14,19-30,54` quote: “options.Listen(IPAddress.Loopback, port)” and “app.Use(async (context, next) =>”]
 
-**Primary recommendation:** Implement encounter actions in authenticated ASP.NET routes backed by transactional SQLite persistence; form a dedicated allowlisted public map DTO from authoritative map/fog/token data, and publish only the sanitized visual projection after successful persistence. Treat a malformed projection or failed public fetch as black/empty, never as permission to reuse stale private data. [VERIFIED: `src/renderer/src/contracts.mjs:10-18` quote: “return black;”; `src/renderer/src/PublicDisplay.tsx:15-17` quote: “catch { if (alive) setPresentation(black); }”]
+**Primary recommendation:** Implement encounter actions in authenticated ASP.NET routes backed by transactional SQLite persistence. Keep restored state private on cold start and public output black until the explicit DM “Show encounter” action publishes the filtered current state. Thereafter publish persisted fog-stroke and token-visibility changes to active presentation and rely on the existing one-second public poll; do not introduce SignalR. Form a dedicated allowlisted public map DTO from authoritative map/fog/token data. Treat a malformed projection or failed public fetch as black/empty, never as permission to reuse stale private data. [CITED: `.planning/phases/03-fog-of-war-and-encounter-control/03-CONTEXT.md:23-29`; `src/renderer/src/contracts.mjs:10-18` quote: “return black;”; `src/renderer/src/PublicDisplay.tsx:15-17` quote: “catch { if (alive) setPresentation(black); }”]
 
 ## Architectural Responsibility Map
 
@@ -99,13 +100,15 @@ No external packages are proposed or installed. Existing pinned packages remain 
 DM pointer stroke / encounter control
         ↓ authenticated Electron DM bridge (X-Dungeon-Token)
 Local ASP.NET API → validate command → SQLite transaction (map/fog/token or private encounter)
-        ↓ after successful persisted visual action
-Sanitized public map projection → active presentation state → PublicDisplay 1s poll
+        ↓ cold start: restore persisted state privately; public state stays black
+DM “Show encounter” → filter persisted map/fog/token state → sanitized public map projection
+        ↓ after publication: persisted fog stroke / token-visibility change updates active projection
+Active presentation state → PublicDisplay 1s poll (no SignalR)
         ↓
 revealed terrain + explicitly visible token visuals (no encounter values)
 ```
 
-The bridge/API and polling path are existing repository behavior; transaction ordering and data split are proposed phase work. [VERIFIED: `src/preload.cts:6-10`; `src/backend/Program.cs:19-30,34,44-54`; `src/renderer/src/PublicDisplay.tsx:13-21`; proposed additions [ASSUMED]]
+The bridge/API and polling path are existing repository behavior; cold-start blackout, explicit encounter publication, and post-publication updates are locked phase behavior. Transaction ordering and data split are proposed phase work. [VERIFIED: `src/preload.cts:6-10`; `src/backend/Program.cs:19-30,34,44-54`; `src/renderer/src/PublicDisplay.tsx:13-21`; [CITED: `.planning/phases/03-fog-of-war-and-encounter-control/03-CONTEXT.md:23-29`]]
 
 ### Recommended state split
 
@@ -122,6 +125,7 @@ The bridge/API and polling path are existing repository behavior; transaction or
 | Hidden token merely hidden in renderer | Token payload is inspectable in public window and devtools | Filter token out in backend projection before response; visibility boolean is private control metadata, not public DTO. [ASSUMED] |
 | Fog clipped/approximated only visually | Asset pixels beneath overlay remain available or reveal incorrect areas | Public projection must deliver only revealed terrain as a mask/clip or server-derived display representation; never send the original full terrain in a way that bypasses the mask. Local trusted display is not a substitute for projection tests. [ASSUMED] |
 | Persistence commits but presentation fails, or reverse | Display could show unpersisted reveal / restart reverts | Persist validated action first, then update active presentation from persisted authoritative state; report failure and retry/reload. Avoid renderer optimistic publication. [ASSUMED] |
+| Cold start accidentally republishes persisted visuals | Previously revealed terrain/tokens become public without a DM decision after restart | Always start public presentation black; restore fog/token state only in private encounter state. Require explicit “Show encounter” to publish the current filtered state, and test restart both before and after that action. [CITED: `.planning/phases/03-fog-of-war-and-encounter-control/03-CONTEXT.md:27`] |
 | Poll/HTTP failure | Stale public frame may continue exposing an earlier state | Current catch path blacks display; preserve fail-closed behavior and verify malformed/unauthorized responses black out. [VERIFIED: `src/renderer/src/PublicDisplay.tsx:15-17`] |
 | Token visibility separate from terrain | Revealed room implicitly reveals enemies | Keep independent boolean; public token set = visible tokens only, regardless of revealed mask. [CITED: `.planning/phases/03-fog-of-war-and-encounter-control/03-CONTEXT.md:23-27`] |
 
@@ -152,7 +156,8 @@ Keep initiative as numeric value plus an explicit, DM-editable tie-break orderin
 ### Anti-Patterns to Avoid
 
 - Do not store encounter truth only in React or Pixi state; restart and concurrency would lose/contradict it. Backend persistence is authoritative. [CITED: `tabletop_dm_gsd_brief.md:39-47`]
-- Do not reuse explicit “Show on table” for every reveal stroke; fog/visibility actions publish promptly by locked decision. [CITED: `03-CONTEXT.md:23-28`]
+- Do not auto-publish persisted state on cold start: public output stays black until explicit DM “Show encounter.” [CITED: `03-CONTEXT.md:27`]
+- Do not reuse explicit “Show encounter” for every reveal stroke; after the initial publication, completed fog/visibility actions publish promptly by the locked one-second polling path. [CITED: `03-CONTEXT.md:23,27-29`]
 - Do not include a `visible: false` token in the public response; omit it entirely.
 - Do not use a square grid mask, tile-only reveal, or line-of-sight computation; requirement is freeform circular brush and explicit scope excludes LoS/pathfinding.
 - Do not let token dragging, panning, wheel zoom, painting, or pointer exit leave input mode stuck; single pointer lifecycle must clean up listeners and finish/cancel strokes.
@@ -176,11 +181,11 @@ Keep initiative as numeric value plus an explicit, DM-editable tie-break orderin
 **How to avoid:** Separate DTOs; derive public response from persisted data with explicit property construction, then validate in renderer. Add contract tests for forbidden keys and hidden-token absence.  
 **Warning signs:** Public endpoint returns `MapState`, token `visible` flag, actor stats, initiative, conditions, or dice records. [VERIFIED current separate conversion `src/backend/Maps/MapService.cs:117`; exact quoted statement above]
 
-### Pitfall 2: Restart/publish split-brain
-**What goes wrong:** In-memory active presentation shows a stroke that is lost on restart, or persisted truth is not reflected after a failed update.  
-**Why it happens:** Current map draft/approved rows persist, while `PresentationState` active state is in memory. [VERIFIED: `MapService.cs:30-39`; `PresentationState.cs:17-23`]  
-**How to avoid:** Document whether restart restores persisted live visibility or safely blacks out; ensure boot reconstruction uses persisted approved map plus persisted fog state if continuity is intended. Test both cold start and backend restart, including failed write/publication. [ASSUMED recommendation]  
-**Warning signs:** Rendering state updated in browser before request succeeds; no startup restoration test.
+### Pitfall 2: Cold-start privacy and publication lifecycle split-brain
+**What goes wrong:** Persisted revealed terrain or visible tokens appear publicly on restart without a DM action, or an explicit publication is lost/confused with private restored state.  
+**Why it happens:** Map/fog/token data persists, while `PresentationState` active state is in memory. [VERIFIED: `MapService.cs:30-39`; `PresentationState.cs:17-23`]  
+**How to avoid:** Restore map/fog/token state into the private encounter state only and initialize public output black. An explicit DM “Show encounter” publishes the filtered current state; after that, persisted completed fog/visibility changes update active presentation and reach the display through its one-second poll. Test cold start, show action, post-show live edits, and failed persistence/publication. [CITED: `03-CONTEXT.md:23,27-29`]  
+**Warning signs:** Startup code initializes active presentation from saved visibility; public updates depend on renderer optimism; no test asserts black-before-show and updated-after-show.
 
 ### Pitfall 3: Wrong fog coordinate space or unbounded stroke growth
 **What goes wrong:** Brush size changes with zoom, scribbles disappear after transform, or long sessions bloat serialized JSON.  
@@ -242,16 +247,14 @@ The type/method above is illustrative and proposed, not an existing discrete rep
 |---|-------|---------|---------------|
 | A1 | Store compact brush stamps/strokes in map coordinates in map document; initially hidden means no reveal geometry. | Summary / Architecture | Map JSON growth and migration behavior need adjustment. |
 | A2 | Separate encounter table/document keyed by session is smallest clean privacy boundary. | Architecture | May require schema/keying changes if multiple encounters per session are required. |
-| A3 | Public refresh via existing 1-second polling is sufficiently prompt under locked “appropriately small local mechanism.” | Summary | User-perceived latency may be too high; confirm acceptance with demo, not SignalR. |
-| A4 | Persisted encounter state and live public presentation can be reconstructed safely at startup. | Pitfalls | Must choose explicit cold-start behavior; incorrect assumption risks display/public privacy. |
-| A5 | Brush stroke simplification, maximum points/radius/count, dice modifier bounds, and condition identifiers need implementation-defined safe limits. | Pitfalls / Encounter | Limits may constrain DM use; choose generous bounded values and test. |
-| A6 | .NET 10 SDK presence/version on execution machine was not probed during this research. | Standard Stack | Build may need installed SDK/runtime; packaged app behavior unaffected if SDK only needed for build. |
+| A3 | The existing one-second polling path is the required public refresh transport; no SignalR before Phase 6. | Summary / Architecture | Polling latency is bounded by its interval; verify the user-visible update path without adding deferred transport. |
+| A4 | Brush stroke simplification, maximum points/radius/count, dice modifier bounds, and condition identifiers need implementation-defined safe limits. | Pitfalls / Encounter | Limits may constrain DM use; choose generous bounded values and test. |
+| A5 | .NET 10 SDK presence/version on execution machine was not probed during this research. | Standard Stack | Build may need installed SDK/runtime; packaged app behavior unaffected if SDK only needed for build. |
 
 ## Open Questions
 
-1. **Cold-start public behavior:** Restore last live revealed map after restart or safely return to blackout until explicit DM action? Context requires persisted fog/token visibility, but does not state automatic publication semantics. Recommend restore persisted visual visibility only if the existing app's safe presentation lifecycle approves it; otherwise keep public black while preserving private map state. [ASSUMED]
-2. **Fog reset / new map behavior:** Should blank/new maps begin fully hidden immediately, and should a DM reset action exist? Context states fog starts fully hidden “when first enabled”; do not add reset UX absent need. [CITED: `03-CONTEXT.md:18`]
-3. **Actor/token lifetime:** Requirements say actor HP/conditions while existing map tokens are current actor candidates. Future Almanac may create actors beyond tokens. Keep encounter actor identity stable and separable from current map token, but phase scope can bind current actors to tokens. [ASSUMED]
+1. **Fog reset / new map behavior:** Should blank/new maps begin fully hidden immediately, and should a DM reset action exist? Context states fog starts fully hidden “when first enabled”; do not add reset UX absent need. [CITED: `03-CONTEXT.md:18`]
+2. **Actor/token lifetime:** Requirements say actor HP/conditions while existing map tokens are current actor candidates. Future Almanac may create actors beyond tokens. Keep encounter actor identity stable and separable from current map token, but phase scope can bind current actors to tokens. [ASSUMED]
 
 ## Validation Architecture
 
@@ -268,9 +271,9 @@ Existing test command and xUnit tests are present. [VERIFIED: `package.json:13` 
 ### Phase Requirements → Test Map
 | Req ID | Behavior | Test Type | Automated Command | File Exists? |
 |--------|----------|-----------|-------------------|-------------|
-| ENCT-01 | Reveal/hide strokes persist; only revealed terrain and explicitly visible tokens are public; malformed response fails closed | backend unit/integration + renderer contract | `npm test` | Existing map API and contract suites exist; add phase tests. [VERIFIED: `package.json:13`; `src/backend.tests/MapApiTests.cs:12-25`; `src/renderer/src/contracts.test.mjs` discovered] |
+| ENCT-01 | Persist fog/token visibility privately on restart; public remains black until explicit “Show encounter”; after publication, completed strokes and visibility changes become live via existing one-second poll; only revealed terrain and explicitly visible tokens are public; malformed response fails closed | backend unit/integration + renderer contract + restart/poll integration | `npm test` | Add tests for cold-start black, explicit publication, post-publication live refresh, and privacy filtering. Existing map API and contract suites exist. [VERIFIED: `package.json:13`; `src/backend.tests/MapApiTests.cs:12-25`; `src/renderer/src/contracts.test.mjs` discovered; [CITED: `03-CONTEXT.md:23,27-29`]] |
 | ENCT-02 | HP/conditions, initiative (d20/manual, stable ties/next turn), die + modifier validate and persist privately | backend unit tests | `dotnet test src/backend.tests/DungeonDeputy.Api.Tests.csproj -c Release` | ❌ new tests needed |
-| ENCT-03 | Dashboard encounter actions do not require navigation; public response excludes private fields; restart retains state | renderer tests + backend integration/E2E | `npm test` and `npm run test:e2e` | Existing E2E harness; add encounter workflow test. [VERIFIED: `package.json:13-14`] |
+| ENCT-03 | Dashboard encounter actions do not require navigation; public response excludes private fields; restart retains private state but does not publish it until explicit “Show encounter”; after show, visibility changes appear through existing poll | renderer tests + backend integration/E2E | `npm test` and `npm run test:e2e` | Existing E2E harness; add cold-start-before-show and post-show live update workflow coverage. [VERIFIED: `package.json:13-14`; [CITED: `03-CONTEXT.md:23,27-29`]] |
 
 ### Sampling Rate
 - **Per task commit:** relevant focused Node or `dotnet test` tests.
@@ -281,7 +284,7 @@ Existing test command and xUnit tests are present. [VERIFIED: `package.json:13` 
 - [ ] Backend tests for fog initialization/strokes, token visibility defaults, save/reopen, API validation and public projection privacy.
 - [ ] Backend tests for encounter persistence and initiative/dice/condition transitions.
 - [ ] Renderer tests for brush gesture lifecycle, zoom/map coordinate conversion, pan/token drag separation, and projection fail-closed cases.
-- [ ] E2E coverage for reveal + visible-token update and backend restart.
+- [ ] E2E coverage: restart restores private fog/token visibility while public remains black; explicit “Show encounter” publishes only filtered visuals; subsequent reveal/visibility changes appear through the one-second polling path without SignalR.
 
 ## Security Domain
 
