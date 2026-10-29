@@ -15,7 +15,7 @@ provides:
   - Responsive manager window and keyboard canvas regressions
 affects: [phase-03-verification, map-editor, presentation-polling]
 actuals:
-  tokens: 7442
+  tokens: 9037
   tasks: 4
   commits: 5
   plan_head_before: 37498634a5a560778556c54f2e2670094587e0a4
