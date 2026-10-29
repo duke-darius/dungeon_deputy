@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import { attachCanvas, registerPointerLifecycle } from './canvasPolicy.mjs';
 import { mapToScreen, screenToMap } from './camera.mjs';
 
@@ -8,6 +9,18 @@ test('late async initialization after unmount destroys without attaching stale c
   const app={canvas:{},init:()=>new Promise(resolve=>release=resolve),destroy:()=>destroyed++};
   const lifecycle=attachCanvas(app,host,()=>{}); lifecycle.dispose(); release();
   assert.equal(await lifecycle.ready,false); assert.equal(destroyed,1);
+});
+
+test('dispose during asynchronous canvas setup waits until Pixi initialization finishes', async () => {
+  let finishSetup; let destroyed=0;
+  const app={canvas:{},init:async()=>{},destroy:()=>{destroyed++;}};
+  const lifecycle=attachCanvas(app,{appendChild(){}},()=>new Promise(resolve=>{finishSetup=resolve;}));
+  while(!finishSetup) await new Promise(resolve=>setImmediate(resolve));
+  lifecycle.dispose();
+  assert.equal(destroyed,0);
+  finishSetup();
+  assert.equal(await lifecycle.ready,false);
+  assert.equal(destroyed,1);
 });
 
 test('pointerupoutside commits final map-space position and all registrations clean up', () => {
@@ -33,4 +46,11 @@ test('map coordinate conversion round-trips under pan and zoom', () => {
   const camera={x:83,y:-27,zoom:1.75}, point={x:240,y:610};
   const back=screenToMap(mapToScreen(point,camera),camera);
   assert.ok(Math.abs(back.x-point.x)<1e-9); assert.ok(Math.abs(back.y-point.y)<1e-9);
+});
+
+test('Pixi CSP polyfill loads before renderer initialization without loosening CSP', async () => {
+  const canvas = await readFile(new URL('./MapCanvas.tsx', import.meta.url), 'utf8');
+  const publicHtml = await readFile(new URL('../../public.html', import.meta.url), 'utf8');
+  assert.match(canvas, /^import 'pixi\.js\/unsafe-eval';/);
+  assert.doesNotMatch(publicHtml, /frame-ancestors|unsafe-eval/);
 });

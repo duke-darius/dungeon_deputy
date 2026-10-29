@@ -1,3 +1,4 @@
+import 'pixi.js/unsafe-eval';
 import { Application, Assets, Container, Graphics, Sprite } from 'pixi.js';
 import { useEffect, useRef } from 'react';
 import tavernArt from '../../../../assets/maps/tavern.svg?url';
@@ -27,8 +28,9 @@ export function MapCanvas({ image, gridVisible, scale, tokens, onMove }: { image
         for (const token of state.tokens) { const texture=await Assets.load(token.artwork==='goblin.svg'?goblinArt:heroArt); const g = new Sprite(texture); g.anchor.set(.5); g.width=46;g.height=46;g.position.set(token.x,token.y);g.tint=token.color;g.eventMode='static';g.cursor='grab';g.on('pointerdown',e=>{dragging=token.id;panning=false;last={x:e.global.x,y:e.global.y};});world.addChild(g); }
         world.position.set(camera.x,camera.y); world.scale.set(camera.zoom);
       };
-      drawRef.current = render;
-      await render();
+       drawRef.current = render;
+       await render();
+       if (cancelled) return;
         const finish=(e:{global:{x:number;y:number}})=>{if(dragging){const pos=screenToMap(e.global,camera);latest.current.onMove(dragging,pos.x,pos.y);dragging=null;}};
         detachPointers=registerPointerLifecycle(initialized.stage,finish,(e:{global:{x:number;y:number}})=>{ if(dragging){const pos=screenToMap(e.global,camera);const item=latest.current.tokens.find(t=>t.id===dragging);if(item){item.x=pos.x;item.y=pos.y;void render();}} else if(panning){camera={...camera,x:camera.x+e.global.x-last.x,y:camera.y+e.global.y-last.y};last={x:e.global.x,y:e.global.y};world.position.set(camera.x,camera.y);} },(e:{global:{x:number;y:number}})=>{if(!dragging){panning=true;last={x:e.global.x,y:e.global.y};}},()=>{panning=false;});
        initialized.stage.eventMode='static'; initialized.stage.hitArea=initialized.screen;

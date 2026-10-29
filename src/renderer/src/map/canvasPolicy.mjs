@@ -1,13 +1,29 @@
 export function attachCanvas(app, host, onReady) {
   let disposed = false;
   let destroyed = false;
-  const destroy = () => { if (!destroyed) { destroyed = true; app.destroy(true, { children: true }); } };
+  let initialized = false;
+  let setupFinished = false;
+  const destroy = () => {
+    if (!destroyed && initialized && setupFinished) {
+      destroyed = true;
+      app.destroy(true, { children: true });
+    }
+  };
   const ready = (async () => {
-    await app.init({ resizeTo: host, background: '#171b1a', antialias: true });
-    if (disposed || !host) { destroy(); return false; }
-    host.appendChild(app.canvas);
-    await onReady(app);
-    return true;
+    try {
+      await app.init({ resizeTo: host, background: '#171b1a', antialias: true });
+      initialized = true;
+      if (disposed || !host) { setupFinished = true; destroy(); return false; }
+      host.appendChild(app.canvas);
+      await onReady(app);
+      setupFinished = true;
+      if (disposed) { destroy(); return false; }
+      return true;
+    } catch (error) {
+      setupFinished = true;
+      destroy();
+      throw error;
+    }
   })();
   return { ready, dispose() { disposed = true; destroy(); } };
 }
