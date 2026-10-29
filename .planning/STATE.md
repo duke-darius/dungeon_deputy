@@ -4,10 +4,10 @@ current_phase: 03
 current_phase_name: Fog of War and Encounter Control
 status: verifying
 stopped_at: Completed 03-03-PLAN.md
-last_updated: "2026-10-29"
+last_updated: "2026-10-29T20:04:50.079Z"
 last_activity: 2026-10-29
 last_activity_desc: Phase 03 Plan 03 execution completed; verification pending
-state_head: cc8fb0be1104d85b238b3d9d927e669bc6823509
+state_head: d6386f01e3bf13656f306be70e2f8ad9fd7945a4
 progress:
   total_phases: 7
   completed_phases: 1
@@ -67,6 +67,7 @@ Progress: ░░░░░░░░░░ [█░░░░░░░░░] 14%
 | Phase 03 P04 | 24m | 3 tasks | 15 files |
 | Phase 03 P02 | 8min | 2 tasks | 7 files |
 | Phase 03 P03 | 12min | 3 tasks | 6 files |
+| Phase 03 P03 | 12min | 3 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -98,6 +99,7 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase 03]: Keep actor combat state and dice history in its own private SQLite document; map tokens provide actor identity only.
 - [Phase 03]: Use a stable condition catalog seam, closed supported dice set, and bounded validation without adding packages.
 - [Phase 03 Plan 03]: Keep encounter commands inside the trusted DM IPC allowlist and use filtered public projection for player rendering.
+- [Phase 03]: DM encounter commands remain inside the trusted IPC allowlist; player display consumes only the filtered visual projection.
 
 ### Pending Todos
 
@@ -117,6 +119,6 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 
 ## Session Continuity
 
-Last session: 2026-10-29
+Last session: 2026-10-29T20:04:50.047Z
 Stopped at: Completed 03-03-PLAN.md
 Resume file: None
