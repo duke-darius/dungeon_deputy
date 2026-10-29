@@ -17,7 +17,7 @@ affects: [phase-03-verification, map-editor, presentation-polling]
 actuals:
   tokens: 9037
   tasks: 4
-   commits: 9
+  commits: 5
   plan_head_before: 37498634a5a560778556c54f2e2670094587e0a4
   plan_head_after: 0522b5e4f114f1a4fc4a797263a80ea9ede20a57
 tech-stack:
@@ -90,7 +90,7 @@ commits: 5
 
 - **Duration:** 14 min
 - **Started:** 2026-10-29T21:55:39Z
-- **Completed:** 2026-10-29T22:32:06Z
+- **Completed:** 2026-10-29T22:09:35Z
 - **Tasks:** 4
 - **Files modified:** 10 (including validation matrix)
 
@@ -181,4 +181,4 @@ None found in files created or modified by this plan.
 
 - All 11 summary-listed created/modified paths exist.
 - All five task commits are ancestors of the current plan head; the authorized UI iteration commit `c259471` is also included in the measured plan history.
-- Measured plan history count includes the five task commits, plan-summary commits, and the authorized UI iteration; `commits` and `plan_head_after` are finalized after the documentation commit.
+- The five task commits are ancestors of the plan's recorded head; the authorized UI iteration commit `c259471` is also present in the current history.
