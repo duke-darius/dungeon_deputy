@@ -1,8 +1,8 @@
 ---
 phase: "03"
 slug: "fog-of-war-and-encounter-control"
-status: in_progress
-nyquist_compliant: false
+status: validated
+nyquist_compliant: true
 wave_0_complete: true
 created: "2026-10-29"
 ---
@@ -35,20 +35,20 @@ created: "2026-10-29"
 | 03-03-01 | 03-03 | 4 | ENCT-02, ENCT-03 | T-03-10, T-03-11 | `npm run build` (TypeScript, Electron, Vite or backend build fails); `dotnet test src/backend.tests/DungeonDeputy.Api.Tests.csproj -c Release` (backend public/privacy assertion fails) | `src/renderer/src/map/MapEditor.tsx`, `src/renderer/src/styles.css`, `src/renderer/src/PublicDisplay.tsx`, `src/main.ts`, `src/backend.tests/EncounterApiTests.cs` | pass |
 | 03-03-02 | 03-03 | 4 | ENCT-01, ENCT-02, ENCT-03 | T-03-10, T-03-12 | `npm run test:e2e` (UI/API/persistence/poll/privacy/window/mask assertion, timeout, or renderer error fails) | `scripts/e2e.mjs`, `scripts/e2e/fixtures.mjs`, `scripts/e2e/fixtures.test.mjs` | pass |
 | 03-03-03 | 03-03 | 4 | ENCT-01, ENCT-02, ENCT-03 | T-03-10, T-03-11 | `npm test` (any Node/xUnit failure); `npm run build` (build failure); `npm run test:e2e` (integrated E2E failure) | `docs/phase-3-demo.md`, this validation map and all test files above | pass |
-| 03-05-01 | 03-05 | 5 | ENCT-01, ENCT-03 | T-03-16, T-03-17, T-03-20 | `dotnet test src/backend.tests/DungeonDeputy.Api.Tests.csproj -c Release`<br>Fails when PNG validation, persist-before-presentation, cold-start black, or public DTO privacy assertions fail. | `src/backend.tests/MapApiTests.cs` | planned |
-| 03-05-01 | 03-05 | 5 | ENCT-01, ENCT-03 | T-03-16 | `npm test`<br>Fails when exact PNG imageData/token allowlist or fail-closed public contract assertions fail. | `src/renderer/src/contracts.test.mjs` | planned |
-| 03-05-01 | 03-05 | 5 | ENCT-01, ENCT-03 | T-03-16, T-03-17 | `npm run build`<br>Fails when production renderer, Electron, or backend build fails. | Renderer and backend build | planned |
-| 03-05-02 | 03-05 | 5 | ENCT-01, ENCT-03 | T-03-16, T-03-20 | `npm run package:smoke`<br>Fails when valid benign PNG, exact DTO, forbidden-field, or public CSP assertions fail. | `scripts/package-smoke.mjs`, `src/renderer/public.html` | planned |
-| 03-05-02 | 03-05 | 5 | ENCT-01, ENCT-03 | T-03-16, T-03-20 | `npm run test:e2e`<br>Fails when public source fetch/image denial, API/DOM privacy, black-before-Show, or black-outside-reveal pixel assertion fails. | `scripts/e2e.mjs` | planned |
-| 03-06-01 | 03-06 | 6 | ENCT-01 | T-03-18 | `node --test src/renderer/src/map/MapCanvas.lifecycle.test.mjs`<br><fails_when>Stale redraw mutates scene, or pointercancel retains preview/state or submits a stroke.</fails_when><br>`npm run build`<br><fails_when>Production renderer, Electron, or backend build fails.</fails_when> | `src/renderer/src/map/MapCanvas.lifecycle.test.mjs` | pending |
-| 03-06-02 | 03-06 | 6 | ENCT-02, ENCT-03 | T-03-19 | `dotnet test src/backend.tests/DungeonDeputy.Api.Tests.csproj -c Release`<br><fails_when>Initiative reorder auth/atomicity, invalid-order no-mutation, or nullable HP persistence assertions fail.</fails_when><br>`npm test`<br><fails_when>Any Node/xUnit test fails, including single-call reorder or independent blank-HP null UI assertions.</fails_when><br>`npm run build`<br><fails_when>Production renderer, Electron, or backend build fails.</fails_when> | `src/backend.tests/EncounterApiTests.cs`, `src/backend.tests/EncounterServiceTests.cs`, `src/renderer/src/MapEditor.test.mjs` | pending |
+| 03-05-01 | 03-05 | 5 | ENCT-01, ENCT-03 | T-03-16, T-03-17, T-03-20 | `dotnet test src/backend.tests/DungeonDeputy.Api.Tests.csproj -c Release` (PNG validation, persist-before-presentation, cold-start black or DTO assertions fail); `npm test` (PNG/token contract or fail-closed assertions fail); `npm run build` (renderer/Electron/backend build fails) | `src/backend.tests/MapApiTests.cs`, `src/renderer/src/contracts.test.mjs` | pass |
+| 03-05-02 | 03-05 | 5 | ENCT-01, ENCT-03 | T-03-16, T-03-20 | `npm run package:smoke` (benign PNG, exact DTO, forbidden-field, CSP, or restart assertion fails); `npm run test:e2e` (source denial, API/DOM privacy, black-before-Show, or concealed-pixel assertion fails) | `scripts/package-smoke.mjs`, `scripts/e2e.mjs`, `src/renderer/public.html` | pass |
+| 03-06-01 | 03-06 | 6 | ENCT-01 | T-03-18 | `node --test src/renderer/src/map/MapCanvas.lifecycle.test.mjs` (stale redraw mutates scene or pointercancel retains preview/submits a stroke); `npm run build` (production renderer/Electron/backend build fails) | `src/renderer/src/map/MapCanvas.lifecycle.test.mjs`, `src/renderer/src/map/canvasPolicy.mjs` | pass |
+| 03-06-02 | 03-06 | 6 | ENCT-02, ENCT-03 | T-03-19 | `dotnet test src/backend.tests/DungeonDeputy.Api.Tests.csproj -c Release` (auth/atomic reorder/invalid-order/null HP persistence fails); `npm test` (single-call reorder or nullable HP UI assertion fails); `npm run build` (production build fails) | `src/backend.tests/EncounterApiTests.cs`, `src/backend.tests/EncounterServiceTests.cs`, `src/renderer/src/MapEditor.test.mjs` | pass |
+| 03-07-01 | 03-07 | 7 | ENCT-01, ENCT-03 | T-03-21 | `dotnet test src/backend.tests/DungeonDeputy.Api.Tests.csproj -c Release` (stroke plus supplied PNG are not atomically committed before active-map presentation or failures alter either state) | `src/backend.tests/MapApiTests.cs` | pending |
+| 03-07-02 | 03-07 | 7 | ENCT-01, ENCT-03 | T-03-22 | `dotnet test src/backend.tests/DungeonDeputy.Api.Tests.csproj -c Release` (fog-enable/token-visibility supplied image persistence, presentation mode gating, or rejection/failure no-op assertions fail); `npm test` (mutation request omits imageData or UI submits a second publication) | `src/backend.tests/MapApiTests.cs`, `src/renderer/src/map/MapEditor.tsx`, `src/renderer/src/api.ts` | pending |
+| 03-07-03 | 03-07 | 7 | ENCT-01, ENCT-03 | T-03-23 | `npm run test:e2e` (for each successful UI fog/token mutation, any captured public-presentation poll after command completion whose SHA-256 imageData hash differs from persisted map imageData fails; latest player image must also match) | `scripts/e2e.mjs`, `src/main.ts`, `scripts/e2e/fixtures.mjs` | pending |
 
 ## Wave 0 tests
 
-- [ ] `src/backend.tests/MapApiTests.cs` - existing fog persistence/authentication plus planned PNG-only projection MIME/size validation, persist-before-publish, and source/stroke/private-key exclusion; run focused backend tests for 03-05.
+- [x] `src/backend.tests/MapApiTests.cs` - fog persistence/authentication, PNG MIME/size validation, persist-before-publish, and source/stroke/private-key exclusion; passed `dotnet test` and `npm test`.
 - [x] `src/backend.tests/EncounterApiTests.cs` and `EncounterServiceTests.cs` - private encounter mutations, validation, order, dice and restart persistence; exercised with `dotnet test` and `npm test`.
 - [x] `src/renderer/src/map/fogMask.test.mjs`, `MapCanvas.lifecycle.test.mjs`, and `src/renderer/src/contracts.test.mjs` - mask pixels, order, gesture cleanup and public allowlist; exercised with `npm test`.
-- [ ] `scripts/e2e.mjs` - planned same-window cold-start black, explicit Show, post-show polling, sanitized PNG-only public payload, source fetch/image denial, and black pixels outside reveal; run `npm run test:e2e` after 03-05.
+- [x] `scripts/e2e.mjs` - same-window cold-start black, explicit Show, post-show polling, sanitized PNG-only public payload, source fetch/image denial, black pixels outside reveal, and encounter state; passed `npm run test:e2e`.
 - [x] No framework/package installation required.
 
 ## Manual-only verifications
@@ -60,11 +60,12 @@ created: "2026-10-29"
 
 ## Validation run record
 
-- `npm test` - passed: 29 Node tests and 20 xUnit tests.
+- `npm test` - passed: 32 Node tests and 20 xUnit tests.
 - `dotnet test src/backend.tests/DungeonDeputy.Api.Tests.csproj -c Release` - passed: 20 tests.
 - `npm run build` - passed.
-- `npm run test:e2e` - passed after iterating on stale E2E token selectors/state synchronization; evidence captured by the harness under `artifacts/e2e/<run-id>/` during the successful run.
-- 03-05 rerun evidence: `npm test` (28 Node + 20 xUnit pass), `npm run build` (pass), `npm run package:smoke` (pass), and `npm run test:e2e` (pass; latest artifact path recorded in 03-05-SUMMARY.md). The per-task rows remain planned per the 03-05 plan's pending-row instruction.
+- `npm run test:e2e` - passed after iterating on UI selectors/state synchronization; final evidence: `artifacts/e2e/2026-10-29T21-12-01.188Z-b7022c3b/`.
+- `npm run package:smoke` - passed on Windows x64 after sanitized PNG projection and black-until-Show checks; one Electron Forge shell-argument deprecation warning was non-fatal.
+- `npm run build` - passed after final renderer/backend changes; .NET Release build had 0 warnings and 0 errors.
 
 ## Sign-off
 
@@ -74,4 +75,4 @@ created: "2026-10-29"
 - [x] `nyquist_compliant: true` for automated scope; human physical/platform caveats remain open.
 - [ ] Phase status/roadmap completion deliberately not marked here.
 
-**Plan coverage:** 03-01, 03-04, 03-02, 03-03, 03-05 (planned; Wave 5), 03-06 (planned; Wave 6 after 03-05). Threat mapping T-03-04 through T-03-20 is covered across the phase plans; closure plans retain package-install threat T-03-SC by avoiding new packages. 03-05/03-06 evidence rows are planned and are not claims of completed verification. Automation does not attest to physical HDMI or macOS behavior.
+**Plan coverage:** 03-01, 03-04, 03-02, 03-03, 03-05, and 03-06 complete; 03-07 pending. Threat mapping T-03-04 through T-03-23 is covered across the phase plans; closure plans retain package-install threat T-03-SC by avoiding new packages. Automation does not attest to physical HDMI or macOS behavior.
