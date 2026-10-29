@@ -75,4 +75,5 @@ export async function cleanup({success=false}={}) {
 }
 export function log(text){note(text);}
 export function getRendererErrors(){return [...rendererErrors];}
+export function getLogLines(){return [...logs];}
 export { root };

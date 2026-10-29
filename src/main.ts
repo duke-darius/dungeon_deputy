@@ -1,6 +1,6 @@
 import { app, BrowserWindow, ipcMain, screen, type Display } from 'electron';
 import { spawn, type ChildProcess } from 'node:child_process';
-import { randomBytes } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { chooseExternalDisplay } from './display-policy.mjs';
@@ -100,9 +100,10 @@ function installIpc() {
   ipcMain.handle('public:presentation', async event => {
     if (!allowedSender('public', event)) throw new Error('Denied');
     const response = await api('/api/presentation');
-    if (e2e) console.info(`[E2E API] GET /api/presentation ${response.status}`);
     if (!response.ok) throw new Error('Presentation unavailable.');
-    return response.json();
+    const presentation = await response.json();
+    if (e2e) console.info(`[E2E API] GET /api/presentation ${response.status} imageDataSha256=${createHash('sha256').update(presentation.imageData ?? '').digest('hex')}`);
+    return presentation;
   });
 }
 function load(win: BrowserWindow, route: string) {

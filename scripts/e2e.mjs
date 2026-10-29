@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { setup, launch, cleanup, evidence, log, getRendererErrors } from './e2e/fixtures.mjs';
+import { setup, launch, cleanup, evidence, log, getRendererErrors, getLogLines } from './e2e/fixtures.mjs';
+import { createHash } from 'node:crypto';
 
 let success = false;
 let app;
@@ -9,7 +10,7 @@ let pages = [];
 let captureFailure;
 let windowBaseline;
 
-const readMap = page => page.evaluate(() => window.dungeonDeputy.command('/api/map'));
+  const readMap = page => page.evaluate(() => window.dungeonDeputy.command('/api/map'));
 async function waitForMap(page, predicate, label) {
   const deadline = Date.now() + 10_000;
   while (Date.now() < deadline) {
@@ -19,12 +20,29 @@ async function waitForMap(page, predicate, label) {
   }
   throw new Error(`Timed out waiting for map state: ${label}`);
 }
+async function assertPostCommitRasterPoll(page, startIndex, completionIndex, persistedImageData, label, mutationPath) {
+  const expected = createHash('sha256').update(persistedImageData).digest('hex');
+  assert.ok(getLogLines().slice(startIndex, completionIndex).some(line => line.includes(`${mutationPath} 200`)), `${label}: successful UI mutation request was not captured`);
+  const deadline = Date.now() + 5000;
+  while (Date.now() < deadline) {
+    const hashes = getLogLines().slice(completionIndex).map(line => line.match(/\[E2E API\] GET \/api\/presentation 200 imageDataSha256=([a-f0-9]{64})/)?.[1]).filter(Boolean);
+    if (hashes.length) {
+      await page.waitForFunction(value => document.querySelector('.public-map-art')?.getAttribute('src') === value, persistedImageData, { timeout: 5000 });
+      assert.ok(hashes.every(hash => hash === expected), `${label}: a public poll after mutation completion exposed a stale raster`);
+      assert.equal(await page.locator('.public-map-art').getAttribute('src'), persistedImageData, `${label}: latest player raster differs from persisted map imageData`);
+      return;
+    }
+    await page.waitForTimeout(50);
+  }
+  throw new Error(`${label}: no post-commit public presentation poll was observed`);
+}
 async function trackWindows() {
   const initialPages=[...pages];
   const mainFrameNavigations=new Map(initialPages.map(page=>[page,0]));
   for(const page of initialPages) page.on('framenavigated',frame=>{if(frame===page.mainFrame())mainFrameNavigations.set(page,mainFrameNavigations.get(page)+1);});
   const fullscreen=await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows().map(win=>win.isFullScreen()));
-  windowBaseline={pages:initialPages,urls:initialPages.map(page=>page.url()),mainFrameNavigations,fullscreen};
+  const sizes=await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows().map(win=>({url:win.webContents.getURL(),size:win.getSize()})));
+  windowBaseline={pages:initialPages,urls:initialPages.map(page=>page.url()),mainFrameNavigations,fullscreen,sizes};
 }
 async function assertWindowsStable() {
   assert.equal(app.windows().length,2,'expected exactly two BrowserWindows');
@@ -201,8 +219,11 @@ try {
   await screenshot('06-tavern-published', true);
   // Phase 3: turn the live map into an encounter, then prove only committed filtered visuals poll.
   manager.on('dialog', dialog => { log(`DIALOG ${dialog.message()}`); void dialog.accept(); });
+  let mutationLogIndex = getLogLines().length;
   await manager.getByRole('button', { name: 'Enable fog' }).click();
-  await waitForMap(manager, state => state.draft.fogEnabled, 'fog enable');
+  let mutationState = await waitForMap(manager, state => state.draft.fogEnabled, 'fog enable');
+  let completionLogIndex = getLogLines().length;
+  await assertPostCommitRasterPoll(player, mutationLogIndex, completionLogIndex, mutationState.draft.imageData, 'fog enable', 'POST /api/map/fog/enable');
   const revealTool=manager.locator('.fog-controls').getByRole('button',{name:'Reveal'});
   await revealTool.click();
   await revealTool.click();
@@ -213,16 +234,22 @@ try {
   assert.equal(await manager.locator('.fog-controls button[aria-pressed="true"]').count(),1,'non-paint mode is explicit when drawing is inactive');
   const hero = (await readMap(manager)).draft.tokens.find(token => token.name === 'Mira E2E');
   await manager.getByRole('button',{name:/Mira E2E/}).first().click();
+  mutationLogIndex = getLogLines().length;
   await manager.getByRole('button',{name:'Hide token'}).click();
   await manager.getByText('Hidden from players').waitFor();
-  await waitForMap(manager,state=>state.draft.tokens.find(token=>token.id===hero.id)?.visible===false,'hide token');
+  mutationState = await waitForMap(manager,state=>state.draft.tokens.find(token=>token.id===hero.id)?.visible===false,'hide token');
+  completionLogIndex = getLogLines().length;
+  await assertPostCommitRasterPoll(player, mutationLogIndex, completionLogIndex, mutationState.draft.imageData, 'token visibility', 'PATCH /api/map/token/hero-1/visibility');
   const mapCanvas=manager.locator('.map-canvas');
   await manager.locator('.fog-controls').getByRole('button',{name:'Reveal'}).click();
   const strokeCountBefore=(await readMap(manager)).draft.fogStrokes.length;
   await mapCanvas.focus();
+  mutationLogIndex = getLogLines().length;
   await manager.keyboard.press('ArrowRight');
   await manager.keyboard.press('Space');
   const revealedState=await waitForMap(manager,state=>state.draft.fogStrokes.length>strokeCountBefore,'keyboard brush dab');
+  completionLogIndex = getLogLines().length;
+  await assertPostCommitRasterPoll(player, mutationLogIndex, completionLogIndex, revealedState.draft.imageData, 'keyboard fog stroke', 'POST /api/map/fog/strokes');
   const fogStamps=revealedState.draft.fogStrokes.at(-1).stamps;
   assert.equal(fogStamps.length,1,'one keyboard activation must submit exactly one map-space dab');
   const pollStarted=Date.now();
@@ -285,14 +312,26 @@ try {
   assert.equal(await player.locator('.public-map').count(),1,'creating a blank draft must not replace the public snapshot');
   await screenshot('10-blank-map-draft');
   await assertWindowsStable();
-  await manager.getByRole('button',{name:/E2E ranger/}).click();
-
-  // Responsive captures resize only the hidden DM page viewport; the player window is untouched.
-  const managerViewport=await manager.evaluate(()=>({width:innerWidth,height:innerHeight}));
+  // Resize only the hidden manager BrowserWindow; player bounds remain untouched.
+  const managerWindowSize = await app.evaluate(({BrowserWindow}) => {
+    const win = BrowserWindow.getAllWindows().find(candidate => new URL(candidate.webContents.getURL()).pathname.endsWith('/index.html'));
+    return win.getSize();
+  });
+  const playerWindowSize = await app.evaluate(({BrowserWindow}) => {
+    const win = BrowserWindow.getAllWindows().find(candidate => new URL(candidate.webContents.getURL()).pathname.endsWith('/public.html'));
+    return win.getSize();
+  });
   try {
     for(const [name,width,height] of [['11-responsive-tablet',760,900],['12-responsive-phone',390,844]]){
-      await manager.setViewportSize({width,height});
-      await manager.waitForFunction(expected=>innerWidth===expected, width,{timeout:3000});
+      await app.evaluate(({BrowserWindow},size) => {
+        const win = BrowserWindow.getAllWindows().find(candidate => new URL(candidate.webContents.getURL()).pathname.endsWith('/index.html'));
+        win.setSize(size.width,size.height);
+      }, {width,height});
+      assert.deepEqual(await app.evaluate(({BrowserWindow}) => {
+        const win = BrowserWindow.getAllWindows().find(candidate => new URL(candidate.webContents.getURL()).pathname.endsWith('/public.html'));
+        return win.getSize();
+      }), playerWindowSize, 'responsive manager resize changed player BrowserWindow size');
+      await manager.waitForTimeout(150);
       const layout=await manager.evaluate(()=>({
         width:document.documentElement.clientWidth,
         scrollWidth:document.documentElement.scrollWidth,
@@ -313,7 +352,10 @@ try {
       }
     }
   } finally {
-    await manager.setViewportSize(managerViewport);
+    await app.evaluate(({BrowserWindow},size) => {
+      const win = BrowserWindow.getAllWindows().find(candidate => new URL(candidate.webContents.getURL()).pathname.endsWith('/index.html'));
+      win.setSize(size[0],size[1]);
+    }, managerWindowSize);
   }
 
   const rendererErrors = getRendererErrors().filter(error=>!error.includes('/maps/tavern.svg'));
