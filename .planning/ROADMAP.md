@@ -64,7 +64,11 @@ Plans:
   1. The DM can manually hide and reveal map regions and tokens, and players see no hidden token or unrevealed information.
   2. The DM can manage actor HP and simple conditions, set initiative, advance turns, and make basic dice rolls.
   3. The DM can complete a basic encounter without leaving the main dashboard while only approved visual state is public.
-**Plans**: TBD
+**Plans:** 3 plans
+Plans:
+- [ ] 03-01-PLAN.md — Trace persisted fog and filtered public visibility end-to-end
+- [ ] 03-02-PLAN.md — Implement private encounter state and validated combat API
+- [ ] 03-03-PLAN.md — Integrate dashboard encounter workflow and verify E2E lifecycle
 **UI hint**: yes
 
 ### Phase 4: Soundboard, Scenes, and 12-Key Control

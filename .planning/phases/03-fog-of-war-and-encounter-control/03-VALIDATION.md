@@ -1,7 +1,7 @@
 ---
 phase: "03"
 slug: "fog-of-war-and-encounter-control"
-status: draft
+status: planned
 nyquist_compliant: false
 wave_0_complete: false
 created: "2026-10-29"
@@ -38,9 +38,14 @@ created: "2026-10-29"
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 03-01-01 | 01 | 1 | ENCT-01 | T-03-01 | Persist validated fog strokes and hide hidden tokens in the backend projection | unit/integration | `dotnet test src/backend.tests/DungeonDeputy.Api.Tests.csproj -c Release` | ❌ W0 | ⬜ pending |
-| 03-02-01 | 02 | 2 | ENCT-02 | T-03-02 | Persist bounded HP/conditions/initiative/turn/dice state only in the DM-private API | unit/integration | `dotnet test src/backend.tests/DungeonDeputy.Api.Tests.csproj -c Release` | ❌ W0 | ⬜ pending |
-| 03-03-01 | 03 | 3 | ENCT-03 | T-03-03 | Verify the integrated dashboard journey, public allowlist, restart recovery, and same-window behavior | E2E | `npm run test:e2e` | ❌ W0 | ⬜ pending |
+| 03-01-01 | 01 | 1 | ENCT-01, ENCT-03 | T-03-01, T-03-02, T-03-03 | Persist validated fog/visibility, cold-start black, explicit filtered publication and allowlist privacy | unit/integration | `dotnet test src/backend.tests/DungeonDeputy.Api.Tests.csproj -c Release && node --test src/renderer/src/contracts.test.mjs` | Planned | ⬜ pending |
+| 03-01-02 | 01 | 1 | ENCT-01 | T-03-02 | Map-space brush lifecycle, distinct modes, bounded committed strokes and no gesture leakage | renderer/build | `node --test src/renderer/src/map/MapCanvas.lifecycle.test.mjs src/renderer/src/contracts.test.mjs && npm run build` | Planned | ⬜ pending |
+| 03-01-03 | 01 | 1 | ENCT-01, ENCT-03 | T-03-03 | Fog persistence/projection regressions and validation coverage | full suite | `npm test` | Planned | ⬜ pending |
+| 03-02-01 | 02 | 2 | ENCT-02, ENCT-03 | T-03-04, T-03-05 | Durable private HP/conditions/initiative/tie-break/turn transitions | backend integration | `dotnet test src/backend.tests/DungeonDeputy.Api.Tests.csproj -c Release` | Planned | ⬜ pending |
+| 03-02-02 | 02 | 2 | ENCT-02, ENCT-03 | T-03-04, T-03-05, T-03-06 | Authenticated private encounter routes and standard die/modifier validation | backend integration | `dotnet test src/backend.tests/DungeonDeputy.Api.Tests.csproj -c Release` | Planned | ⬜ pending |
+| 03-03-01 | 03 | 3 | ENCT-02, ENCT-03 | T-03-07, T-03-08 | Same-dashboard private encounter controls and authoritative state/error feedback | build/backend | `npm run build && dotnet test src/backend.tests/DungeonDeputy.Api.Tests.csproj -c Release` | Planned | ⬜ pending |
+| 03-03-02 | 03 | 3 | ENCT-01, ENCT-02, ENCT-03 | T-03-07, T-03-09 | Electron E2E restart blackout, explicit Show, polling, privacy and same-window path | E2E | `npm run test:e2e` | Planned | ⬜ pending |
+| 03-03-03 | 03 | 3 | ENCT-01, ENCT-02, ENCT-03 | T-03-07, T-03-08 | Final full validation, demo evidence and physical-verification caveats | full gate | `npm test && npm run build && npm run test:e2e` | Planned | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -48,10 +53,10 @@ created: "2026-10-29"
 
 ## Wave 0 Requirements
 
-- [ ] `src/backend.tests/MapApiTests.cs` — fog initialization/strokes, visible-token defaults, persisted visibility, and public-projection privacy tests.
-- [ ] New encounter service tests — HP, curated conditions, manual/d20 initiative, descending order/tie handling, turn advancement, bounded standard-die rolls, and private persistence.
-- [ ] Renderer tests — brush screen-to-map coordinates, pointer lifecycle, pan/token-drag separation, and fail-closed filtered public projection.
-- [ ] E2E journey — Enable fog, Reveal/Hide, hide/show token, save/restart, explicitly Show encounter after cold start, verify private encounter fields never appear publicly.
+- [ ] `src/backend.tests/MapApiTests.cs` — fog initialization/strokes, visible-token defaults, save/reopen, authenticated transitions and public-projection privacy.
+- [ ] `src/backend.tests/EncounterApiTests.cs` — HP, curated conditions, manual/d20 initiative, descending order/tie handling, turn advancement, bounded standard-die rolls and private persistence/API auth.
+- [ ] `src/renderer/src/map/MapCanvas.lifecycle.test.mjs` and `src/renderer/src/contracts.test.mjs` — brush map-coordinate conversion, pointer lifecycle, pan/token-drag isolation and fail-closed public projection.
+- [ ] `scripts/e2e.mjs` / fixtures — Enable fog, Reveal/Hide, token visibility, save/restart, black-before-Show, explicit filtered Show, post-publication poll update and private combat field exclusion.
 - [ ] No framework/package installation: the existing Node and xUnit test infrastructure is sufficient.
 
 ---
@@ -72,5 +77,7 @@ created: "2026-10-29"
 - [ ] No watch-mode flags
 - [ ] Feedback latency < 60s (except packaged smoke)
 - [ ] `nyquist_compliant: true` set in frontmatter
+
+**Plan coverage:** `03-01-PLAN.md`, `03-02-PLAN.md`, and `03-03-PLAN.md`; IDs in the task matrix are the canonical task identifiers. Plans specify automated `<verify>` commands and `<fails_when>` conditions. Wave 0 remains pending until implementation creates and runs the listed tests.
 
 **Approval:** pending
