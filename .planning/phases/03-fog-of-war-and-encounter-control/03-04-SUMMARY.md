@@ -93,6 +93,8 @@ status: complete
 5. **E2E selector alignment** - `69a24a5`.
 6. **Task 2 follow-up: cancel in-progress token drags on pointer cancellation** - `f504ae7`.
 
+**Initial plan metadata commit:** `f52edcb` (superseded by this final summary metadata commit).
+
 The seven plan commits are measured from `15cd3f19546e1b53d6aaeefb3e84df1619b7afb0` through `f504ae77afbf54ec911a16a48d881dfcd936d134`, including the initial plan-metadata commit preceding the final brush correction.
 
 ## Files Created/Modified
