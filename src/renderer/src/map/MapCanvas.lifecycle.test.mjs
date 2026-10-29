@@ -41,6 +41,7 @@ test('pointercancel clears active gesture state and unregisters its handler', ()
 test('brush mode and save rejection paths clear painting without publishing a stroke', async () => {
   const source=await readFile(new URL('./MapCanvas.tsx',import.meta.url),'utf8');
   assert.match(source,/state\.fogTool === null \|\| !state\.fogEnabled/);
+  assert.match(source,/\(\)=>\{panning=false;dragging=null;if\(painting\)/);
   assert.match(source,/if\(painting\)\{painting=false;stamps=\[\];preview\?\.destroy\(\);preview=undefined;\}/);
   assert.match(source,/latest\.current\.onStroke\(stamps\)/);
   assert.doesNotMatch(source,/setFogStrokes\(stamps\)/);
