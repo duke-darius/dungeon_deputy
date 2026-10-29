@@ -139,6 +139,7 @@ public sealed class MapApiTests : IDisposable
             { db.Open(); using var fail=db.CreateCommand(); fail.CommandText="CREATE TRIGGER fail_map_update BEFORE UPDATE ON map_draft BEGIN SELECT RAISE(ABORT, 'injected persistence failure'); END;"; fail.ExecuteNonQuery(); }
             var failedSave=await client.PostAsJsonAsync("/api/map/fog/strokes",new FogCommand("reveal",[new FogStamp(25,40,10)],Png())); Assert.Equal(HttpStatusCode.InternalServerError,failedSave.StatusCode);
             Assert.Equal(System.Text.Json.JsonSerializer.Serialize(before),System.Text.Json.JsonSerializer.Serialize(await client.GetFromJsonAsync<PublicPresentation>("/api/presentation")));
+            var unchanged=await client.GetFromJsonAsync<MapState>("/api/map"); Assert.Empty(unchanged!.Draft.FogStrokes!); Assert.Equal(before.ImageData,unchanged.Draft.ImageData);
             using(var db=new SqliteConnection(new SqliteConnectionStringBuilder{DataSource=Path.Combine(directory,"dungeon-deputy.sqlite3")}.ToString()))
             { db.Open(); using var drop=db.CreateCommand(); drop.CommandText="DROP TRIGGER fail_map_update;"; drop.ExecuteNonQuery(); }
             var pngBytes=Convert.FromBase64String(Png().Split(',')[1]); pngBytes[^1]^=1;
