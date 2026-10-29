@@ -16,11 +16,11 @@ provides:
   - Phase 3 walkthrough and task-level validation map
 affects: [phase-3-verification, encounter-ui, e2e]
 actuals:
-  tokens: 9282
+  tokens: 9453
   tasks: 3
-  commits: 4
+  commits: 7
   plan_head_before: 6e6fb5184d954014f082b1736aeb5466b6741e52
-  plan_head_after: cc8fb0be1104d85b238b3d9d927e669bc6823509
+  plan_head_after: 5ffd0513a9b54ed996d46652ce4196aa1792ec5c
 tech-stack:
   added: []
   patterns:
@@ -94,7 +94,7 @@ metrics:
 
 ## Task Commits
 
-1. **Task 1: Integrate the DM-only encounter panel into the existing dashboard** - `1938627` (feat).
+1. **Task 1: Integrate the DM-only encounter panel into the existing dashboard** - `1938627` (feat); equal-initiative order correction `5ffd051` (fix).
 2. **Task 2: Exercise the complete restart, Show, poll, and privacy journey in Electron E2E** - `8ddcd3c` (test); bounded polling assertion follow-up `f1348f5` (test).
 3. **Task 3: Publish Phase 3 demo steps and final validation evidence map** - `cc8fb0b` (docs).
 
@@ -167,5 +167,5 @@ None.
 ## Self-Check: PASSED
 
 - Summary, demo guide, and validation map exist.
-- Task commits `1938627`, `8ddcd3c`, `f1348f5`, and `cc8fb0b` are ancestors of HEAD.
+- Task commits `1938627`, `8ddcd3c`, `f1348f5`, `5ffd051`, and `cc8fb0b` are ancestors of HEAD.
 - Build, full test suite and integrated Electron E2E passed; physical display and macOS claims remain explicitly unverified.
