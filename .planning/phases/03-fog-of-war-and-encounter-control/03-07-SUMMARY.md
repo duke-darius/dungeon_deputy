@@ -100,6 +100,7 @@ commits: 5
 - Manager UI renders anticipated fog/token raster before its one mutation request and has no second Show/publish call on success.
 - UI E2E executes keyboard brush and token visibility interactions, asserts the persisted raster digest for public polls after command completion, and checks the latest player image. It also captures tablet/phone manager layouts while restoring manager window dimensions and leaving the player window unchanged.
 - Keyboard canvas accessibility/lifecycle and practical editor control styling assertions pass. The keyboard/accessibility implementation and responsive styles were already present in the user-authorized prior UI commit `3749863`; this plan added focused regression assertions and exercised their E2E screenshots.
+- Final keyboard E2E supplement: focused Reveal canvas + ArrowRight/Space commits one dab; Select/pan + ArrowRight changes the rendered canvas without a stroke; Reveal + Enter commits exactly one dab. Verified in run `artifacts/e2e/2026-10-29T22-39-15.385Z-a8f4aa6a/`.
 
 ## Task Commits
 

@@ -1,0 +1,10 @@
+{
+  "command": "dotnet test src/backend.tests/DungeonDeputy.Api.Tests.csproj -c Release --filter FullyQualifiedName~EncounterStateAndCommandsArePrivateAuthenticatedAndDurable --logger 'console;verbosity=normal'",
+  "exitCode": 1,
+  "output": "Target EncounterApiTests.EncounterStateAndCommandsArePrivateAuthenticatedAndDurable executed; unauthorized GET returned 401 as expected; authenticated GET /api/encounter returned 404 and assertion expected OK.",
+  "targetTest": "DungeonDeputy.Api.Tests.EncounterApiTests.EncounterStateAndCommandsArePrivateAuthenticatedAndDurable",
+  "targetFile": "src/backend.tests/EncounterApiTests.cs",
+  "expected": "Authenticated encounter API returns initialized private encounter state.",
+  "actual": "404 NotFound from absent route, failing the intended HTTP assertion.",
+  "semanticAssessment": "Target test ran successfully through authentication and failed specifically because the planned route is not implemented; this is behavior RED, not test setup or compilation failure."
+}
