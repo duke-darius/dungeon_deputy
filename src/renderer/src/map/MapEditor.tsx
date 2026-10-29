@@ -6,6 +6,7 @@ import { SCENES, sceneById } from '../contracts.mjs';
 
 type Workspace = 'scenes' | 'map';
 type Presentation = { mode: string; sceneId: string | null };
+const RETRY_MESSAGE = 'Couldn’t save this change. Your last saved state is unchanged; retry the action.';
 
 export default function MapEditor() {
   const [mode, setMode] = useState<Workspace>('map');
@@ -16,6 +17,7 @@ export default function MapEditor() {
   const [state, setState] = useState<MapState | null>(null);
   const [message, setMessage] = useState('');
   const [selected, setSelected] = useState<string | null>(null);
+  const [actorPanelOpen, setActorPanelOpen] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [fogTool, setFogTool] = useState<'reveal'|'hide'|null>(null);
   const [brushSize, setBrushSize] = useState(96);
@@ -97,6 +99,7 @@ export default function MapEditor() {
   const applySavedMap = (saved: MapState) => setState(current => current
     ? { ...saved, draft: { ...saved.draft, name: current.draft.name, image: current.draft.image, gridVisible: current.draft.gridVisible, scale: current.draft.scale } }
     : saved);
+  const selectToken = (id: string) => { setSelected(id); setActorPanelOpen(true); };
 
   const save = async () => {
     if (!draft || !dirty) return;
@@ -105,7 +108,7 @@ export default function MapEditor() {
       setDirty(false);
       notify('Map saved on this device.');
     } catch (error) {
-      notify(error instanceof Error ? `${error.message} Save changes to retry.` : 'Map could not be saved. Save changes to retry.', 6000);
+      notify(RETRY_MESSAGE, 6000);
     }
   };
 
@@ -123,7 +126,7 @@ export default function MapEditor() {
       }
       notify('Token updated.');
     } catch (error) {
-      notify(error instanceof Error ? `${error.message} Save changes to retry.` : 'Token could not be updated.', 6000);
+      notify(RETRY_MESSAGE, 6000);
     } finally {
       if (changingVisibility) setVisibilityBusyId(null);
     }
@@ -144,7 +147,7 @@ export default function MapEditor() {
       setSelected(id);
       notify(`${kind === 'hero' ? 'Hero' : 'Monster'} added.`);
     } catch (error) {
-      notify(error instanceof Error ? error.message : 'Token could not be added.');
+      notify(RETRY_MESSAGE, 6000);
     }
   };
 
@@ -159,7 +162,7 @@ export default function MapEditor() {
       setDirty(false);
       notify('Map shown on table.');
     } catch (error) {
-      notify(error instanceof Error ? error.message : 'Map could not be shown.', 6000);
+      notify(RETRY_MESSAGE, 6000);
     }
   };
 
@@ -173,7 +176,7 @@ export default function MapEditor() {
       }
       notify('Fog change saved.');
     } catch {
-      notify("Couldn’t save this change. Your last saved state is unchanged; retry the action.", 6000);
+      notify(RETRY_MESSAGE, 6000);
     }
   };
 
@@ -181,7 +184,7 @@ export default function MapEditor() {
     if (encounterBusy) return;
     setEncounterBusy(true);
     try { setEncounter(await command(path, method, body)); notify(successText); }
-    catch { notify("Couldn't save this change. Your last saved state is unchanged; retry the action.", 6000); }
+    catch { notify(RETRY_MESSAGE, 6000); }
     finally { setEncounterBusy(false); }
   };
   const moveTieOrder = async (actor: any, index: number, direction: -1 | 1) => {
@@ -194,7 +197,7 @@ export default function MapEditor() {
       const ordered = await reorderInitiative(actorIds);
       setEncounter((current: any) => ({ ...current, actors: ordered.actors }));
       notify('Initiative tie order updated.');
-    } catch { notify("Couldn't save this change. Your last saved state is unchanged; retry the action.",6000); }
+    } catch { notify(RETRY_MESSAGE,6000); }
     finally { setEncounterBusy(false); }
   };
 
@@ -204,7 +207,7 @@ export default function MapEditor() {
       setPublicPresentation({ mode: 'black', sceneId: null });
       notify('Table display blacked out.');
     } catch (error) {
-      notify(error instanceof Error ? error.message : 'Blackout failed.', 6000);
+      notify(RETRY_MESSAGE, 6000);
     }
   };
 
@@ -214,7 +217,7 @@ export default function MapEditor() {
       setSelected(null);
       notify('Token removed.');
     } catch (error) {
-      notify(error instanceof Error ? error.message : 'Token could not be removed.', 6000);
+      notify(RETRY_MESSAGE, 6000);
     }
   };
 
@@ -275,8 +278,8 @@ export default function MapEditor() {
             await refresh();
             setSelected(null);
             notify('Blank map created.');
-          } catch (error) {
-            notify(error instanceof Error ? error.message : 'Blank map could not be created.');
+          } catch {
+            notify(RETRY_MESSAGE, 6000);
           }
         }}>+ Blank map</button>
         <p>Draft edits stay private until you show the map.</p>
@@ -306,7 +309,7 @@ export default function MapEditor() {
           : <div className="map-loading" role="status">Loading saved map…</div>}
         <div className="token-tray" aria-label="Tokens on map">
           <span className="tray-title">Tokens <small>{draft?.tokens.length ?? 0}</small></span>
-          {draft?.tokens.map(token => <button key={token.id} aria-label={`${token.name}, ${token.kind}, ${token.visible === false ? 'hidden' : 'visible'}`} style={{ '--token': token.color } as React.CSSProperties} onClick={() => setSelected(token.id)}>{token.name}{token.visible === false && <small className="visibility-badge">Hidden</small>}</button>)}
+          {draft?.tokens.map(token => <button key={token.id} aria-label={`${token.name}, ${token.kind}, ${token.visible === false ? 'hidden' : 'visible'}`} style={{ '--token': token.color } as React.CSSProperties} onClick={() => selectToken(token.id)}>{token.name}{token.visible === false && <small className="visibility-badge">Hidden</small>}</button>)}
           <span className="tray-divider" aria-hidden="true" />
           <button className="add-token" onClick={() => void add('hero')}>+ Hero</button>
           <button className="add-token" onClick={() => void add('monster')}>+ Monster</button>
@@ -326,16 +329,18 @@ export default function MapEditor() {
           <h2>Encounter <span aria-label="Locked">🔒</span> <small>DM only</small></h2>
           {!encounter ? <p role="status">Loading encounter.</p> : encounter.actors.length === 0 ? <><strong>No actors in this encounter</strong><p>Add a map token to track it here.</p></> : <>
             <ol className="encounter-order" aria-label="Initiative order">{encounter.actors.map((actor: any, index: number) => <li key={actor.tokenId} className={encounter.activeTokenId === actor.tokenId ? 'current-turn' : ''}>
-              <button title={draft?.tokens.find(token => token.id === actor.tokenId)?.name} onClick={() => setSelected(actor.tokenId)}>{draft?.tokens.find(token => token.id === actor.tokenId)?.name ?? actor.tokenId} <span>{actor.Initiative ?? actor.initiative ?? '—'}</span>{encounter.activeTokenId === actor.tokenId && <small>Current turn</small>}</button>
+              <button title={draft?.tokens.find(token => token.id === actor.tokenId)?.name} onClick={() => selectToken(actor.tokenId)}>{draft?.tokens.find(token => token.id === actor.tokenId)?.name ?? actor.tokenId} <span>{actor.Initiative ?? actor.initiative ?? '—'}</span>{encounter.activeTokenId === actor.tokenId && <small>Current turn</small>}</button>
               <span className="tie-controls"><button aria-label="Move earlier" disabled={index === 0 || encounterBusy || encounter.actors[index-1]?.initiative !== actor.initiative} onClick={() => void moveTieOrder(actor,index,-1)}>↑</button><button aria-label="Move later" disabled={index === encounter.actors.length - 1 || encounterBusy || encounter.actors[index+1]?.initiative !== actor.initiative} onClick={() => void moveTieOrder(actor,index,1)}>↓</button></span>
             </li>)}</ol>
             <button className="primary-action" disabled={encounterBusy || !encounter.actors.some((actor: any) => actor.initiative != null)} onClick={() => void encounterCommand('/api/encounter/turn/end', 'POST', undefined, 'Turn advanced.')}>End turn</button>
-            {selected && encounter.actors.some((actor: any) => actor.tokenId === selected) && (() => { const actor = encounter.actors.find((item: any) => item.tokenId === selected); const token = draft?.tokens.find(item => item.id === selected); return <div className="encounter-fields">
-              <h3>{token?.name ?? selected}</h3>
+            {selected && encounter.actors.some((actor: any) => actor.tokenId === selected) && (() => { const actor = encounter.actors.find((item: any) => item.tokenId === selected); const token = draft?.tokens.find(item => item.id === selected); return <details className="actor-details" open={actorPanelOpen} onToggle={event=>setActorPanelOpen(event.currentTarget.open)}>
+              <summary><span>{token?.name ?? selected}</span><small>Actor details</small></summary>
+              <div className="encounter-fields">
               <label>🔒 HP · DM only <span><input aria-label="Current HP" type="number" min="0" max="9999" placeholder="—" defaultValue={actor.currentHp ?? ''} /> / <input aria-label="Maximum HP" type="number" min="0" max="9999" placeholder="—" defaultValue={actor.maximumHp ?? ''} /></span><button disabled={encounterBusy} onClick={event => { const root=event.currentTarget.parentElement!; const current=(root.querySelector('[aria-label="Current HP"]') as HTMLInputElement | null)?.value ?? ''; const maximum=(root.querySelector('[aria-label="Maximum HP"]') as HTMLInputElement | null)?.value ?? ''; void encounterCommand(`/api/encounter/actors/${selected}/hp`, 'PUT', { current: current.trim() === '' ? null : Number(current), maximum: maximum.trim() === '' ? null : Number(maximum) }); }}>Save HP values</button></label>
               <label>🔒 Conditions · DM only <select aria-label="Add condition" onChange={event => { const ids=[...(actor.conditionIds ?? [])]; if(event.target.value && !ids.includes(event.target.value)) ids.push(event.target.value); void encounterCommand(`/api/encounter/actors/${selected}/conditions`, 'PUT', { conditionIds: ids }); event.target.value=''; }}><option value="">Add condition</option>{encounter.conditions?.map((condition: any)=><option key={condition.id} value={condition.id}>{condition.name}</option>)}</select></label><div className="condition-chips">{(actor.conditionIds ?? []).map((id: string)=><button key={id} disabled={encounterBusy} onClick={() => void encounterCommand(`/api/encounter/actors/${selected}/conditions`, 'PUT', {conditionIds: actor.conditionIds.filter((entry: string)=>entry!==id)})}>{encounter.conditions?.find((item: any)=>item.id===id)?.name ?? id} ×</button>)}</div>
               <label>🔒 Initiative · DM only <input aria-label="Initiative" type="number" placeholder="—" defaultValue={actor.initiative ?? ''} /><small>{actor.initiativeSource ?? 'Unset'}</small><button disabled={encounterBusy} onClick={event => { const input=event.currentTarget.parentElement?.querySelector('input'); if(input?.value) void encounterCommand(`/api/encounter/actors/${selected}/initiative`, 'PUT', {value:Number(input.value)}); }}>Set initiative</button><button disabled={encounterBusy} onClick={() => void encounterCommand(`/api/encounter/actors/${selected}/initiative/roll`, 'POST')}>Roll d20</button></label>
-            </div>; })()}
+              </div>
+            </details>; })()}
             <div className="dice-controls"><label>🔒 Roll dice · DM only <select aria-label="Dice" value={die} onChange={event=>setDie(Number(event.target.value))}>{[4,6,8,10,12,20,100].map(side=><option key={side} value={side}>d{side}</option>)}</select><input aria-label="Dice modifier" type="number" value={modifier} onChange={event=>setModifier(Number(event.target.value))}/></label><button disabled={encounterBusy} onClick={() => void encounterCommand('/api/encounter/dice','POST',{sides:die,modifier},'Dice rolled (DM only).')}>Roll dice</button>{encounter.rolls?.length>0 && <p>🔒 DM only · Result: {encounter.rolls.at(-1).total}</p>}</div>
           </>}
         </section>

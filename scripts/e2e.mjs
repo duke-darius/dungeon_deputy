@@ -216,18 +216,20 @@ try {
   await manager.getByRole('button',{name:'Hide token'}).click();
   await manager.getByText('Hidden from players').waitFor();
   await waitForMap(manager,state=>state.draft.tokens.find(token=>token.id===hero.id)?.visible===false,'hide token');
-  const fogStamps=[{x:320,y:280,radius:115}];
-  await manager.evaluate(stamps => window.dungeonDeputy.command('/api/map/fog/strokes','POST',{mode:'reveal',stamps}),fogStamps);
-  const sanitizedRaster=await manager.evaluate(async()=>{
-    const source=new Image();source.src='/maps/tavern.svg';await source.decode();
-    const canvas=document.createElement('canvas');canvas.width=1200;canvas.height=760;const context=canvas.getContext('2d');
-    context.fillStyle='#000';context.fillRect(0,0,1200,760);context.save();context.beginPath();context.arc(320,280,115,0,Math.PI*2);context.clip();context.drawImage(source,0,0,1200,760);context.restore();
-    const imageData=canvas.toDataURL('image/png');await window.dungeonDeputy.command('/api/map/show-encounter','POST',{imageData});return imageData;
-  });
+  const mapCanvas=manager.locator('.map-canvas');
+  await manager.locator('.fog-controls').getByRole('button',{name:'Reveal'}).click();
+  const strokeCountBefore=(await readMap(manager)).draft.fogStrokes.length;
+  await mapCanvas.focus();
+  await manager.keyboard.press('ArrowRight');
+  await manager.keyboard.press('Space');
+  const revealedState=await waitForMap(manager,state=>state.draft.fogStrokes.length>strokeCountBefore,'keyboard brush dab');
+  const fogStamps=revealedState.draft.fogStrokes.at(-1).stamps;
+  assert.equal(fogStamps.length,1,'one keyboard activation must submit exactly one map-space dab');
   const pollStarted=Date.now();
   await player.waitForFunction(() => document.querySelectorAll('.public-map-token').length===7,{timeout:5000});
   assert.ok(Date.now()-pollStarted<=5000,'persisted sanitized raster and visible-token projection must arrive through the one-second poll plus bounded allowance');
-  const maskPixels=await player.locator('.public-map-art').evaluate(async image=>{await image.decode();const canvas=document.createElement('canvas');canvas.width=1200;canvas.height=760;const c=canvas.getContext('2d');c.drawImage(image,0,0);return {hidden:[...c.getImageData(100,100,1,1).data],revealed:[...c.getImageData(320,280,1,1).data]};});
+  const fogPoint=fogStamps[0];
+  const maskPixels=await player.locator('.public-map-art').evaluate(async(image,point)=>{await image.decode();const canvas=document.createElement('canvas');canvas.width=1200;canvas.height=760;const c=canvas.getContext('2d');c.drawImage(image,0,0);return {hidden:[...c.getImageData(100,100,1,1).data],revealed:[...c.getImageData(Math.floor(point.x),Math.floor(point.y),1,1).data]};},fogPoint);
   assert.deepEqual(maskPixels.hidden,[0,0,0,255],'unrevealed source pixels must be irreversibly black in the public PNG');
   assert.ok(maskPixels.revealed[0]!==0||maskPixels.revealed[1]!==0||maskPixels.revealed[2]!==0,'revealed terrain remains visible in the public PNG');
   const filtered=await manager.evaluate(()=>window.dungeonDeputy.command('/api/presentation'));
@@ -283,6 +285,36 @@ try {
   assert.equal(await player.locator('.public-map').count(),1,'creating a blank draft must not replace the public snapshot');
   await screenshot('10-blank-map-draft');
   await assertWindowsStable();
+  await manager.getByRole('button',{name:/E2E ranger/}).click();
+
+  // Responsive captures resize only the hidden DM page viewport; the player window is untouched.
+  const managerViewport=await manager.evaluate(()=>({width:innerWidth,height:innerHeight}));
+  try {
+    for(const [name,width,height] of [['11-responsive-tablet',760,900],['12-responsive-phone',390,844]]){
+      await manager.setViewportSize({width,height});
+      await manager.waitForFunction(expected=>innerWidth===expected, width,{timeout:3000});
+      const layout=await manager.evaluate(()=>({
+        width:document.documentElement.clientWidth,
+        scrollWidth:document.documentElement.scrollWidth,
+        canvas:!!document.querySelector('.map-canvas'),
+        reveal:!![...document.querySelectorAll('.fog-controls button')].find(button=>button.textContent?.trim()==='Reveal'),
+        show:!![...document.querySelectorAll('button')].find(button=>button.textContent?.trim()==='Show encounter'),
+        encounter:!!document.querySelector('[aria-label="Encounter — DM only"]'),
+      }));
+      assert.ok(layout.scrollWidth<=layout.width,`${name} has horizontal overflow (${layout.scrollWidth} > ${layout.width}).`);
+      assert.ok(layout.canvas&&layout.reveal&&layout.show&&layout.encounter,`${name} hides an essential map/fog/encounter control.`);
+      await screenshot(name);
+      log(`RESPONSIVE ${name} manager=${layout.width}px no-horizontal-overflow; player-window-size unchanged`);
+      await assertWindowsStable();
+      if(name==='12-responsive-phone'){
+        await manager.locator('.encounter-inspector').scrollIntoViewIfNeeded();
+        await screenshot('13-responsive-phone-encounter');
+        await manager.evaluate(()=>window.scrollTo(0,0));
+      }
+    }
+  } finally {
+    await manager.setViewportSize(managerViewport);
+  }
 
   const rendererErrors = getRendererErrors().filter(error=>!error.includes('/maps/tavern.svg'));
   assert.deepEqual(rendererErrors, [], `unexpected Electron renderer errors: ${rendererErrors.join('\n')}`);

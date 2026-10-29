@@ -31,18 +31,19 @@ export function MapCanvas({ image, gridVisible, scale, tokens, fogEnabled, fogSt
   const drawRef = useRef<() => Promise<void>>(async () => {});
   const latest = useRef({ image, gridVisible, scale, tokens, fogEnabled, fogStrokes, fogTool, brushSize, onStroke, onMove }); latest.current = { image, gridVisible, scale, tokens, fogEnabled, fogStrokes, fogTool, brushSize, onStroke, onMove };
   useEffect(() => {
-    let cancelled = false; let app: Application | undefined; let lifecycleRef: {dispose:()=>void}|undefined; let detachPointers: (()=>void)|undefined; let detachWheel:(()=>void)|undefined;
+    let cancelled = false; let app: Application | undefined; let lifecycleRef: {dispose:()=>void}|undefined; let detachPointers: (()=>void)|undefined; let detachWheel:(()=>void)|undefined; let detachKeyboard:(()=>void)|undefined;
     void (async () => {
       app = new Application();
       const lifecycle = attachCanvas(app, host.current!, async initialized => {
       const world = new Container(); initialized.stage.addChild(world);
-       let camera: Camera = { x: 0, y: 0, zoom: 1 }, dragging: string | null = null, panning = false, painting = false, stamps: FogStamp[] = [], preview: Graphics | undefined, last = {x:0,y:0};
+       let camera: Camera = { x: 0, y: 0, zoom: 1 }, dragging: string | null = null, panning = false, painting = false, stamps: FogStamp[] = [], preview: Graphics | undefined, keyboardPreview: Graphics | undefined, keyboardCursor={x:600,y:380}, keyboardCursorReady=false, last = {x:0,y:0};
        const generation = createRedrawGeneration();
-       const discardPreview = () => { if (preview) { preview.parent?.removeChild(preview); preview.destroy(); preview=undefined; } };
-       const render = async () => {
-         const redraw = generation.begin();
-         const isCurrent = () => generation.isCurrent(redraw);
-         world.removeChildren().forEach(child => child.destroy({ children:true }));
+        const discardPreview = () => { if (preview) { preview.parent?.removeChild(preview); preview.destroy(); preview=undefined; } if(keyboardPreview){keyboardPreview.parent?.removeChild(keyboardPreview);keyboardPreview.destroy();keyboardPreview=undefined;} };
+        const render = async () => {
+          const redraw = generation.begin();
+          const isCurrent = () => generation.isCurrent(redraw);
+          world.removeChildren().forEach(child => child.destroy({ children:true }));
+          preview=undefined;keyboardPreview=undefined;
          const state = latest.current;
          if (state.fogTool === null || !state.fogEnabled) { painting=false; stamps=[]; discardPreview(); }
          if (state.image) { const tex = await Assets.load(tavernArt); if (!isCurrent()) return; const art = new Sprite(tex); art.width=1200; art.height=760; if (!isCurrent()) { art.destroy(); return; } world.addChild(art); }
@@ -61,7 +62,39 @@ export function MapCanvas({ image, gridVisible, scale, tokens, fogEnabled, fogSt
        if (cancelled) return;
           const finish=(e:{global:{x:number;y:number}})=>{if(painting){painting=false;if(stamps.length)latest.current.onStroke(stamps);stamps=[];discardPreview();}else if(dragging){const pos=screenToMap(e.global,camera);latest.current.onMove(dragging,pos.x,pos.y);dragging=null;}};
           const cancelGesture=()=>{panning=false;dragging=null;painting=false;stamps=[];discardPreview();};
-          detachPointers=registerPointerLifecycle(initialized.stage,finish,(e:{global:{x:number;y:number}})=>{ if(painting){const pos=screenToMap(e.global,camera);const prev=stamps.at(-1);if(!prev||Math.hypot(pos.x-prev.x,pos.y-prev.y)>=latest.current.brushSize*.2)stamps.push({x:pos.x,y:pos.y,radius:latest.current.brushSize/2});if(preview){preview.clear().circle(pos.x,pos.y,latest.current.brushSize/2).stroke({color:0xb58d51,width:2});} }else if(dragging){const pos=screenToMap(e.global,camera);const item=latest.current.tokens.find(t=>t.id===dragging);if(item){item.x=pos.x;item.y=pos.y;void render();}} else if(panning){camera={...camera,x:camera.x+e.global.x-last.x,y:camera.y+e.global.y-last.y};last={x:e.global.x,y:e.global.y};world.position.set(camera.x,camera.y);} },(e:{global:{x:number;y:number}})=>{if(latest.current.fogEnabled&&latest.current.fogTool){painting=true;panning=false;dragging=null;stamps=[];const pos=screenToMap(e.global,camera);stamps.push({x:pos.x,y:pos.y,radius:latest.current.brushSize/2});preview=new Graphics();world.addChild(preview);}else if(!dragging){panning=true;last={x:e.global.x,y:e.global.y};}},()=>{panning=false;dragging=null;},cancelGesture);
+          detachPointers=registerPointerLifecycle(initialized.stage,finish,(e:{global:{x:number;y:number}})=>{ if(painting){const pos=screenToMap(e.global,camera);const prev=stamps.at(-1);if(!prev||Math.hypot(pos.x-prev.x,pos.y-prev.y)>=latest.current.brushSize*.2)stamps.push({x:pos.x,y:pos.y,radius:latest.current.brushSize/2});if(preview){preview.clear().circle(pos.x,pos.y,latest.current.brushSize/2).stroke({color:0xb58d51,width:2});} }else if(dragging){const pos=screenToMap(e.global,camera);const item=latest.current.tokens.find(t=>t.id===dragging);if(item){item.x=pos.x;item.y=pos.y;void render();}} else if(panning){camera={...camera,x:camera.x+e.global.x-last.x,y:camera.y+e.global.y-last.y};last={x:e.global.x,y:e.global.y};world.position.set(camera.x,camera.y);} },(e:{global:{x:number;y:number}})=>{discardPreview();if(latest.current.fogEnabled&&latest.current.fogTool){painting=true;panning=false;dragging=null;stamps=[];const pos=screenToMap(e.global,camera);stamps.push({x:pos.x,y:pos.y,radius:latest.current.brushSize/2});preview=new Graphics();world.addChild(preview);}else if(!dragging){panning=true;last={x:e.global.x,y:e.global.y};}},()=>{panning=false;dragging=null;},cancelGesture);
+          const keydown=(event:KeyboardEvent)=>{
+            const state=latest.current;
+            const arrows=['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'];
+            if(!arrows.includes(event.key)&&event.key!==' '&&event.key!=='Enter')return;
+            if(event.repeat)return;
+            if(state.fogEnabled&&state.fogTool){
+              if(arrows.includes(event.key)){
+                if(!keyboardCursorReady){keyboardCursor=screenToMap({x:initialized.screen.width/2,y:initialized.screen.height/2},camera);keyboardCursorReady=true;}
+                const step=event.shiftKey?state.brushSize:Math.max(8,Math.round(state.brushSize/4));
+                keyboardCursor={x:Math.max(0,Math.min(1200,keyboardCursor.x+(event.key==='ArrowLeft'?-step:event.key==='ArrowRight'?step:0))),y:Math.max(0,Math.min(760,keyboardCursor.y+(event.key==='ArrowUp'?-step:event.key==='ArrowDown'?step:0)))};
+                keyboardPreview??=new Graphics();
+                if(!keyboardPreview.parent)world.addChild(keyboardPreview);
+                keyboardPreview.clear().circle(keyboardCursor.x,keyboardCursor.y,state.brushSize/2).stroke({color:0xb58d51,width:2});
+                event.preventDefault();
+              }else{
+                if(!keyboardCursorReady){keyboardCursor=screenToMap({x:initialized.screen.width/2,y:initialized.screen.height/2},camera);keyboardCursorReady=true;}
+                event.preventDefault();
+                state.onStroke([{x:keyboardCursor.x,y:keyboardCursor.y,radius:state.brushSize/2}]);
+              }
+              return;
+            }
+            if(arrows.includes(event.key)){
+              const step=event.shiftKey?64:32;
+              camera={...camera,x:camera.x+(event.key==='ArrowLeft'?step:event.key==='ArrowRight'?-step:0),y:camera.y+(event.key==='ArrowUp'?step:event.key==='ArrowDown'?-step:0)};
+              world.position.set(camera.x,camera.y);
+              keyboardCursorReady=false;
+              discardPreview();
+              event.preventDefault();
+            }
+          };
+          host.current?.addEventListener('keydown',keydown);
+          detachKeyboard=()=>host.current?.removeEventListener('keydown',keydown);
        initialized.stage.eventMode='static'; initialized.stage.hitArea=initialized.screen;
         const wheel=(e:WheelEvent)=>{e.preventDefault();camera=zoomAt(camera,{x:e.offsetX,y:e.offsetY},e.deltaY<0?1.1:.9);world.position.set(camera.x,camera.y);world.scale.set(camera.zoom);};
        initialized.canvas.addEventListener('wheel',wheel,{passive:false}); detachWheel=()=>initialized.canvas.removeEventListener('wheel',wheel);
@@ -70,8 +103,8 @@ export function MapCanvas({ image, gridVisible, scale, tokens, fogEnabled, fogSt
       await lifecycle.ready;
       if(cancelled) return;
     })();
-    return ()=>{cancelled=true;detachPointers?.();detachWheel?.();if(lifecycleRef) lifecycleRef.dispose(); else app?.destroy(true,{children:true});};
+    return ()=>{cancelled=true;detachPointers?.();detachWheel?.();detachKeyboard?.();if(lifecycleRef) lifecycleRef.dispose(); else app?.destroy(true,{children:true});};
   }, []);
     useEffect(()=>{ void drawRef.current(); },[image,gridVisible,scale,tokens,fogEnabled,fogStrokes,fogTool,brushSize]);
-  return <div className="map-canvas" ref={host} aria-label="Map canvas; drag to pan, scroll to zoom" role="application" />;
+  return <div className="map-canvas" ref={host} tabIndex={0} aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight Space Enter" aria-label="Map canvas. Focus here, use arrow keys to pan or move the fog brush, and press Space or Enter to reveal or hide one brush dab." role="application" />;
 }

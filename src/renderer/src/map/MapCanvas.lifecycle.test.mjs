@@ -55,6 +55,16 @@ test('MapCanvas wires redraw generations around async terrain and token texture 
   assert.match(source,/const isCurrent = \(\) => generation\.isCurrent\(redraw\)/);
 });
 
+test('MapCanvas exposes keyboard pan and one-dab Reveal/Hide interaction', async () => {
+  const source=await readFile(new URL('./MapCanvas.tsx',import.meta.url),'utf8');
+  assert.match(source,/tabIndex=\{0\}/);
+  assert.match(source,/aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight Space Enter"/);
+  assert.match(source,/const arrows=\['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'\]/);
+  assert.match(source,/event\.key!==' '&&event\.key!=='Enter'/);
+  assert.match(source,/state\.onStroke\(\[\{x:keyboardCursor\.x,y:keyboardCursor\.y,radius:state\.brushSize\/2\}\]\)/);
+  assert.match(source,/event\.repeat\)return/);
+});
+
 test('pointercancel invokes cancellation cleanup without committing the preview', () => {
   const handlers = new Map(); const stage = {on:(name,fn)=>handlers.set(name,fn),off:name=>handlers.delete(name)};
   let preview={destroyed:false,destroy(){this.destroyed=true;}}; let painting=true; let submitted=0;
