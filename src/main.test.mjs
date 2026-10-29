@@ -23,6 +23,17 @@ test('package smoke publishes to an isolated staging directory', async () => {
   assert.match(publisher, /process\.env\.DUNGEON_DEPUTY_BACKEND_ROOT \?\? 'artifacts'/);
   assert.match(forge, /process\.env\.DUNGEON_DEPUTY_BACKEND_ROOT \?\? 'artifacts'/);
 });
+test('development launch waits for a strict Vite origin before opening Electron', async () => {
+  const dev = await readFile(new URL('../scripts/dev.mjs', import.meta.url), 'utf8');
+  const vite = await readFile(new URL('../vite.config.ts', import.meta.url), 'utf8');
+  const html = await readFile(new URL('./renderer/index.html', import.meta.url), 'utf8');
+  assert.match(dev, /waitForRenderer/);
+  assert.match(dev, /5173/);
+  assert.match(vite, /port: 5173, strictPort: true/);
+  assert.match(html, /Starting Dungeon Deputy/);
+  assert.match(main, /logRendererFailures\('dm', dm\)/);
+  assert.match(main, /console-message/);
+});
 test('public preload exposes only public presentation retrieval', () => {
   assert.match(preload, /const api = publicWindow\s*\? Object\.freeze\(\{ getPresentation/);
   assert.match(main, /allowedSender\('public', event\)/);

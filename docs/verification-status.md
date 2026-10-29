@@ -26,6 +26,7 @@ Evidence recorded for the current Windows host after the integration corrections
 - Compiled the sandboxed Electron preload as CommonJS `.cjs` and verified the emitted runtime file before launch/package.
 - Limited fullscreen repositioning to actual display-topology changes; scene selection and blackout no longer trigger fullscreen toggles or window recreation.
 - Reapplied bounds on same-display metrics changes without leaving fullscreen.
+- Made the development launcher wait for the strict Vite origin before opening Electron; it logs renderer console/load/process errors to the launch terminal and retains an HTML startup fallback.
 
 Tests were rerun after these corrections. No new npm dependencies were added.
 
@@ -37,7 +38,7 @@ Tests were rerun after these corrections. No new npm dependencies were added.
 
 | Check | Result | Scope / caveat |
 |---|---|---|
-| `npm test` | **Passed: 19 Node tests and 12 .NET tests** | Includes nested `src/renderer/src/map/*.test.mjs`, camelCase public projection contract, map camera/lifecycle, stable player-window regression, and isolated package-smoke staging. |
+| `npm test` | **Passed: 20 Node tests and 12 .NET tests** | Includes nested `src/renderer/src/map/*.test.mjs`, camelCase public projection contract, map camera/lifecycle, stable player-window regression, isolated package-smoke staging, and deterministic development startup. |
 | `npm run build` | **Passed** | TypeScript, Electron output, Vite renderer, and .NET Release backend; backend build reported 0 warnings and 0 errors. |
 | `npm run package:smoke` | **Passed on Windows x64** | Stages its backend in a unique build directory (safe to run while the development backend is open), packages the app, runs the published `win-x64` backend with a temporary per-run user-data folder and unique token, exercises authenticated tavern draft Save and explicit Show, mutates draft without republishing, stops/restarts the actual packaged backend, verifies draft and approved snapshots independently restore, then explicitly Shows the edited draft. No SQL is used to fake app behavior. |
 | Unauthorized map request | **Passed in package smoke** | `/api/map` without the per-run token returns HTTP 401. |

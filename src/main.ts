@@ -95,8 +95,21 @@ function installIpc() {
   });
 }
 function load(win: BrowserWindow, route: string) {
-  if (app.isPackaged) void win.loadFile(join(process.resourcesPath, 'dist', route));
-  else void win.loadURL(`http://127.0.0.1:5173/${route}`);
+  const loading = app.isPackaged
+    ? win.loadFile(join(process.resourcesPath, 'dist', route))
+    : win.loadURL(`http://127.0.0.1:5173/${route}`);
+  void loading.catch(error => console.error(`[renderer:${route}] Failed to load:`, error));
+}
+function logRendererFailures(role: 'dm' | 'public', win: BrowserWindow) {
+  win.webContents.on('console-message', details => {
+    if (details.level === 'error') console.error(`[renderer:${role}] ${details.message} (${details.sourceId}:${details.lineNumber})`);
+  });
+  win.webContents.on('did-fail-load', (_event, code, description, url, isMainFrame) => {
+    if (isMainFrame) console.error(`[renderer:${role}] Load failed (${code}): ${description} ${url}`);
+  });
+  win.webContents.on('render-process-gone', (_event, details) => {
+    console.error(`[renderer:${role}] Process exited (${details.reason}, ${details.exitCode})`);
+  });
 }
 function createWindows() {
   const displays = screen.getAllDisplays();
@@ -107,11 +120,13 @@ function createWindows() {
   activeDisplayId = external?.id ?? null;
   displayStateInitialized = true;
   const dm = new BrowserWindow({ width: 1440, height: 900, show: false, webPreferences: { preload: join(app.getAppPath(), 'dist/main/preload.cjs'), contextIsolation: true, sandbox: true, nodeIntegration: false } });
+  logRendererFailures('dm', dm);
   windows.set('dm', dm); dm.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   dm.webContents.on('will-navigate', (e, url) => { const allowed = app.isPackaged ? url.startsWith('file:') : url.startsWith('http://127.0.0.1:5173/'); if (!allowed) e.preventDefault(); });
   load(dm, 'index.html'); dm.once('ready-to-show', () => dm.show());
   const target: Display = external ?? primary;
   const pub = new BrowserWindow({ x: external ? target.bounds.x : primary.bounds.x + 80, y: external ? target.bounds.y : primary.bounds.y + 80, width: external ? target.bounds.width : 960, height: external ? target.bounds.height : 540, frame: true, fullscreen: !!external, show: false, backgroundColor: '#000000', webPreferences: { preload: join(app.getAppPath(), 'dist/main/preload.cjs'), contextIsolation: true, sandbox: true, nodeIntegration: false, additionalArguments: ['--window-role=public'] } });
+  logRendererFailures('public', pub);
   windows.set('public', pub); pub.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   pub.webContents.on('will-navigate', (e, url) => { const allowed = app.isPackaged ? url.startsWith('file:') : url.startsWith('http://127.0.0.1:5173/'); if (!allowed) e.preventDefault(); });
   load(pub, 'public.html'); pub.once('ready-to-show', () => pub.show());
