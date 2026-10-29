@@ -169,6 +169,17 @@ export default function MapEditor() {
     catch { notify("Couldn't save this change. Your last saved state is unchanged; retry the action.", 6000); }
     finally { setEncounterBusy(false); }
   };
+  const moveTieOrder = async (actor: any, index: number, direction: -1 | 1) => {
+    const neighbor = encounter?.actors[index + direction];
+    if (!neighbor || actor.initiative !== neighbor.initiative || encounterBusy) return;
+    setEncounterBusy(true);
+    try {
+      const first = await command(`/api/encounter/actors/${actor.tokenId}/tie-break`, 'PUT', {order:neighbor.tieBreakOrder});
+      setEncounter(await command(`/api/encounter/actors/${neighbor.tokenId}/tie-break`, 'PUT', {order:actor.tieBreakOrder}) ?? first);
+      notify('Initiative tie order updated.');
+    } catch { notify("Couldn't save this change. Your last saved state is unchanged; retry the action.",6000); }
+    finally { setEncounterBusy(false); }
+  };
 
   const blackout = async () => {
     try {
@@ -296,7 +307,7 @@ export default function MapEditor() {
           {!encounter ? <p role="status">Loading encounter.</p> : encounter.actors.length === 0 ? <><strong>No actors in this encounter</strong><p>Add a map token to track it here.</p></> : <>
             <ol className="encounter-order" aria-label="Initiative order">{encounter.actors.map((actor: any, index: number) => <li key={actor.tokenId} className={encounter.activeTokenId === actor.tokenId ? 'current-turn' : ''}>
               <button title={draft?.tokens.find(token => token.id === actor.tokenId)?.name} onClick={() => setSelected(actor.tokenId)}>{draft?.tokens.find(token => token.id === actor.tokenId)?.name ?? actor.tokenId} <span>{actor.Initiative ?? actor.initiative ?? '—'}</span>{encounter.activeTokenId === actor.tokenId && <small>Current turn</small>}</button>
-              <span className="tie-controls"><button aria-label="Move earlier" disabled={index === 0 || encounterBusy} onClick={() => void encounterCommand(`/api/encounter/actors/${actor.tokenId}/tie-break`, 'PUT', { order: Math.max(0, actor.tieBreakOrder - 1) })}>↑</button><button aria-label="Move later" disabled={index === encounter.actors.length - 1 || encounterBusy} onClick={() => void encounterCommand(`/api/encounter/actors/${actor.tokenId}/tie-break`, 'PUT', { order: actor.tieBreakOrder + 1 })}>↓</button></span>
+              <span className="tie-controls"><button aria-label="Move earlier" disabled={index === 0 || encounterBusy || encounter.actors[index-1]?.initiative !== actor.initiative} onClick={() => void moveTieOrder(actor,index,-1)}>↑</button><button aria-label="Move later" disabled={index === encounter.actors.length - 1 || encounterBusy || encounter.actors[index+1]?.initiative !== actor.initiative} onClick={() => void moveTieOrder(actor,index,1)}>↓</button></span>
             </li>)}</ol>
             <button className="primary-action" disabled={encounterBusy || !encounter.actors.some((actor: any) => actor.initiative != null)} onClick={() => void encounterCommand('/api/encounter/turn/end', 'POST', undefined, 'Turn advanced.')}>End turn</button>
             {selected && encounter.actors.some((actor: any) => actor.tokenId === selected) && (() => { const actor = encounter.actors.find((item: any) => item.tokenId === selected); const token = draft?.tokens.find(item => item.id === selected); return <div className="encounter-fields">
