@@ -26,6 +26,15 @@ test('fog modes remain explicit and token visibility has persistent text status'
   assert.match(editor, /visibilityBusyId === token\.id/);
 });
 
+test('visual mutations rasterize anticipated map and send one image-bearing request', async () => {
+  const editor = await readFile(new URL('./map/MapEditor.tsx', import.meta.url), 'utf8');
+  assert.match(editor, /const imageData = await rasterizePublicMap\(draft\.image, true,/);
+  assert.match(editor, /imageData: visibilityImage/);
+  assert.match(editor, /const payload = path\.endsWith\('\/strokes'\).*imageData/s);
+  assert.doesNotMatch(editor, /publishMapRaster\([^\n]*true/);
+  assert.doesNotMatch(editor, /visibility\?visible=/);
+});
+
 test('transient status region reserves space instead of overlaying editor controls', async () => {
   const editor = await readFile(new URL('./map/MapEditor.tsx', import.meta.url), 'utf8');
   const styles = await readFile(new URL('./styles.css', import.meta.url), 'utf8');
