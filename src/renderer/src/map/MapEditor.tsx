@@ -116,14 +116,13 @@ export default function MapEditor() {
     const changingVisibility = 'visible' in change;
     if (changingVisibility) setVisibilityBusyId(id);
     try {
+      const visibilityImage = changingVisibility && draft
+        ? await rasterizePublicMap(draft.image, draft.fogEnabled ?? false, draft.fogStrokes ?? [])
+        : undefined;
       const saved = 'visible' in change
-        ? await command(`/api/map/token/${id}/visibility?visible=${String(change.visible)}`, 'PATCH')
+        ? await command(`/api/map/token/${id}/visibility`, 'PATCH', { visible: change.visible, imageData: visibilityImage })
         : await command(`/api/map/token/${id}`, 'PATCH', change);
       applySavedMap(saved as MapState);
-      if ('visible' in change && publicPresentation.mode === 'map' && saved) {
-        const map = (saved as MapState).draft;
-        setPublicPresentation(await publishMapRaster({ imageData: await rasterizePublicMap(map.image, map.fogEnabled ?? false, map.fogStrokes ?? []) }, true) as Presentation);
-      }
       notify('Token updated.');
     } catch (error) {
       notify(RETRY_MESSAGE, 6000);
@@ -168,12 +167,14 @@ export default function MapEditor() {
 
   const applyFogCommand = async (path: string, body?: unknown) => {
     try {
-      const saved = await command(path, 'POST', body) as MapState;
+      if (!draft) return;
+      const fogStrokes = path.endsWith('/strokes') && body && typeof body === 'object' && 'stamps' in body
+        ? [...draft.fogStrokes ?? [], { mode: (body as any).mode, stamps: (body as any).stamps }]
+        : [];
+      const imageData = await rasterizePublicMap(draft.image, true, path.endsWith('/strokes') ? fogStrokes : []);
+      const payload = path.endsWith('/strokes') ? { ...(body as object), imageData } : { imageData };
+      const saved = await command(path, 'POST', payload) as MapState;
       applySavedMap(saved);
-      if (publicPresentation.mode === 'map') {
-        const map = saved.draft;
-        setPublicPresentation(await publishMapRaster({ imageData: await rasterizePublicMap(map.image, map.fogEnabled ?? false, map.fogStrokes ?? []) }, true) as Presentation);
-      }
       notify('Fog change saved.');
     } catch {
       notify(RETRY_MESSAGE, 6000);

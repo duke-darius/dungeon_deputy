@@ -55,22 +55,27 @@ app.MapPost("/api/map/blank", (MapService maps) =>
     return maps.Save(current with { Id = Guid.NewGuid().ToString("N"), Name = "Untitled map", Image = "", Tokens = [] }) ? Results.Ok(maps.Get()) : Results.BadRequest();
 });
 app.MapPost("/api/map/show", (MapPublication? publication, MapService maps, PresentationState presentation) => { if (publication is null) return Results.BadRequest(); try { var approved = maps.Publish(publication.ImageData); var publicMap = maps.GetPublic()!; presentation.ShowMap(publicMap); return Results.Ok(new MapState(maps.Get().Draft, approved)); } catch (InvalidOperationException) { return Results.BadRequest(); } });
-app.MapPost("/api/map/fog/enable", (MapService maps, PresentationState presentation) =>
+app.MapPost("/api/map/fog/enable", (FogEnableCommand? command, MapService maps, PresentationState presentation) =>
 {
-    if (!maps.EnableFog()) return Results.BadRequest();
-    if (maps.Get().Draft.ImageData is not null) presentation.RefreshMap(maps.ProjectDraft());
+    if (command is null) return Results.BadRequest();
+    var committed = maps.EnableFog(command.ImageData);
+    if (committed is null) return Results.BadRequest();
+    presentation.RefreshMap(MapService.Project(committed));
     return Results.Ok(maps.Get());
 });
 app.MapPost("/api/map/fog/strokes", (FogCommand command, MapService maps, PresentationState presentation) =>
 {
-    if (!maps.ApplyFog(command)) return Results.BadRequest();
-    if (maps.Get().Draft.ImageData is not null) presentation.RefreshMap(maps.ProjectDraft());
+    var committed = maps.ApplyFogWithImage(command);
+    if (committed is null) return Results.BadRequest();
+    presentation.RefreshMap(MapService.Project(committed));
     return Results.Ok(maps.Get());
 });
-app.MapPatch("/api/map/token/{id}/visibility", (string id, bool visible, MapService maps, PresentationState presentation) =>
+app.MapPatch("/api/map/token/{id}/visibility", (string id, VisibilityCommand? command, MapService maps, PresentationState presentation) =>
 {
-    if (!maps.ChangeTokenVisibility(id, visible)) return Results.BadRequest();
-    if (maps.Get().Draft.ImageData is not null) presentation.RefreshMap(maps.ProjectDraft());
+    if (command is null) return Results.BadRequest();
+    var committed = maps.ChangeTokenVisibility(id, command.Visible, command.ImageData);
+    if (committed is null) return Results.BadRequest();
+    presentation.RefreshMap(MapService.Project(committed));
     return Results.Ok(maps.Get());
 });
 app.MapPost("/api/map/show-encounter", (MapPublication? publication, MapService maps, PresentationState presentation) =>

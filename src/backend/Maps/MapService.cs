@@ -13,7 +13,9 @@ public sealed record TokenCommand(string? Name, string? Kind, string? Color, str
 public sealed record PublicToken(string Id, string Name, string Kind, string Color, double X, double Y, string Artwork);
 public sealed record PublicMap(string Mode, string Id, string ImageData, List<PublicToken> Tokens);
 public sealed record MapPublication(string ImageData);
-public sealed record FogCommand(string Mode, List<FogStamp>? Stamps);
+public sealed record FogCommand(string Mode, List<FogStamp>? Stamps, string ImageData = "");
+public sealed record FogEnableCommand(string ImageData);
+public sealed record VisibilityCommand(bool Visible, string ImageData);
 
 public sealed class MapService
 {
@@ -118,6 +120,12 @@ public sealed class MapService
         try { var map = Get().Draft; return map.FogEnabled || SaveCore(map with { FogEnabled = true, FogStrokes = [] }); }
         finally { _writeGate.Release(); }
     }
+    public MapDocument? EnableFog(string imageData)
+    {
+        _writeGate.Wait();
+        try { var map = Get().Draft; var next = map with { FogEnabled = true, FogStrokes = [], ImageData = imageData }; return ValidPng(imageData) && SaveCore(next) ? next : null; }
+        finally { _writeGate.Release(); }
+    }
     public bool ApplyFog(FogCommand command)
     {
         _writeGate.Wait();
@@ -131,6 +139,19 @@ public sealed class MapService
         }
         finally { _writeGate.Release(); }
     }
+    public MapDocument? ApplyFogWithImage(FogCommand command)
+    {
+        _writeGate.Wait();
+        try
+        {
+            if (command is null || command.Mode is not ("reveal" or "hide") || command.Stamps is null || command.Stamps.Count is 0 or > 500 || !ValidPng(command.ImageData)) return null;
+            var map = Get().Draft;
+            if (!map.FogEnabled || (map.FogStrokes?.Sum(s => s.Stamps.Count) ?? 0) + command.Stamps.Count > 10000) return null;
+            var next = map with { FogStrokes = [.. map.FogStrokes ?? [], new FogStroke(command.Mode, command.Stamps)], ImageData = command.ImageData };
+            return SaveCore(next) ? next : null;
+        }
+        finally { _writeGate.Release(); }
+    }
     public bool ChangeTokenVisibility(string id, bool visible)
     {
         _writeGate.Wait();
@@ -141,6 +162,19 @@ public sealed class MapService
             if (index < 0) return false;
             var tokens = map.Tokens.ToList(); tokens[index] = tokens[index] with { Visible = visible };
             return SaveCore(map with { Tokens = tokens });
+        }
+        finally { _writeGate.Release(); }
+    }
+    public MapDocument? ChangeTokenVisibility(string id, bool visible, string imageData)
+    {
+        _writeGate.Wait();
+        try
+        {
+            if (string.IsNullOrWhiteSpace(id) || id.Length > 80 || !ValidPng(imageData)) return null;
+            var map = Get().Draft; var index = map.Tokens.FindIndex(t => t.Id == id); if (index < 0) return null;
+            var tokens = map.Tokens.ToList(); tokens[index] = tokens[index] with { Visible = visible };
+            var next = map with { Tokens = tokens, ImageData = imageData };
+            return SaveCore(next) ? next : null;
         }
         finally { _writeGate.Release(); }
     }
@@ -171,6 +205,6 @@ public sealed class MapService
     }
     public PublicMap? GetPublic() { var approved=Get().Approved; return approved is null || approved.ImageData is null ? null : Project(approved); }
     public PublicMap ProjectDraft() { var draft=Get().Draft; if (draft.ImageData is null) throw new InvalidOperationException("A sanitized map raster is required before public display."); return Project(draft); }
-    private static PublicMap Project(MapDocument map) => new("map", map.Id, map.ImageData!,
+    public static PublicMap Project(MapDocument map) => new("map", map.Id, map.ImageData!,
         map.Tokens.Where(t => t.Visible).Select(t => new PublicToken(t.Id,t.Name,t.Kind,t.Color,t.X,t.Y,t.Artwork)).ToList());
 }

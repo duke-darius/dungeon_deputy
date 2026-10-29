@@ -130,20 +130,23 @@ public sealed class MapApiTests : IDisposable
             Assert.Equal("black",(await client.GetFromJsonAsync<PublicPresentation>("/api/presentation"))!.Mode);
             Assert.Equal(HttpStatusCode.BadRequest,(await client.PostAsJsonAsync("/api/map/show",new MapPublication("data:image/jpeg;base64,AAAA"))).StatusCode);
             Assert.Equal("black",(await client.GetFromJsonAsync<PublicPresentation>("/api/presentation"))!.Mode);
-            Assert.Equal(HttpStatusCode.OK,(await client.PostAsync("/api/map/fog/enable",null)).StatusCode);
+            Assert.Equal(HttpStatusCode.OK,(await client.PostAsJsonAsync("/api/map/fog/enable",new FogEnableCommand(Png()))).StatusCode);
             var afterEnable=await client.PostAsJsonAsync("/api/map/show-encounter",new MapPublication(Png())); Assert.Equal(HttpStatusCode.OK,afterEnable.StatusCode);
             var before=await afterEnable.Content.ReadFromJsonAsync<PublicPresentation>(); Assert.Equal("map",before!.Mode);
-            var bad=await client.PostAsJsonAsync("/api/map/fog/strokes",new FogCommand("erase",[new FogStamp(10,10,20)])); Assert.Equal(HttpStatusCode.BadRequest,bad.StatusCode);
+            var bad=await client.PostAsJsonAsync("/api/map/fog/strokes",new FogCommand("erase",[new FogStamp(10,10,20)],Png())); Assert.Equal(HttpStatusCode.BadRequest,bad.StatusCode);
             Assert.Equal(System.Text.Json.JsonSerializer.Serialize(before),System.Text.Json.JsonSerializer.Serialize(await client.GetFromJsonAsync<PublicPresentation>("/api/presentation")));
             using(var db=new SqliteConnection(new SqliteConnectionStringBuilder{DataSource=Path.Combine(directory,"dungeon-deputy.sqlite3")}.ToString()))
             { db.Open(); using var fail=db.CreateCommand(); fail.CommandText="CREATE TRIGGER fail_map_update BEFORE UPDATE ON map_draft BEGIN SELECT RAISE(ABORT, 'injected persistence failure'); END;"; fail.ExecuteNonQuery(); }
-            var failedSave=await client.PostAsJsonAsync("/api/map/fog/strokes",new FogCommand("reveal",[new FogStamp(25,40,10)])); Assert.Equal(HttpStatusCode.InternalServerError,failedSave.StatusCode);
+            var failedSave=await client.PostAsJsonAsync("/api/map/fog/strokes",new FogCommand("reveal",[new FogStamp(25,40,10)],Png())); Assert.Equal(HttpStatusCode.InternalServerError,failedSave.StatusCode);
             Assert.Equal(System.Text.Json.JsonSerializer.Serialize(before),System.Text.Json.JsonSerializer.Serialize(await client.GetFromJsonAsync<PublicPresentation>("/api/presentation")));
             using(var db=new SqliteConnection(new SqliteConnectionStringBuilder{DataSource=Path.Combine(directory,"dungeon-deputy.sqlite3")}.ToString()))
             { db.Open(); using var drop=db.CreateCommand(); drop.CommandText="DROP TRIGGER fail_map_update;"; drop.ExecuteNonQuery(); }
-            var saved=await client.PostAsJsonAsync("/api/map/fog/strokes",new FogCommand("reveal",[new FogStamp(25,40,10)])); Assert.Equal(HttpStatusCode.OK,saved.StatusCode);
+            var pngBytes=Convert.FromBase64String(Png().Split(',')[1]); pngBytes[^1]^=1;
+            var supplied="data:image/png;base64,"+Convert.ToBase64String(pngBytes);
+            var saved=await client.PostAsJsonAsync("/api/map/fog/strokes",new FogCommand("reveal",[new FogStamp(25,40,10)],supplied)); Assert.Equal(HttpStatusCode.OK,saved.StatusCode);
+            Assert.Equal(supplied,(await client.GetFromJsonAsync<MapState>("/api/map"))!.Draft.ImageData);
             var current=await client.GetFromJsonAsync<PublicPresentation>("/api/presentation");
-            Assert.Equal(Png(),current!.ImageData);
+            Assert.Equal(supplied,current!.ImageData);
             Assert.DoesNotContain("\"Visible\":",System.Text.Json.JsonSerializer.Serialize(current));
             Assert.DoesNotContain("tavern.svg",System.Text.Json.JsonSerializer.Serialize(current));
             Assert.DoesNotContain("FogStrokes",System.Text.Json.JsonSerializer.Serialize(current));
