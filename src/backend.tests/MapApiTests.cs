@@ -61,5 +61,22 @@ public sealed class MapApiTests : IDisposable
         Assert.True(service.RemoveToken(token.Id)); Assert.DoesNotContain(service.Get().Draft.Tokens,t=>t.Id==token.Id);
         Assert.True(service.AddToken(new MapToken("extra","New hero","hero","#123456",0,0)));
     }
+
+    [Fact]
+    public async Task ConcurrentPartialTokenEditsPreserveEveryFieldChange()
+    {
+        var service=Open(); var token=service.Get().Draft.Tokens[0];
+        var results=await Task.WhenAll(
+            Task.Run(()=>service.ChangeToken(token.Id,new TokenCommand("Mira E2E",null,null,null,null,null))),
+            Task.Run(()=>service.ChangeToken(token.Id,new TokenCommand(null,null,"#229944",null,null,null))),
+            Task.Run(()=>service.ChangeToken(token.Id,new TokenCommand(null,null,null,"goblin.svg",null,null))),
+            Task.Run(()=>service.ChangeToken(token.Id,new TokenCommand(null,null,null,null,300,400))));
+        Assert.All(results,Assert.True);
+        var saved=Open().Get().Draft.Tokens[0];
+        Assert.Equal("Mira E2E",saved.Name);
+        Assert.Equal("#229944",saved.Color);
+        Assert.Equal("goblin.svg",saved.Artwork);
+        Assert.Equal((300d,400d),(saved.X,saved.Y));
+    }
     public void Dispose() { try { Directory.Delete(_directory,true); } catch {} }
 }

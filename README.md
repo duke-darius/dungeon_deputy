@@ -25,6 +25,7 @@ Build and verify:
 ```sh
 npm run build
 npm test
+npm run test:e2e
 npm run package:smoke
 ```
 
@@ -35,6 +36,8 @@ dotnet test src/backend.tests/DungeonDeputy.Api.Tests.csproj -c Release
 ```
 
 Do not substitute `src/backend/DungeonDeputy.Api.csproj`: that is the API application project, not the test project.
+
+`npm run test:e2e` builds the Electron host, starts or safely reuses this project's Vite dashboard, and drives the actual Electron app plus its isolated packaged backend through Stage 1 scene presentation and Stage 2 map editing/publication/restart flows. It uses the already-installed Electron runtime and `playwright-core` without browser downloads. Paired manager/player screenshots and the run log are written to ignored `artifacts/e2e/<run-id>/`; failures retain the bundle. E2E windows stay hidden/windowed so the test does not take over the desktop. Physical HDMI/fullscreen behavior still requires manual hardware review.
 
 ## Package and launch
 

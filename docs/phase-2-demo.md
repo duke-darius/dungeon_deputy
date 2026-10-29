@@ -21,10 +21,13 @@ This review covers the playable digital battle map only. Start the app with `npm
 ```sh
 npm test
 npm run build
+npm run test:e2e
 npm run package:smoke
 ```
 
 `npm test` includes nested `src/renderer/src/map/*.test.mjs` coverage. Package smoke launches the actual packaged Windows x64 backend with authenticated requests, a unique per-run token and temporary per-run user-data directory; it saves a draft, explicitly publishes it, changes the draft without publishing, stops and restarts the backend, checks independent draft/approved recovery, and explicitly publishes the saved edit. It does not use SQL to manufacture test state.
+
+`npm run test:e2e` launches the actual Electron app and per-run packaged backend, then drives both windows through the Stage 1 scene workflow and Stage 2 map workflow. It verifies screenshots, private/public boundaries, token and camera actions, persistence, and stable windows while capturing paired manager/player screenshots and logs under ignored `artifacts/e2e/<run-id>/`. E2E windows are intentionally hidden and windowed to preserve the user's desktop; it is not a physical HDMI or fullscreen acceptance test. The current host enumerated two non-primary display targets, so the display selector/persistence path was exercised; physical display wiring and hot-plug remain unverified.
 
 ## Artwork source and rights
 

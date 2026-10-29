@@ -50,7 +50,10 @@ test('map coordinate conversion round-trips under pan and zoom', () => {
 
 test('Pixi CSP polyfill loads before renderer initialization without loosening CSP', async () => {
   const canvas = await readFile(new URL('./MapCanvas.tsx', import.meta.url), 'utf8');
+  const managerHtml = await readFile(new URL('../../index.html', import.meta.url), 'utf8');
   const publicHtml = await readFile(new URL('../../public.html', import.meta.url), 'utf8');
   assert.match(canvas, /^import 'pixi\.js\/unsafe-eval';/);
+  assert.match(managerHtml, /connect-src 'self' data:/);
+  assert.doesNotMatch(managerHtml, /frame-ancestors|unsafe-eval/);
   assert.doesNotMatch(publicHtml, /frame-ancestors|unsafe-eval/);
 });

@@ -13,6 +13,7 @@ public sealed record PublicMap(string Mode, string Id, string Image, bool GridVi
 public sealed class MapService
 {
     private readonly string _connectionString;
+    private readonly SemaphoreSlim _writeGate = new(1, 1);
     public MapService(IConfiguration config)
     {
         var directory = config["DUNGEON_DEPUTY_DATA_DIR"] ?? Environment.GetEnvironmentVariable("DUNGEON_DEPUTY_DATA_DIR");
@@ -46,6 +47,12 @@ public sealed class MapService
     }
     public bool Save(MapDocument map)
     {
+        _writeGate.Wait();
+        try { return SaveCore(map); }
+        finally { _writeGate.Release(); }
+    }
+    private bool SaveCore(MapDocument map)
+    {
         if (map is null || string.IsNullOrWhiteSpace(map.CampaignId) || map.CampaignId.Length > 80 || string.IsNullOrWhiteSpace(map.SessionId) || map.SessionId.Length > 80 || string.IsNullOrWhiteSpace(map.Id) || map.Id.Length > 80 || string.IsNullOrWhiteSpace(map.Name) || map.Name.Length > 100 || map.Image is not ("tavern.svg" or "") || !double.IsFinite(map.Scale) || map.Scale is < 8 or > 256 || map.Tokens is null || map.Tokens.Count > 100) return false;
         if (map.Tokens.Any(t => t is null || string.IsNullOrWhiteSpace(t.Id) || t.Id.Length > 80 || string.IsNullOrWhiteSpace(t.Name) || t.Name.Length > 60 || t.Kind is not ("hero" or "monster") || t.Color is null || !Regex.IsMatch(t.Color, "^#[0-9a-fA-F]{6}$") || t.Artwork is not ("hero.svg" or "goblin.svg") || !double.IsFinite(t.X) || !double.IsFinite(t.Y) || Math.Abs(t.X) > 100000 || Math.Abs(t.Y) > 100000) || map.Tokens.Select(t => t.Id).Distinct(StringComparer.Ordinal).Count() != map.Tokens.Count) return false;
         using var db = Connect(); db.Open(); using var transaction = db.BeginTransaction(); using var cmd = db.CreateCommand(); cmd.Transaction = transaction;
@@ -53,6 +60,9 @@ public sealed class MapService
     }
     public bool ChangeToken(string id, TokenCommand change)
     {
+        _writeGate.Wait();
+        try
+        {
         if (string.IsNullOrWhiteSpace(id) || id.Length > 80 || change is null) return false;
         var state = Get(); var tokens = state.Draft.Tokens;
         var index = tokens.FindIndex(t => t.Id == id);
@@ -69,20 +79,40 @@ public sealed class MapService
         };
         if (string.IsNullOrWhiteSpace(next.Name) || next.Name.Length > 60 || next.Kind is not ("hero" or "monster") || !Regex.IsMatch(next.Color, "^#[0-9a-fA-F]{6}$") || next.Artwork is not ("hero.svg" or "goblin.svg") || !double.IsFinite(next.X) || !double.IsFinite(next.Y) || Math.Abs(next.X) > 100000 || Math.Abs(next.Y) > 100000) return false;
         tokens[index] = next;
-        return Save(state.Draft with { Tokens = tokens });
+        return SaveCore(state.Draft with { Tokens = tokens });
+        }
+        finally { _writeGate.Release(); }
     }
     public bool RemoveToken(string id)
     {
+        _writeGate.Wait();
+        try
+        {
         if (string.IsNullOrWhiteSpace(id) || id.Length > 80) return false;
         var draft = Get().Draft; var tokens = draft.Tokens.Where(t => t.Id != id).ToList();
-        return tokens.Count != draft.Tokens.Count && Save(draft with { Tokens = tokens });
+        return tokens.Count != draft.Tokens.Count && SaveCore(draft with { Tokens = tokens });
+        }
+        finally { _writeGate.Release(); }
     }
     public bool AddToken(MapToken token)
     {
+        _writeGate.Wait();
+        try
+        {
         var draft = Get().Draft;
         if (draft.Tokens.Count >= 100 || token is null || draft.Tokens.Any(t => t.Id == token.Id)) return false;
-        return Save(draft with { Tokens = [.. draft.Tokens, token] });
+        return SaveCore(draft with { Tokens = [.. draft.Tokens, token] });
+        }
+        finally { _writeGate.Release(); }
     }
-    public MapDocument Publish() { using var db = Connect(); db.Open(); using var transaction = db.BeginTransaction(); using var cmd = db.CreateCommand(); cmd.Transaction=transaction; cmd.CommandText = "INSERT INTO approved_map(id,document) SELECT 1,document FROM map_draft WHERE id=1 ON CONFLICT(id) DO UPDATE SET document=excluded.document"; cmd.ExecuteNonQuery(); transaction.Commit(); return Get().Approved!; }
+    public MapDocument Publish()
+    {
+        _writeGate.Wait();
+        try
+        {
+            using var db = Connect(); db.Open(); using var transaction = db.BeginTransaction(); using var cmd = db.CreateCommand(); cmd.Transaction=transaction; cmd.CommandText = "INSERT INTO approved_map(id,document) SELECT 1,document FROM map_draft WHERE id=1 ON CONFLICT(id) DO UPDATE SET document=excluded.document"; cmd.ExecuteNonQuery(); transaction.Commit(); return Get().Approved!;
+        }
+        finally { _writeGate.Release(); }
+    }
     public PublicMap? GetPublic() { var approved=Get().Approved; return approved is null ? null : new("map", approved.Id, approved.Image, approved.GridVisible, approved.Scale, approved.Tokens.Select(t => new MapToken(t.Id,t.Name,t.Kind,t.Color,t.X,t.Y,t.Artwork)).ToList()); }
 }

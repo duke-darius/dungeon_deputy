@@ -54,13 +54,13 @@ test('display fallback uses only an external display and preserves an explicit p
 });
 test('topology recovery blacks out when the selected external display changes', () => {
   assert.match(main, /nextDisplayId !== activeDisplayId\) void api\('\/api\/blackout', 'POST'\)/);
-  assert.match(main, /frame: true, fullscreen: !!external/);
+  assert.match(main, /frame: true, fullscreen: !e2e && !!external/);
   assert.match(main, /filter\(d => d\.id !== primaryId\)/);
 });
 test('scene state changes do not toggle or recreate the fullscreen player window', () => {
   assert.match(main, /const previousDisplayId = prefs\.displayId;[\s\S]*if \(prefs\.displayId !== previousDisplayId\) safeTopology\(\)/);
   assert.match(main, /if \(displayStateInitialized && nextDisplayId === activeDisplayId\) \{[\s\S]*setBounds\(selected\.bounds\)[\s\S]*return;/);
-  assert.match(main, /publicWindow\.setBounds\(selected\.bounds\);\s*if \(!publicWindow\.isFullScreen\(\)\) publicWindow\.setFullScreen\(true\)/);
+  assert.match(main, /publicWindow\.setBounds\(selected\.bounds\);\s*if \(!e2e && !publicWindow\.isFullScreen\(\)\) publicWindow\.setFullScreen\(true\)/);
   assert.match(main, /display-metrics-changed', \(_event, display\) => safeTopology\(display\.id\)/);
   assert.doesNotMatch(main, /BrowserWindow\.getAllWindows\(\).*destroy/);
 });

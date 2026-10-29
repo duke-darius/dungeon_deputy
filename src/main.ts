@@ -17,6 +17,15 @@ let prefs: Preferences = fallback;
 let quitting = false;
 let activeDisplayId: number | null = null;
 let displayStateInitialized = false;
+const e2e = process.env.DUNGEON_DEPUTY_E2E === '1';
+const e2eDataRoot = process.env.DUNGEON_DEPUTY_DATA_DIR;
+const e2eBackendRoot = process.env.DUNGEON_DEPUTY_BACKEND_ROOT;
+const e2eDevUrl = process.env.DUNGEON_DEPUTY_DEV_URL;
+const devServerUrl = e2e ? e2eDevUrl : 'http://127.0.0.1:5173';
+if (e2e) {
+  if (!e2eDataRoot || !e2eBackendRoot || !e2eDevUrl || new URL(e2eDevUrl).hostname !== '127.0.0.1') throw new Error('E2E mode requires isolated data/backend roots and a loopback renderer URL.');
+  app.setPath('userData', resolve(e2eDataRoot));
+}
 
 export function validPreferences(value: unknown): Preferences {
   if (!value || typeof value !== 'object') return fallback;
@@ -51,8 +60,8 @@ async function startBackend() {
   backendToken = randomBytes(32).toString('hex');
   const executable = process.platform === 'win32' ? 'DungeonDeputy.Api.exe' : 'DungeonDeputy.Api';
   const backendRid = process.platform === 'win32' ? 'win-x64' : process.platform === 'darwin' ? `osx-${process.arch}` : 'linux-x64';
-  const path = app.isPackaged ? join(process.resourcesPath, `backend-${backendRid}`, executable) : join(app.getAppPath(), 'artifacts', `backend-${backendRid}`, executable);
-  const dataDirectory = resolve(app.getPath('userData'), 'data');
+  const path = e2e ? join(resolve(e2eBackendRoot!), executable) : app.isPackaged ? join(process.resourcesPath, `backend-${backendRid}`, executable) : join(app.getAppPath(), 'artifacts', `backend-${backendRid}`, executable);
+  const dataDirectory = e2e ? resolve(e2eDataRoot!, 'backend-data') : resolve(app.getPath('userData'), 'data');
   await mkdir(dataDirectory, { recursive: true });
   backend = spawn(path, [], { env: { ...process.env, DUNGEON_DEPUTY_PORT: String(port), DUNGEON_DEPUTY_TOKEN: backendToken, DUNGEON_DEPUTY_DATA_DIR: dataDirectory }, stdio: 'ignore', windowsHide: true });
   backend.once('exit', () => { if (!quitting) { for (const win of windows.values()) if (!win.isDestroyed()) void win.webContents.executeJavaScript("document.body.style.background='black'"); app.quit(); } });
@@ -69,6 +78,7 @@ function installIpc() {
   ipcMain.handle('dm:command', async (event, path: unknown, method: unknown, body?: unknown) => {
     if (!allowedSender('dm', event) || typeof path !== 'string' || !/^\/api\/(scenes|presentation|selection\/[a-z-]+|show\/[a-z-]+|blackout|map|map\/draft|map\/blank|map\/show|map\/token(?:\/[a-zA-Z0-9-]+)?)$/.test(path) || !['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].includes(String(method))) throw new Error('Denied');
     const response = await api(path, String(method), body);
+    if (e2e) console.info(`[E2E API] ${String(method)} ${path} ${response.status}`);
     if (!response.ok) throw new Error(`Presentation service returned ${response.status}.`);
     return response.status === 204 ? null : response.json();
   });
@@ -90,6 +100,7 @@ function installIpc() {
   ipcMain.handle('public:presentation', async event => {
     if (!allowedSender('public', event)) throw new Error('Denied');
     const response = await api('/api/presentation');
+    if (e2e) console.info(`[E2E API] GET /api/presentation ${response.status}`);
     if (!response.ok) throw new Error('Presentation unavailable.');
     return response.json();
   });
@@ -97,7 +108,7 @@ function installIpc() {
 function load(win: BrowserWindow, route: string) {
   const loading = app.isPackaged
     ? win.loadFile(join(process.resourcesPath, 'dist', route))
-    : win.loadURL(`http://127.0.0.1:5173/${route}`);
+    : win.loadURL(`${devServerUrl}/${route}`);
   void loading.catch(error => console.error(`[renderer:${route}] Failed to load:`, error));
 }
 function logRendererFailures(role: 'dm' | 'public', win: BrowserWindow) {
@@ -119,17 +130,17 @@ function createWindows() {
   if (external && prefs.displayId === null) { prefs.displayId = external.id; void savePreferences(); }
   activeDisplayId = external?.id ?? null;
   displayStateInitialized = true;
-  const dm = new BrowserWindow({ width: 1440, height: 900, show: false, webPreferences: { preload: join(app.getAppPath(), 'dist/main/preload.cjs'), contextIsolation: true, sandbox: true, nodeIntegration: false } });
+  const dm = new BrowserWindow({ width: 1440, height: 900, show: false, webPreferences: { preload: join(app.getAppPath(), 'dist/main/preload.cjs'), contextIsolation: true, sandbox: true, nodeIntegration: false, offscreen: e2e } });
   logRendererFailures('dm', dm);
   windows.set('dm', dm); dm.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
-  dm.webContents.on('will-navigate', (e, url) => { const allowed = app.isPackaged ? url.startsWith('file:') : url.startsWith('http://127.0.0.1:5173/'); if (!allowed) e.preventDefault(); });
-  load(dm, 'index.html'); dm.once('ready-to-show', () => dm.show());
+  dm.webContents.on('will-navigate', (e, url) => { const allowed = app.isPackaged ? url.startsWith('file:') : url.startsWith(`${devServerUrl}/`); if (!allowed) e.preventDefault(); });
+  load(dm, 'index.html'); if (!e2e) dm.once('ready-to-show', () => dm.show());
   const target: Display = external ?? primary;
-  const pub = new BrowserWindow({ x: external ? target.bounds.x : primary.bounds.x + 80, y: external ? target.bounds.y : primary.bounds.y + 80, width: external ? target.bounds.width : 960, height: external ? target.bounds.height : 540, frame: true, fullscreen: !!external, show: false, backgroundColor: '#000000', webPreferences: { preload: join(app.getAppPath(), 'dist/main/preload.cjs'), contextIsolation: true, sandbox: true, nodeIntegration: false, additionalArguments: ['--window-role=public'] } });
+  const pub = new BrowserWindow({ x: external ? target.bounds.x : primary.bounds.x + 80, y: external ? target.bounds.y : primary.bounds.y + 80, width: e2e ? 960 : external ? target.bounds.width : 960, height: e2e ? 540 : external ? target.bounds.height : 540, frame: true, fullscreen: !e2e && !!external, show: false, backgroundColor: '#000000', webPreferences: { preload: join(app.getAppPath(), 'dist/main/preload.cjs'), contextIsolation: true, sandbox: true, nodeIntegration: false, additionalArguments: ['--window-role=public'], offscreen: e2e } });
   logRendererFailures('public', pub);
   windows.set('public', pub); pub.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
-  pub.webContents.on('will-navigate', (e, url) => { const allowed = app.isPackaged ? url.startsWith('file:') : url.startsWith('http://127.0.0.1:5173/'); if (!allowed) e.preventDefault(); });
-  load(pub, 'public.html'); pub.once('ready-to-show', () => pub.show());
+  pub.webContents.on('will-navigate', (e, url) => { const allowed = app.isPackaged ? url.startsWith('file:') : url.startsWith(`${devServerUrl}/`); if (!allowed) e.preventDefault(); });
+  load(pub, 'public.html'); if (!e2e) pub.once('ready-to-show', () => pub.show());
 }
 function safeTopology(metricsDisplayId?: number) {
   const all = screen.getAllDisplays(); const primary = screen.getPrimaryDisplay();
@@ -150,7 +161,7 @@ function safeTopology(metricsDisplayId?: number) {
     return;
   }
   publicWindow.setBounds(selected.bounds);
-  if (!publicWindow.isFullScreen()) publicWindow.setFullScreen(true);
+  if (!e2e && !publicWindow.isFullScreen()) publicWindow.setFullScreen(true);
 }
 app.whenReady().then(async () => {
   screen.getAllDisplays(); await loadPreferences(); installIpc(); await startBackend(); createWindows();
