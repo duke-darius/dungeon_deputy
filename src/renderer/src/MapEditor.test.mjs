@@ -43,3 +43,14 @@ test('transient status region reserves space instead of overlaying editor contro
   assert.match(styles, /\.map-desk \.map-status-region\{display:flex;min-height:36px/);
   assert.match(styles, /\.map-desk \.map-toast\{position:static/);
 });
+
+test('map editor keeps responsive primary controls practical and focus-visible', async () => {
+  const editor = await readFile(new URL('./map/MapEditor.tsx', import.meta.url), 'utf8');
+  const styles = await readFile(new URL('./styles.css', import.meta.url), 'utf8');
+  assert.match(editor, /fog-controls" role="group" aria-label="Fog tools"/);
+  assert.match(editor, /className="encounter-inspector" aria-label="Encounter — DM only"/);
+  assert.match(styles, /\.map-desk \.fog-controls button\{min-height:44px/);
+  assert.match(styles, /\.map-desk \.map-toolbar \.save-action\{min-height:44px/);
+  assert.match(styles, /\.map-desk \.map-canvas:focus-visible\{outline:/);
+  assert.match(styles, /--desk-teal:#4d837d/);
+});

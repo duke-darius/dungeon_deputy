@@ -65,6 +65,16 @@ test('MapCanvas exposes keyboard pan and one-dab Reveal/Hide interaction', async
   assert.match(source,/event\.repeat\)return/);
 });
 
+test('keyboard canvas is named, bounded in map space, and activates through one stroke callback', async () => {
+  const source = await readFile(new URL('./MapCanvas.tsx', import.meta.url), 'utf8');
+  assert.match(source, /tabIndex=\{0\}[^>]*aria-keyshortcuts/);
+  assert.match(source, /aria-label="Map canvas\. Focus here/);
+  assert.match(source, /Math\.max\(0,Math\.min\(1200,/);
+  assert.match(source, /Math\.max\(0,Math\.min\(760,/);
+  assert.match(source, /state\.onStroke\(\[\{x:keyboardCursor\.x,y:keyboardCursor\.y,radius:state\.brushSize\/2\}\]\)/);
+  assert.match(source, /keyRepeat|event\.repeat/);
+});
+
 test('pointercancel invokes cancellation cleanup without committing the preview', () => {
   const handlers = new Map(); const stage = {on:(name,fn)=>handlers.set(name,fn),off:name=>handlers.delete(name)};
   let preview={destroyed:false,destroy(){this.destroyed=true;}}; let painting=true; let submitted=0;
