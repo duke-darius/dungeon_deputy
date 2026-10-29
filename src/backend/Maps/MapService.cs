@@ -11,7 +11,7 @@ public sealed record MapDocument(string CampaignId, string SessionId, string Id,
 public sealed record MapState(MapDocument Draft, MapDocument? Approved);
 public sealed record TokenCommand(string? Name, string? Kind, string? Color, string? Artwork, double? X, double? Y);
 public sealed record PublicToken(string Id, string Name, string Kind, string Color, double X, double Y, string Artwork);
-public sealed record PublicMap(string Mode, string Id, string Image, bool GridVisible, double Scale, List<PublicToken> Tokens, List<FogStroke> RevealedTerrain);
+public sealed record PublicMap(string Mode, string Id, string Image, bool GridVisible, double Scale, List<PublicToken> Tokens, List<FogStroke>? RevealedTerrain);
 public sealed record FogCommand(string Mode, List<FogStamp>? Stamps);
 
 public sealed class MapService
@@ -154,7 +154,7 @@ public sealed class MapService
     }
     public PublicMap? GetPublic() { var approved=Get().Approved; return approved is null ? null : Project(approved); }
     public PublicMap ProjectDraft() => Project(Get().Draft);
-    private static PublicMap Project(MapDocument map) => new("map", map.Id, map.FogEnabled ? "" : map.Image, map.GridVisible, map.Scale,
+    private static PublicMap Project(MapDocument map) => new("map", map.Id, map.Image, map.GridVisible, map.Scale,
         map.Tokens.Where(t => t.Visible).Select(t => new PublicToken(t.Id,t.Name,t.Kind,t.Color,t.X,t.Y,t.Artwork)).ToList(),
-        map.FogEnabled ? (map.FogStrokes ?? []).ToList() : []);
+        map.FogEnabled ? (map.FogStrokes ?? []).ToList() : null);
 }

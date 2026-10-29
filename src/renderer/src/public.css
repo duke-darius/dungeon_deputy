@@ -5,6 +5,7 @@ body { overflow: hidden; }
 .public-art { display: block; width: 100%; height: 100%; object-fit: cover; }
 .public-map { position:relative; width:100%; height:100%; overflow:hidden; background:#111; }
 .public-map-art { position:absolute; inset:0; width:100%; height:100%; object-fit:fill; }
+.public-map-fog-mask { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
 .public-map-grid { position:absolute; inset:0; background-image:linear-gradient(#eee4 1px,transparent 1px),linear-gradient(90deg,#eee4 1px,transparent 1px); background-size:var(--map-scale) var(--map-scale); }
 .public-map-tokens { position:absolute; inset:0; }
 .public-map-token { position:absolute; width:4%; aspect-ratio:1; transform:translate(-50%,-50%); }

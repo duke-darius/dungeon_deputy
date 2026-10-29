@@ -31,6 +31,21 @@ test('pointerupoutside commits final map-space position and all registrations cl
   detach(); assert.equal(handlers.size,0);
 });
 
+test('pointercancel clears active gesture state and unregisters its handler', () => {
+  const handlers=new Map(); const stage={on:(name,fn)=>handlers.set(name,fn),off:(name)=>handlers.delete(name)};
+  let painting=true,pan=false; const detach=registerPointerLifecycle(stage,()=>{},()=>{},()=>{},()=>{painting=false;pan=false;});
+  handlers.get('pointercancel')(); assert.equal(painting,false); assert.equal(pan,false);
+  detach(); assert.equal(handlers.size,0);
+});
+
+test('brush mode and save rejection paths clear painting without publishing a stroke', async () => {
+  const source=await readFile(new URL('./MapCanvas.tsx',import.meta.url),'utf8');
+  assert.match(source,/state\.fogTool === null \|\| !state\.fogEnabled/);
+  assert.match(source,/if\(painting\)\{painting=false;stamps=\[\];preview\?\.destroy\(\);preview=undefined;\}/);
+  assert.match(source,/latest\.current\.onStroke\(stamps\)/);
+  assert.doesNotMatch(source,/setFogStrokes\(stamps\)/);
+});
+
 test('remount leaves exactly one canvas and each mounted listener set is removed', async () => {
   let count=0; const host={appendChild(){count++;}};
   const makeApp=()=>({canvas:{},init:async()=>{},destroy(){count--;}});
@@ -39,7 +54,7 @@ test('remount leaves exactly one canvas and each mounted listener set is removed
   const second=attachCanvas(makeApp(),host,()=>{}); assert.equal(await second.ready,true);
   assert.equal(count,1); second.dispose(); assert.equal(count,0);
   const handlers=new Map();const stage={on:(k,v)=>handlers.set(k,v),off:k=>handlers.delete(k)};
-  const detach=registerPointerLifecycle(stage,()=>{},()=>{},()=>{},()=>{});assert.equal(handlers.size,4);detach();assert.equal(handlers.size,0);
+  const detach=registerPointerLifecycle(stage,()=>{},()=>{},()=>{},()=>{});assert.equal(handlers.size,5);detach();assert.equal(handlers.size,0);
 });
 
 test('map coordinate conversion round-trips under pan and zoom', () => {

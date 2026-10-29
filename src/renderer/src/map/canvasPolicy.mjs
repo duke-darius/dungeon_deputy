@@ -30,13 +30,16 @@ export function attachCanvas(app, host, onReady) {
 
 export function registerPointerLifecycle(stage, finishDrag, move, panStart, panEnd) {
   const end = event => { finishDrag(event); panEnd(); };
+  const cancel = () => panEnd();
   stage.on('pointerup', end);
   stage.on('pointerupoutside', end);
+  stage.on('pointercancel', cancel);
   stage.on('globalpointermove', move);
   stage.on('pointerdown', panStart);
   return () => {
     stage.off('pointerup', end);
     stage.off('pointerupoutside', end);
+    stage.off('pointercancel', cancel);
     stage.off('globalpointermove', move);
     stage.off('pointerdown', panStart);
   };

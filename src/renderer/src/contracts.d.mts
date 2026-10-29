@@ -7,6 +7,7 @@ export type PublicPresentation = {
   image?: string;
   gridVisible?: boolean;
   scale?: number;
+  revealedTerrain?: Array<{mode:'reveal'|'hide';stamps:Array<{x:number;y:number;radius:number}>}>;
   tokens?: Array<{id:string;name:string;kind:string;color:string;x:number;y:number;artwork:string}>;
 };
 export type Scene = { id: string; title: string; description: string; image: string };

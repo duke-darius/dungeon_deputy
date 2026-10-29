@@ -10,8 +10,8 @@ const fogOk = strokes => Array.isArray(strokes) && strokes.length <= 2000 && str
 
 export function publicView(value) {
   if (value?.mode === 'black') return black;
-  if (value?.mode === 'map' && typeof value.id === 'string' && value.id.length <= 80 && ['tavern.svg',''].includes(value.image) && typeof value.gridVisible === 'boolean' && Number.isFinite(value.scale) && value.scale >= 8 && value.scale <= 256 && Array.isArray(value.tokens) && value.tokens.length <= 100 && value.tokens.every(tokenOk) && (value.revealedTerrain === undefined || fogOk(value.revealedTerrain))) {
-    return { mode:'map', id:value.id, image:value.image, gridVisible:value.gridVisible, scale:value.scale, ...(value.revealedTerrain === undefined ? {} : { revealedTerrain: value.revealedTerrain.map(({mode,stamps})=>({mode,stamps:stamps.map(({x,y,radius})=>({x,y,radius}))})) }), tokens:value.tokens.map(({id,name,kind,color,x,y,artwork})=>({id,name,kind,color,x,y,artwork})) };
+  if (value?.mode === 'map' && typeof value.id === 'string' && value.id.length <= 80 && ['tavern.svg',''].includes(value.image) && typeof value.gridVisible === 'boolean' && Number.isFinite(value.scale) && value.scale >= 8 && value.scale <= 256 && Array.isArray(value.tokens) && value.tokens.length <= 100 && value.tokens.every(tokenOk) && (value.revealedTerrain === undefined || value.revealedTerrain === null || fogOk(value.revealedTerrain))) {
+    return { mode:'map', id:value.id, image:value.image, gridVisible:value.gridVisible, scale:value.scale, ...(value.revealedTerrain == null ? {} : { revealedTerrain: value.revealedTerrain.map(({mode,stamps})=>({mode,stamps:stamps.map(({x,y,radius})=>({x,y,radius}))})) }), tokens:value.tokens.map(({id,name,kind,color,x,y,artwork})=>({id,name,kind,color,x,y,artwork})) };
   }
   if (!value || value.mode !== 'scene' || !sceneById(value.sceneId) || typeof value.title !== 'string' || typeof value.description !== 'string') {
     return black;
