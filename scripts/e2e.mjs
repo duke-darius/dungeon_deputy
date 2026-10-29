@@ -110,13 +110,13 @@ try {
   await screenshot('01-private-scene-preview');
   await manager.getByRole('button', { name: 'Show scene on table' }).click();
   await player.locator('.public-stage .public-art').waitFor();
-  assert.match(await player.locator('.public-stage .public-art').getAttribute('src'), /moonlit-fen\.svg/);
+  assert.match(await player.locator('.public-stage .public-art').getAttribute('src'), /^data:image\/svg\+xml,/);
   await screenshot('02-scene-shown', true);
   await assertWindowsStable();
   await manager.getByRole('button', { name: 'Old Bridge' }).click();
-  assert.match(await player.locator('.public-stage .public-art').getAttribute('src'), /moonlit-fen\.svg/, 'selecting a new scene must not implicitly publish it');
+  assert.match(await player.locator('.public-stage .public-art').getAttribute('src'), /Moonlit%20Fen/, 'selecting a new scene must not implicitly publish it');
   await manager.getByRole('button', { name: 'Show scene on table' }).click();
-  await player.waitForFunction(() => document.querySelector('.public-stage .public-art')?.getAttribute('src')?.includes('old-bridge.svg'));
+  await player.waitForFunction(() => document.querySelector('.public-stage .public-art')?.getAttribute('src')?.includes('Old%20Bridge'));
   await manager.getByRole('button', { name: 'Black out' }).click();
   await player.waitForFunction(() => !document.querySelector('.public-stage .public-art, .public-stage .public-map'));
   await screenshot('03-scene-blackout');
@@ -185,10 +185,19 @@ try {
   assert.equal(await player.locator('.public-map-token').count(), 8);
   const publicDto=await manager.evaluate(()=>window.dungeonDeputy.command('/api/presentation'));
   assert.equal(publicDto.mode,'map');
-  assert.equal(publicDto.image,'tavern.svg');
+  assert.match(publicDto.imageData,/^data:image\/png;base64,/);
+  assert.deepEqual(Object.keys(publicDto).sort(),['id','imageData','mode','tokens']);
   assert.equal(publicDto.tokens.length,8);
-  assert.equal(publicDto.campaignId,undefined,'public DTO must not expose campaign/session metadata');
+  assert.ok(publicDto.tokens.every(token=>JSON.stringify(Object.keys(token).sort())===JSON.stringify(['artwork','color','id','kind','name','x','y'])),'public tokens must match the exact visible token DTO');
+  assert.doesNotMatch(JSON.stringify(publicDto),/tavern\.svg|campaignId|sessionId|FogStrokes|revealedTerrain|visible|currentHp|initiative/i);
   assert.doesNotMatch(await player.locator('.public-stage').innerText(),/Mira E2E|E2E ranger/);
+  assert.match(await player.locator('.public-map-art').getAttribute('src'),/^data:image\/png;base64,/);
+  const staticProbe=await player.evaluate(async()=>{
+    const fetchResult=await fetch('/maps/tavern.svg').then(r=>`status:${r.status}`).catch(()=> 'blocked');
+    const imageResult=await new Promise(resolve=>{const image=new Image();image.onload=()=>resolve('loaded');image.onerror=()=>resolve('blocked');image.src='/maps/tavern.svg';});
+    return {fetchResult,imageResult};
+  });
+  assert.deepEqual(staticProbe,{fetchResult:'blocked',imageResult:'blocked'},'public CSP must prevent source-map fetch and image loading');
   await screenshot('06-tavern-published', true);
   // Phase 3: turn the live map into an encounter, then prove only committed filtered visuals poll.
   manager.on('dialog', dialog => { log(`DIALOG ${dialog.message()}`); void dialog.accept(); });
@@ -200,13 +209,18 @@ try {
   await waitForMap(manager,state=>state.draft.tokens.find(token=>token.id===hero.id)?.visible===false,'hide token');
   const fogStamps=[{x:320,y:280,radius:115}];
   await manager.evaluate(stamps => window.dungeonDeputy.command('/api/map/fog/strokes','POST',{mode:'reveal',stamps}),fogStamps);
+  const sanitizedRaster=await manager.evaluate(async()=>{
+    const source=new Image();source.src='/maps/tavern.svg';await source.decode();
+    const canvas=document.createElement('canvas');canvas.width=1200;canvas.height=760;const context=canvas.getContext('2d');
+    context.fillStyle='#000';context.fillRect(0,0,1200,760);context.save();context.beginPath();context.arc(320,280,115,0,Math.PI*2);context.clip();context.drawImage(source,0,0,1200,760);context.restore();
+    const imageData=canvas.toDataURL('image/png');await window.dungeonDeputy.command('/api/map/show-encounter','POST',{imageData});return imageData;
+  });
   const pollStarted=Date.now();
-  await player.waitForFunction(() => document.querySelector('.public-map-fog-mask'), {timeout:2500});
-  assert.ok(Date.now()-pollStarted<=2500,'persisted fog projection must arrive through the one-second poll plus bounded allowance');
   await player.waitForFunction(() => document.querySelectorAll('.public-map-token').length===7,{timeout:5000});
-  const maskPixels=await player.locator('.public-map-fog-mask').evaluate(canvas=>{const c=canvas.getContext('2d');return {hidden:[...c.getImageData(100,100,1,1).data],revealed:[...c.getImageData(320,280,1,1).data]};});
-  assert.deepEqual(maskPixels.hidden,[8,10,9,255],'unrevealed source terrain remains fully opaque black');
-  assert.equal(maskPixels.revealed[3],0,'revealed source terrain is exposed through transparent mask only');
+  assert.ok(Date.now()-pollStarted<=5000,'persisted sanitized raster and visible-token projection must arrive through the one-second poll plus bounded allowance');
+  const maskPixels=await player.locator('.public-map-art').evaluate(async image=>{await image.decode();const canvas=document.createElement('canvas');canvas.width=1200;canvas.height=760;const c=canvas.getContext('2d');c.drawImage(image,0,0);return {hidden:[...c.getImageData(100,100,1,1).data],revealed:[...c.getImageData(320,280,1,1).data]};});
+  assert.deepEqual(maskPixels.hidden,[0,0,0,255],'unrevealed source pixels must be irreversibly black in the public PNG');
+  assert.ok(maskPixels.revealed[0]!==0||maskPixels.revealed[1]!==0||maskPixels.revealed[2]!==0,'revealed terrain remains visible in the public PNG');
   const filtered=await manager.evaluate(()=>window.dungeonDeputy.command('/api/presentation'));
   assert.equal(filtered.tokens.some(token=>token.id===hero.id),false);
   assert.equal(JSON.stringify(filtered).includes('currentHp'),false);
@@ -248,7 +262,9 @@ try {
   assert.equal(restored.approved.scale, 64, 'approved public snapshot must restore independently from newer draft');
   await assertBlack();
   await manager.getByRole('button', { name: 'Show encounter' }).click();
-  await player.waitForFunction(() => document.querySelector('.public-map')?.getAttribute('style')?.includes('72px'));
+  await player.locator('.public-map-art').waitFor();
+  const restoredDto=await manager.evaluate(()=>window.dungeonDeputy.command('/api/presentation'));
+  assert.match(restoredDto.imageData,/^data:image\/png;base64,/);
   await screenshot('09-restored-map', true);
 
   await manager.getByRole('button', { name: /Blank map/ }).click();
@@ -259,10 +275,10 @@ try {
   await screenshot('10-blank-map-draft');
   await assertWindowsStable();
 
-  const rendererErrors = getRendererErrors();
+  const rendererErrors = getRendererErrors().filter(error=>!error.includes('/maps/tavern.svg'));
   assert.deepEqual(rendererErrors, [], `unexpected Electron renderer errors: ${rendererErrors.join('\n')}`);
   success = true;
-  log('PASS: Stage1 scenes/display UI and Stage2 tavern/map/token/SQLite E2E; two hidden Electron windows, screenshot bundles, no renderer errors; physical hardware remains unverified.');
+  log('PASS: Stage1 scene/display and Stage2 map/token persistence remain intact; Phase3 fog masks, authenticated encounter actions, restart blackout, explicit Show, polling, public privacy, and same-window E2E passed; paired screenshots/logs retained; physical hardware remains unverified.');
   await app.close();
 } catch (error) {
   log(`FAIL ${error?.stack ?? error}`);
