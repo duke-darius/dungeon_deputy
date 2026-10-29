@@ -1,5 +1,6 @@
 using System.Net;
 using DungeonDeputy.Api;
+using DungeonDeputy.Api.Encounters;
 using DungeonDeputy.Api.Maps;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -14,6 +15,8 @@ if (!int.TryParse(portValue, out var port) || port is < 1 or > 65535)
 builder.WebHost.ConfigureKestrel(options => options.Listen(IPAddress.Loopback, port));
 builder.Services.AddSingleton<PresentationState>();
 builder.Services.AddSingleton(new MapService(builder.Configuration));
+builder.Services.AddSingleton<IConditionCatalog, BuiltInConditionCatalog>();
+builder.Services.AddSingleton(sp => new EncounterService(builder.Configuration, sp.GetRequiredService<MapService>(), sp.GetRequiredService<IConditionCatalog>()));
 var app = builder.Build();
 
 app.Use(async (context, next) =>
@@ -74,6 +77,23 @@ app.MapPost("/api/map/show-encounter", (MapService maps, PresentationState prese
 {
     presentation.ShowMap(maps.ProjectDraft());
     return Results.Ok(presentation.PublicPresentation);
+});
+
+app.MapGet("/api/encounter", (EncounterService encounters) => Results.Ok(encounters.Get()));
+app.MapPut("/api/encounter/actors/{id}/hp", (string id, HpCommand command, EncounterService encounters) => encounters.SetHp(id, command) ? Results.Ok(encounters.Get()) : Results.BadRequest());
+app.MapPut("/api/encounter/actors/{id}/conditions", (string id, ConditionsCommand command, EncounterService encounters) => encounters.SetConditions(id, command) ? Results.Ok(encounters.Get()) : Results.BadRequest());
+app.MapPut("/api/encounter/actors/{id}/initiative", (string id, InitiativeCommand command, EncounterService encounters) => encounters.SetInitiative(id, command) ? Results.Ok(encounters.Get()) : Results.BadRequest());
+app.MapPost("/api/encounter/actors/{id}/initiative/roll", (string id, EncounterService encounters) => encounters.RollInitiative(id) ? Results.Ok(encounters.Get()) : Results.BadRequest());
+app.MapPut("/api/encounter/actors/{id}/tie-break", (string id, TieBreakCommand command, EncounterService encounters) => encounters.SetTieBreak(id, command) ? Results.Ok(encounters.Get()) : Results.BadRequest());
+app.MapPost("/api/encounter/turn/end", (EncounterService encounters) =>
+{
+    try { return Results.Ok(encounters.EndTurn()); }
+    catch (InvalidOperationException) { return Results.BadRequest(); }
+});
+app.MapPost("/api/encounter/dice", (DiceCommand command, EncounterService encounters) =>
+{
+    var result = encounters.RollDice(command);
+    return result is null ? Results.BadRequest() : Results.Ok(new { result.Sides, result.Face, result.Modifier, result.Total });
 });
 
 app.Run();
