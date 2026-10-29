@@ -38,12 +38,13 @@ export function MapCanvas({ image, gridVisible, scale, tokens, fogEnabled, fogSt
       const world = new Container(); initialized.stage.addChild(world);
        let camera: Camera = { x: 0, y: 0, zoom: 1 }, dragging: string | null = null, panning = false, painting = false, stamps: FogStamp[] = [], preview: Graphics | undefined, last = {x:0,y:0};
        const generation = createRedrawGeneration();
+       const discardPreview = () => { if (preview) { preview.parent?.removeChild(preview); preview.destroy(); preview=undefined; } };
        const render = async () => {
          const redraw = generation.begin();
          const isCurrent = () => generation.isCurrent(redraw);
          world.removeChildren().forEach(child => child.destroy({ children:true }));
          const state = latest.current;
-         if (state.fogTool === null || !state.fogEnabled) { painting=false; stamps=[]; preview?.destroy(); preview=undefined; }
+         if (state.fogTool === null || !state.fogEnabled) { painting=false; stamps=[]; discardPreview(); }
          if (state.image) { const tex = await Assets.load(tavernArt); if (!isCurrent()) return; const art = new Sprite(tex); art.width=1200; art.height=760; if (!isCurrent()) { art.destroy(); return; } world.addChild(art); }
          if (state.fogEnabled) {
            const canvas=document.createElement('canvas'); canvas.width=1200; canvas.height=760;
@@ -58,8 +59,8 @@ export function MapCanvas({ image, gridVisible, scale, tokens, fogEnabled, fogSt
        drawRef.current = render;
        await render();
        if (cancelled) return;
-          const finish=(e:{global:{x:number;y:number}})=>{if(painting){painting=false;if(stamps.length)latest.current.onStroke(stamps);stamps=[];preview?.destroy();preview=undefined;}else if(dragging){const pos=screenToMap(e.global,camera);latest.current.onMove(dragging,pos.x,pos.y);dragging=null;}};
-          const cancelGesture=()=>{panning=false;dragging=null;painting=false;stamps=[];preview?.destroy();preview=undefined;};
+          const finish=(e:{global:{x:number;y:number}})=>{if(painting){painting=false;if(stamps.length)latest.current.onStroke(stamps);stamps=[];discardPreview();}else if(dragging){const pos=screenToMap(e.global,camera);latest.current.onMove(dragging,pos.x,pos.y);dragging=null;}};
+          const cancelGesture=()=>{panning=false;dragging=null;painting=false;stamps=[];discardPreview();};
           detachPointers=registerPointerLifecycle(initialized.stage,finish,(e:{global:{x:number;y:number}})=>{ if(painting){const pos=screenToMap(e.global,camera);const prev=stamps.at(-1);if(!prev||Math.hypot(pos.x-prev.x,pos.y-prev.y)>=latest.current.brushSize*.2)stamps.push({x:pos.x,y:pos.y,radius:latest.current.brushSize/2});if(preview){preview.clear().circle(pos.x,pos.y,latest.current.brushSize/2).stroke({color:0xb58d51,width:2});} }else if(dragging){const pos=screenToMap(e.global,camera);const item=latest.current.tokens.find(t=>t.id===dragging);if(item){item.x=pos.x;item.y=pos.y;void render();}} else if(panning){camera={...camera,x:camera.x+e.global.x-last.x,y:camera.y+e.global.y-last.y};last={x:e.global.x,y:e.global.y};world.position.set(camera.x,camera.y);} },(e:{global:{x:number;y:number}})=>{if(latest.current.fogEnabled&&latest.current.fogTool){painting=true;panning=false;dragging=null;stamps=[];const pos=screenToMap(e.global,camera);stamps.push({x:pos.x,y:pos.y,radius:latest.current.brushSize/2});preview=new Graphics();world.addChild(preview);}else if(!dragging){panning=true;last={x:e.global.x,y:e.global.y};}},()=>{panning=false;dragging=null;},cancelGesture);
        initialized.stage.eventMode='static'; initialized.stage.hitArea=initialized.screen;
         const wheel=(e:WheelEvent)=>{e.preventDefault();camera=zoomAt(camera,{x:e.offsetX,y:e.offsetY},e.deltaY<0?1.1:.9);world.position.set(camera.x,camera.y);world.scale.set(camera.zoom);};

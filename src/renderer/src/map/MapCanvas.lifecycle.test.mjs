@@ -58,7 +58,8 @@ test('pointercancel invokes cancellation cleanup without committing the preview'
 test('brush mode and save rejection paths clear painting without publishing a stroke', async () => {
   const source=await readFile(new URL('./MapCanvas.tsx',import.meta.url),'utf8');
   assert.match(source,/state\.fogTool === null \|\| !state\.fogEnabled/);
-  assert.match(source,/const cancelGesture=\(\)=>\{panning=false;dragging=null;painting=false;stamps=\[\];preview\?\.destroy\(\);preview=undefined;\}/);
+  assert.match(source,/const cancelGesture=\(\)=>\{panning=false;dragging=null;painting=false;stamps=\[\];discardPreview\(\);\}/);
+  assert.match(source,/preview\.parent\?\.removeChild\(preview\); preview\.destroy\(\)/);
   assert.match(source,/latest\.current\.onStroke\(stamps\)/);
   assert.doesNotMatch(source,/setFogStrokes\(stamps\)/);
 });
