@@ -38,14 +38,14 @@ created: "2026-10-29"
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 03-01-01 | 01 | 1 | ENCT-01, ENCT-03 | T-03-01, T-03-02, T-03-03 | Persist validated fog/visibility, cold-start black, explicit filtered publication and allowlist privacy | unit/integration | `dotnet test src/backend.tests/DungeonDeputy.Api.Tests.csproj -c Release && node --test src/renderer/src/contracts.test.mjs` | Planned | ⬜ pending |
-| 03-01-02 | 01 | 1 | ENCT-01 | T-03-02 | Map-space brush lifecycle, distinct modes, bounded committed strokes and no gesture leakage | renderer/build | `node --test src/renderer/src/map/MapCanvas.lifecycle.test.mjs src/renderer/src/contracts.test.mjs && npm run build` | Planned | ⬜ pending |
-| 03-01-03 | 01 | 1 | ENCT-01, ENCT-03 | T-03-03 | Fog persistence/projection regressions and validation coverage | full suite | `npm test` | Planned | ⬜ pending |
-| 03-02-01 | 02 | 2 | ENCT-02, ENCT-03 | T-03-04, T-03-05 | Durable private HP/conditions/initiative/tie-break/turn transitions | backend integration | `dotnet test src/backend.tests/DungeonDeputy.Api.Tests.csproj -c Release` | Planned | ⬜ pending |
-| 03-02-02 | 02 | 2 | ENCT-02, ENCT-03 | T-03-04, T-03-05, T-03-06 | Authenticated private encounter routes and standard die/modifier validation | backend integration | `dotnet test src/backend.tests/DungeonDeputy.Api.Tests.csproj -c Release` | Planned | ⬜ pending |
-| 03-03-01 | 03 | 3 | ENCT-02, ENCT-03 | T-03-07, T-03-08 | Same-dashboard private encounter controls and authoritative state/error feedback | build/backend | `npm run build && dotnet test src/backend.tests/DungeonDeputy.Api.Tests.csproj -c Release` | Planned | ⬜ pending |
-| 03-03-02 | 03 | 3 | ENCT-01, ENCT-02, ENCT-03 | T-03-07, T-03-09 | Electron E2E restart blackout, explicit Show, polling, privacy and same-window path | E2E | `npm run test:e2e` | Planned | ⬜ pending |
-| 03-03-03 | 03 | 3 | ENCT-01, ENCT-02, ENCT-03 | T-03-07, T-03-08 | Final full validation, demo evidence and physical-verification caveats | full gate | `npm test && npm run build && npm run test:e2e` | Planned | ⬜ pending |
+| 03-01-01 | 01 | 1 | ENCT-01, ENCT-03 | T-03-04, T-03-05, T-03-06 | Persist validated fog/visibility, cold-start black, explicit filtered publication and allowlist privacy | unit/integration | `dotnet test src/backend.tests/DungeonDeputy.Api.Tests.csproj -c Release && node --test src/renderer/src/contracts.test.mjs` | Planned | ⬜ pending |
+| 03-01-02 | 01 | 1 | ENCT-01 | T-03-05 | Map-space brush lifecycle, distinct modes, bounded committed strokes and no gesture leakage | renderer/build | `node --test src/renderer/src/map/MapCanvas.lifecycle.test.mjs src/renderer/src/contracts.test.mjs && npm run build` | Planned | ⬜ pending |
+| 03-01-03 | 01 | 1 | ENCT-01, ENCT-03 | T-03-06 | Fog persistence/projection regressions and validation coverage | full suite | `npm test` | Planned | ⬜ pending |
+| 03-02-01 | 02 | 2 | ENCT-02, ENCT-03 | T-03-07, T-03-08 | Durable private HP/conditions/initiative/tie-break/turn transitions | backend integration | `dotnet test src/backend.tests/DungeonDeputy.Api.Tests.csproj -c Release` | Planned | ⬜ pending |
+| 03-02-02 | 02 | 2 | ENCT-02, ENCT-03 | T-03-07, T-03-08, T-03-09 | Authenticated private encounter routes and standard die/modifier validation | backend integration | `dotnet test src/backend.tests/DungeonDeputy.Api.Tests.csproj -c Release` | Planned | ⬜ pending |
+| 03-03-01 | 03 | 3 | ENCT-02, ENCT-03 | T-03-10, T-03-11 | Same-dashboard private encounter controls and authoritative state/error feedback | build/backend | `npm run build && dotnet test src/backend.tests/DungeonDeputy.Api.Tests.csproj -c Release` | Planned | ⬜ pending |
+| 03-03-02 | 03 | 3 | ENCT-01, ENCT-02, ENCT-03 | T-03-10, T-03-12 | Electron E2E restart blackout, explicit Show, polling, privacy and same-window path | E2E | `npm run test:e2e` | Planned | ⬜ pending |
+| 03-03-03 | 03 | 3 | ENCT-01, ENCT-02, ENCT-03 | T-03-10, T-03-11 | Final full validation, demo evidence and physical-verification caveats | full gate | `npm test && npm run build && npm run test:e2e` | Planned | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
