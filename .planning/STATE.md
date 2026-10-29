@@ -3,16 +3,16 @@ gsd_state_version: "1.0"
 current_phase: 03
 current_phase_name: Fog of War and Encounter Control
 status: executing
-stopped_at: Completed 03-04-PLAN.md
-last_updated: "2026-10-29T19:37:52.386Z"
+stopped_at: Completed 03-02-PLAN.md
+last_updated: "2026-10-29T19:52:05.418Z"
 last_activity: 2026-10-29
 last_activity_desc: Phase 03 execution started
-state_head: 69a24a5b21066955fe427f106b4b76d6ccd1097d
+state_head: 65939e7383f4ac8b8be953d1c800d733ceff948d
 progress:
   total_phases: 7
   completed_phases: 1
   total_plans: 15
-  completed_plans: 11
+  completed_plans: 12
   percent: 14
 ---
 
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-10-28)
 ## Current Position
 
 Phase: 03 (Fog of War and Encounter Control) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-10-29 — Phase 03 execution started
 
@@ -65,6 +65,7 @@ Progress: ░░░░░░░░░░ [█░░░░░░░░░] 14%
 | Phase 02 P03 | 8min | 2 tasks | 12 files |
 | Phase 02 P04 | 11 min | 2 tasks | 13 files |
 | Phase 03 P04 | 24m | 3 tasks | 15 files |
+| Phase 03 P02 | 8min | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -93,6 +94,8 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase 02]: Bundle original hero/goblin assets identified only by catalog keys; do not add npm packages.
 - [Phase 02]: Keep public map updates on polling until Phase 6/CHAR-04; explicit Show snapshots draft, while blackout overrides active presentation.
 - [Phase 03]: Use deterministic pixel-center ordered masks for DM and public fog rendering with allowlisted source art.
+- [Phase 03]: Keep actor combat state and dice history in its own private SQLite document; map tokens provide actor identity only.
+- [Phase 03]: Use a stable condition catalog seam, closed supported dice set, and bounded validation without adding packages.
 
 ### Pending Todos
 
@@ -112,6 +115,6 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 
 ## Session Continuity
 
-Last session: 2026-10-29T19:37:52.356Z
-Stopped at: Completed 03-04-PLAN.md
+Last session: 2026-10-29T19:51:42.795Z
+Stopped at: Completed 03-02-PLAN.md
 Resume file: None

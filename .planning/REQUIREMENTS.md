@@ -22,7 +22,7 @@
 ### Encounters
 
 - [x] **ENCT-01**: The DM can manually reveal or hide map regions and keep hidden tokens and unrevealed information off the player display.
-- [ ] **ENCT-02**: The DM can manage actor HP, simple conditions, initiative order, turn advancement, and basic dice rolls from the dashboard.
+- [x] **ENCT-02**: The DM can manage actor HP, simple conditions, initiative order, turn advancement, and basic dice rolls from the dashboard.
 - [x] **ENCT-03**: The DM can run a basic encounter without leaving the main dashboard, while only approved visual state is public.
 
 ### Audio and cues
@@ -79,7 +79,7 @@ None currently identified beyond the staged roadmap. Additional licensed rule co
 | MAP-02 | Phase 2 | Complete |
 | MAP-03 | Phase 2 | Complete |
 | ENCT-01 | Phase 3 | Complete |
-| ENCT-02 | Phase 3 | Pending |
+| ENCT-02 | Phase 3 | Complete |
 | ENCT-03 | Phase 3 | Complete |
 | AUD-01 | Phase 4 | Pending |
 | AUD-02 | Phase 4 | Pending |
