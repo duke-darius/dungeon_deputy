@@ -203,9 +203,18 @@ try {
   manager.on('dialog', dialog => { log(`DIALOG ${dialog.message()}`); void dialog.accept(); });
   await manager.getByRole('button', { name: 'Enable fog' }).click();
   await waitForMap(manager, state => state.draft.fogEnabled, 'fog enable');
+  const revealTool=manager.locator('.fog-controls').getByRole('button',{name:'Reveal'});
+  await revealTool.click();
+  await revealTool.click();
+  assert.equal(await manager.locator('.fog-controls button[aria-pressed="true"]').count(),1,'fog mode buttons must retain exactly one active mode when reselected');
+  await manager.locator('.fog-controls').getByRole('button',{name:'Hide',exact:true}).click();
+  assert.equal(await manager.locator('.fog-controls button[aria-pressed="true"]').count(),1);
+  await manager.locator('.fog-controls').getByRole('button',{name:'Select / pan'}).click();
+  assert.equal(await manager.locator('.fog-controls button[aria-pressed="true"]').count(),1,'non-paint mode is explicit when drawing is inactive');
   const hero = (await readMap(manager)).draft.tokens.find(token => token.name === 'Mira E2E');
   await manager.getByRole('button',{name:/Mira E2E/}).first().click();
   await manager.getByRole('button',{name:'Hide token'}).click();
+  await manager.getByText('Hidden from players').waitFor();
   await waitForMap(manager,state=>state.draft.tokens.find(token=>token.id===hero.id)?.visible===false,'hide token');
   const fogStamps=[{x:320,y:280,radius:115}];
   await manager.evaluate(stamps => window.dungeonDeputy.command('/api/map/fog/strokes','POST',{mode:'reveal',stamps}),fogStamps);
@@ -232,7 +241,7 @@ try {
   await manager.getByLabel('Encounter — DM only').waitFor();
   await manager.getByLabel('Current HP').fill('7');
   await manager.getByLabel('Maximum HP').fill('19');
-  await manager.getByRole('button',{name:'Save HP'}).click();
+  await manager.getByRole('button',{name:'Save HP values'}).click();
   await assertWindowsStable();
   assert.doesNotMatch(await player.locator('.public-stage').innerText(),/poisoned|Initiative|Current HP|Result:|Mira E2E/);
   await screenshot('06b-fog-encounter-published',true);

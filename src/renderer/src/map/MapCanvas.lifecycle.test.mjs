@@ -46,6 +46,15 @@ test('redraw implementation rejects stale async work before scene mutation', asy
   assert.deepEqual(scene,[2]);
 });
 
+test('MapCanvas wires redraw generations around async terrain and token texture loads', async () => {
+  const source=await readFile(new URL('./MapCanvas.tsx',import.meta.url),'utf8');
+  assert.match(source,/const generation = createRedrawGeneration\(\)/);
+  assert.match(source,/const redraw = generation\.begin\(\)/);
+  assert.match(source,/await Assets\.load\(tavernArt\); if \(!isCurrent\(\)\) return/);
+  assert.match(source,/await Assets\.load\(token\.artwork[\s\S]*if \(!isCurrent\(\)\) return/);
+  assert.match(source,/const isCurrent = \(\) => generation\.isCurrent\(redraw\)/);
+});
+
 test('pointercancel invokes cancellation cleanup without committing the preview', () => {
   const handlers = new Map(); const stage = {on:(name,fn)=>handlers.set(name,fn),off:name=>handlers.delete(name)};
   let preview={destroyed:false,destroy(){this.destroyed=true;}}; let painting=true; let submitted=0;

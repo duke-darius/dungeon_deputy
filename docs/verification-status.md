@@ -49,4 +49,17 @@ Tests were rerun after these corrections. No new npm dependencies were added.
 | macOS x64 / arm64 | **Unverified** | No macOS host was used. |
 | Physical HDMI / external display and fullscreen behavior | **Unverified** | Automated same-window regression is covered by tests; no physical display was exercised. |
 
-One Electron Forge Node deprecation warning about child-process shell arguments appeared during package smoke; packaging and all assertions completed successfully. `playwright-core@1.64.1` is the only additional direct test dependency for Electron E2E; it does not download a browser. Human visual/functional acceptance remains pending; see [Phase 2 demo](phase-2-demo.md).
+One Electron Forge Node deprecation warning about child-process shell arguments appeared during package smoke; packaging and all assertions completed successfully. `playwright-core@1.64.1` is the only additional direct test dependency for Electron E2E; it does not download a browser. Phase 2 was explicitly approved by the user before Phase 3 began. Physical display/macOS caveats remain; see [Phase 2 demo](phase-2-demo.md).
+
+## Phase 3 verification status (Windows x64 host)
+
+| Check | Result | Scope / caveat |
+|---|---|---|
+| `npm test` | **Passed: 32 Node tests and 20 .NET tests** | Includes ordered fog-mask pixel tests, brush pointer cancel/tool/failure cleanup, sanitized PNG public projection, atomic initiative reorder, nullable HP behavior, encounter service and HTTP authorization/persistence tests, plus prior Phase 1/2 regressions. |
+| `npm run build` | **Passed** | TypeScript, Electron, Vite, and .NET Release backend; backend build reported 0 warnings and 0 errors. |
+| `npm run test:e2e` | **Passed** | Actual two-window Electron app plus isolated backend. Covers scenes, map editing, fog enable/Reveal/Hide, token visibility, private HP/conditions/initiative/dice, restart-black-before-Show, sanitized explicit Show, one-second polling, black mask pixels, public source denial, and same-window lifecycle. Final run: `artifacts/e2e/2026-10-29T21-12-01.188Z-b7022c3b/` (paired manager/player screenshots at each checkpoint; no renderer page/console/request failures). |
+| `npm run package:smoke` | **Passed on Windows x64** | Packaged backend authenticated draft/approved persistence, public DTO allowlist, independent restart restore, cold-start black, and explicit re-Show. One Electron Forge Node shell-argument deprecation warning appeared; assertions passed. |
+| Physical HDMI / full-screen display behavior | **Unverified** | Hidden/offscreen automation proves rendered projection and same-window behavior, not physical GPU/monitor readability or hot-plug. |
+| macOS x64 / arm64 | **Unverified** | No macOS host was used. |
+
+Phase 3 implementation and automated verification cover ENCT-01/02/03 within the local-first desktop scope; final phase verification is being completed. Follow [Phase 3 demo](phase-3-demo.md) for the visible workflow and manual display caveats. The Almanac, player clients, SignalR, line-of-sight, and complex spell automation remain deferred as planned.

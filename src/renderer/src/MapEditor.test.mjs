@@ -14,3 +14,23 @@ test('blank HP fields independently serialize as null', async () => {
   assert.match(editor, /current\.trim\(\) === '' \? null : Number\(current\)/);
   assert.match(editor, /maximum\.trim\(\) === '' \? null : Number\(maximum\)/);
 });
+
+test('fog modes remain explicit and token visibility has persistent text status', async () => {
+  const editor = await readFile(new URL('./map/MapEditor.tsx', import.meta.url), 'utf8');
+  assert.match(editor, /Select \/ pan/);
+  assert.match(editor, /onClick=\{\(\) => setFogTool\('reveal'\)\}/);
+  assert.match(editor, /onClick=\{\(\) => setFogTool\('hide'\)\}/);
+  assert.doesNotMatch(editor, /setFogTool\(fogTool === '(?:reveal|hide)' \? null/);
+  assert.match(editor, /Visible to players/);
+  assert.match(editor, /Hidden from players/);
+  assert.match(editor, /visibilityBusyId === token\.id/);
+});
+
+test('transient status region reserves space instead of overlaying editor controls', async () => {
+  const editor = await readFile(new URL('./map/MapEditor.tsx', import.meta.url), 'utf8');
+  const styles = await readFile(new URL('./styles.css', import.meta.url), 'utf8');
+  assert.match(editor, /className="map-status-region"/);
+  assert.match(editor, /className="map-toast" role="status"/);
+  assert.match(styles, /\.map-desk \.map-status-region\{display:flex;min-height:36px/);
+  assert.match(styles, /\.map-desk \.map-toast\{position:static/);
+});

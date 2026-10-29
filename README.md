@@ -37,7 +37,7 @@ dotnet test src/backend.tests/DungeonDeputy.Api.Tests.csproj -c Release
 
 Do not substitute `src/backend/DungeonDeputy.Api.csproj`: that is the API application project, not the test project.
 
-`npm run test:e2e` builds the Electron host, starts or safely reuses this project's Vite dashboard, and drives the actual Electron app plus its isolated packaged backend through Stage 1 scene presentation and Stage 2 map editing/publication/restart flows. It uses the already-installed Electron runtime and `playwright-core` without browser downloads. Paired manager/player screenshots and the run log are written to ignored `artifacts/e2e/<run-id>/`; failures retain the bundle. E2E windows stay hidden/windowed so the test does not take over the desktop. Physical HDMI/fullscreen behavior still requires manual hardware review.
+`npm run test:e2e` builds the Electron host, starts or safely reuses this project's Vite dashboard, and drives the actual Electron app plus its isolated packaged backend through Stage 1 scenes, Stage 2 map editing, and Stage 3 fog/encounter/privacy/restart flows. It uses the already-installed Electron runtime and `playwright-core` without browser downloads. Paired manager/player screenshots and the run log are written to ignored `artifacts/e2e/<run-id>/`; failures retain the bundle. E2E windows stay hidden/windowed so the test does not take over the desktop. Physical HDMI/fullscreen behavior still requires manual hardware review.
 
 ## Package and launch
 
@@ -51,6 +51,6 @@ Forge places packaged artifacts under `out/make/` (Windows Squirrel installer ou
 
 For an installed package, launch it using the installer/application produced under `out/make/`. The Windows package smoke command builds the Electron and renderer assets, stages the Windows package resources, and starts/probes the packaged backend; it is not a physical display acceptance test.
 
-## Phase 2 review
+## Phase review
 
-Follow [the Phase 2 demo checklist](docs/phase-2-demo.md), read [verification status](docs/verification-status.md) and [known limitations](docs/known-limitations.md), then provide explicit Phase 2 acceptance or report defects. Phase 3 has not started and must wait for this review.
+Phase 2 was approved by the user before Phase 3 work began. Run the [Phase 3 demo checklist](docs/phase-3-demo.md) and read [verification status](docs/verification-status.md) and [known limitations](docs/known-limitations.md). Automated verification is complete; physical HDMI readability/hot-plug and macOS runtime remain unverified and are not claimed.

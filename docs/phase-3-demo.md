@@ -10,7 +10,7 @@ npm run build
 npm run test:e2e
 ```
 
-The Electron E2E uses isolated backend/database and Chromium profile data. Successful run output is `artifacts/e2e/<run-id>/run.log` and its screenshots are in `artifacts/e2e/<run-id>/screenshots/`. On failure, the harness retains the data, logs, and paired manager/player failure screenshots for diagnosis; successful temporary data is removed.
+The Electron E2E uses isolated backend/database and Chromium profile data. Successful run output is `artifacts/e2e/<run-id>/run.log` and its screenshots are in `artifacts/e2e/<run-id>/screenshots/` (latest run: `artifacts/e2e/2026-10-29T21-12-01.188Z-b7022c3b/`). On failure, the harness retains the data, logs, and paired manager/player failure screenshots for diagnosis; successful temporary data is removed.
 
 ## Visible walkthrough
 

@@ -21,6 +21,7 @@ export default function MapEditor() {
   const [brushSize, setBrushSize] = useState(96);
   const [encounter, setEncounter] = useState<any>(null);
   const [encounterBusy, setEncounterBusy] = useState(false);
+  const [visibilityBusyId, setVisibilityBusyId] = useState<string | null>(null);
   const [die, setDie] = useState(20);
   const [modifier, setModifier] = useState(0);
   const messageTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -109,6 +110,8 @@ export default function MapEditor() {
   };
 
   const tokenChange = async (id: string, change: Record<string, unknown>) => {
+    const changingVisibility = 'visible' in change;
+    if (changingVisibility) setVisibilityBusyId(id);
     try {
       const saved = 'visible' in change
         ? await command(`/api/map/token/${id}/visibility?visible=${String(change.visible)}`, 'PATCH')
@@ -121,6 +124,8 @@ export default function MapEditor() {
       notify('Token updated.');
     } catch (error) {
       notify(error instanceof Error ? `${error.message} Save changes to retry.` : 'Token could not be updated.', 6000);
+    } finally {
+      if (changingVisibility) setVisibilityBusyId(null);
     }
   };
 
@@ -224,6 +229,7 @@ export default function MapEditor() {
       <button aria-pressed={mode === 'scenes'} onClick={() => setMode('scenes')}>Scenes</button>
       <button aria-pressed={mode === 'map'} onClick={() => setMode('map')}>Battle map</button>
     </nav>
+    <div className="map-status-region" aria-live="polite">{message && <p className="map-toast" role="status">{message}</p>}</div>
 
     {mode === 'scenes' && <section className="scene-mode" aria-label="Scene presentation">
       <div className="scene-mode-choices">
@@ -278,19 +284,21 @@ export default function MapEditor() {
 
       <section className="map-workspace" aria-label="Map editor">
         <div className="map-toolbar">
-          {!draft?.fogEnabled && <button className="quiet-action" onClick={() => {
+          {!draft?.fogEnabled && <div className="toolbar-group fog-controls"><button className="quiet-action" onClick={() => {
             const confirmConceal = publicPresentation.mode !== 'black' && window.confirm('Enable fog and conceal the map currently shown on the table?');
             if (publicPresentation.mode === 'black' || confirmConceal) void applyFogCommand('/api/map/fog/enable');
-          }}>Enable fog</button>}
-          {draft?.fogEnabled && <>
-            <button aria-pressed={fogTool === 'reveal'} onClick={() => setFogTool(fogTool === 'reveal' ? null : 'reveal')}>Reveal</button>
-            <button aria-pressed={fogTool === 'hide'} onClick={() => setFogTool(fogTool === 'hide' ? null : 'hide')}>Hide</button>
+          }}>Enable fog</button></div>}
+          {draft?.fogEnabled && <div className="toolbar-group fog-controls" role="group" aria-label="Fog tools">
+            <button className="tool-button" aria-pressed={fogTool === null} onClick={() => setFogTool(null)}>Select / pan</button>
+            <button className="tool-button" aria-pressed={fogTool === 'reveal'} onClick={() => setFogTool('reveal')}>Reveal</button>
+            <button className="tool-button" aria-pressed={fogTool === 'hide'} onClick={() => setFogTool('hide')}>Hide</button>
             <label>Brush size <input aria-label="Brush size" type="range" min="16" max="320" step="8" value={brushSize} onChange={event => setBrushSize(Number(event.target.value))} /><span>{brushSize} map px</span></label>
-          </>}
-          <button className="save-action" disabled={!dirty} onClick={() => void save()}>{dirty ? 'Save changes' : 'Saved'}</button>
-          <label className="grid-toggle"><input type="checkbox" checked={draft?.gridVisible ?? false} onChange={event => update({ gridVisible: event.target.checked })} />Square grid</label>
-          <label className="scale-control">Scale <input aria-label="Grid scale" type="range" min="24" max="96" step="4" value={draft?.scale ?? 48} onChange={event => update({ scale: Number(event.target.value) })} /><span>{draft?.scale ?? 48}px</span></label>
-          <span className="scale-note">Grid spacing</span>
+          </div>}
+          <div className="toolbar-group map-controls">
+            <button className="save-action" disabled={!dirty} onClick={() => void save()}>{dirty ? 'Save changes' : 'Saved'}</button>
+            <label className="grid-toggle"><input type="checkbox" checked={draft?.gridVisible ?? false} onChange={event => update({ gridVisible: event.target.checked })} />Square grid</label>
+            <label className="scale-control">Scale <input aria-label="Grid scale" type="range" min="24" max="96" step="4" value={draft?.scale ?? 48} onChange={event => update({ scale: Number(event.target.value) })} /><span>{draft?.scale ?? 48}px</span></label>
+          </div>
           <button className="quiet-action" onClick={() => void refresh()}>Reload saved map</button>
         </div>
         {draft
@@ -298,7 +306,7 @@ export default function MapEditor() {
           : <div className="map-loading" role="status">Loading saved map…</div>}
         <div className="token-tray" aria-label="Tokens on map">
           <span className="tray-title">Tokens <small>{draft?.tokens.length ?? 0}</small></span>
-          {draft?.tokens.map(token => <button key={token.id} aria-label={`${token.name}, ${token.kind}`} style={{ '--token': token.color } as React.CSSProperties} onClick={() => setSelected(token.id)}>{token.name}</button>)}
+          {draft?.tokens.map(token => <button key={token.id} aria-label={`${token.name}, ${token.kind}, ${token.visible === false ? 'hidden' : 'visible'}`} style={{ '--token': token.color } as React.CSSProperties} onClick={() => setSelected(token.id)}>{token.name}{token.visible === false && <small className="visibility-badge">Hidden</small>}</button>)}
           <span className="tray-divider" aria-hidden="true" />
           <button className="add-token" onClick={() => void add('hero')}>+ Hero</button>
           <button className="add-token" onClick={() => void add('monster')}>+ Monster</button>
@@ -324,7 +332,7 @@ export default function MapEditor() {
             <button className="primary-action" disabled={encounterBusy || !encounter.actors.some((actor: any) => actor.initiative != null)} onClick={() => void encounterCommand('/api/encounter/turn/end', 'POST', undefined, 'Turn advanced.')}>End turn</button>
             {selected && encounter.actors.some((actor: any) => actor.tokenId === selected) && (() => { const actor = encounter.actors.find((item: any) => item.tokenId === selected); const token = draft?.tokens.find(item => item.id === selected); return <div className="encounter-fields">
               <h3>{token?.name ?? selected}</h3>
-              <label>🔒 HP · DM only <span><input aria-label="Current HP" type="number" min="0" max="9999" placeholder="—" defaultValue={actor.currentHp ?? ''} /> / <input aria-label="Maximum HP" type="number" min="0" max="9999" placeholder="—" defaultValue={actor.maximumHp ?? ''} /></span><button disabled={encounterBusy} onClick={event => { const root=event.currentTarget.parentElement!; const current=(root.querySelector('[aria-label="Current HP"]') as HTMLInputElement | null)?.value ?? ''; const maximum=(root.querySelector('[aria-label="Maximum HP"]') as HTMLInputElement | null)?.value ?? ''; void encounterCommand(`/api/encounter/actors/${selected}/hp`, 'PUT', { current: current.trim() === '' ? null : Number(current), maximum: maximum.trim() === '' ? null : Number(maximum) }); }}>Save HP</button></label>
+              <label>🔒 HP · DM only <span><input aria-label="Current HP" type="number" min="0" max="9999" placeholder="—" defaultValue={actor.currentHp ?? ''} /> / <input aria-label="Maximum HP" type="number" min="0" max="9999" placeholder="—" defaultValue={actor.maximumHp ?? ''} /></span><button disabled={encounterBusy} onClick={event => { const root=event.currentTarget.parentElement!; const current=(root.querySelector('[aria-label="Current HP"]') as HTMLInputElement | null)?.value ?? ''; const maximum=(root.querySelector('[aria-label="Maximum HP"]') as HTMLInputElement | null)?.value ?? ''; void encounterCommand(`/api/encounter/actors/${selected}/hp`, 'PUT', { current: current.trim() === '' ? null : Number(current), maximum: maximum.trim() === '' ? null : Number(maximum) }); }}>Save HP values</button></label>
               <label>🔒 Conditions · DM only <select aria-label="Add condition" onChange={event => { const ids=[...(actor.conditionIds ?? [])]; if(event.target.value && !ids.includes(event.target.value)) ids.push(event.target.value); void encounterCommand(`/api/encounter/actors/${selected}/conditions`, 'PUT', { conditionIds: ids }); event.target.value=''; }}><option value="">Add condition</option>{encounter.conditions?.map((condition: any)=><option key={condition.id} value={condition.id}>{condition.name}</option>)}</select></label><div className="condition-chips">{(actor.conditionIds ?? []).map((id: string)=><button key={id} disabled={encounterBusy} onClick={() => void encounterCommand(`/api/encounter/actors/${selected}/conditions`, 'PUT', {conditionIds: actor.conditionIds.filter((entry: string)=>entry!==id)})}>{encounter.conditions?.find((item: any)=>item.id===id)?.name ?? id} ×</button>)}</div>
               <label>🔒 Initiative · DM only <input aria-label="Initiative" type="number" placeholder="—" defaultValue={actor.initiative ?? ''} /><small>{actor.initiativeSource ?? 'Unset'}</small><button disabled={encounterBusy} onClick={event => { const input=event.currentTarget.parentElement?.querySelector('input'); if(input?.value) void encounterCommand(`/api/encounter/actors/${selected}/initiative`, 'PUT', {value:Number(input.value)}); }}>Set initiative</button><button disabled={encounterBusy} onClick={() => void encounterCommand(`/api/encounter/actors/${selected}/initiative/roll`, 'POST')}>Roll d20</button></label>
             </div>; })()}
@@ -335,17 +343,17 @@ export default function MapEditor() {
         {selected && draft?.tokens.find(token => token.id === selected) && (() => {
           const token = draft.tokens.find(item => item.id === selected)!;
           return <section className="token-inspector" aria-label="Selected token inspector">
-            <h2>Selected token</h2>
+             <h2>Selected token</h2>
+            <p className={`token-visibility-state${token.visible === false ? ' is-hidden' : ''}`} aria-live="polite">{token.visible === false ? 'Hidden from players' : 'Visible to players'}</p>
             <label>Name <input aria-label="Token name" value={token.name} onChange={event => update({ tokens: draft.tokens.map(item => item.id === selected ? { ...item, name: event.target.value } : item) })} onBlur={() => void tokenChange(token.id, { name: token.name })} /></label>
             <label>Color <input aria-label="Token color" type="color" value={token.color} onChange={event => void tokenChange(token.id, { color: event.target.value })} /></label>
             <label>Artwork <select aria-label="Token artwork" value={token.artwork} onChange={event => void tokenChange(token.id, { artwork: event.target.value })}><option value="hero.svg">Hero</option><option value="goblin.svg">Goblin</option></select></label>
-            <button className="quiet-action" aria-label={token.visible === false ? 'Show token' : 'Hide token'} onClick={() => void tokenChange(token.id, { visible: token.visible === false })}>{token.visible === false ? 'Show token' : 'Hide token'}</button>
+            <button className="quiet-action" disabled={visibilityBusyId === token.id} aria-label={token.visible === false ? 'Show token' : 'Hide token'} onClick={() => void tokenChange(token.id, { visible: token.visible === false })}>{visibilityBusyId === token.id ? 'Updating visibility…' : token.visible === false ? 'Show token' : 'Hide token'}</button>
             <button className="quiet-action remove-action" onClick={() => void removeToken(token.id)}>Remove token</button>
           </section>;
         })()}
       </aside>
     </div>}
 
-    {message && <p className="map-toast" role="status" aria-live="polite">{message}</p>}
   </main>;
 }
