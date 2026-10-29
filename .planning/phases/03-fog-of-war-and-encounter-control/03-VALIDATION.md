@@ -68,6 +68,7 @@ created: "2026-10-29"
 - `npm run package:smoke` - passed on Windows x64 after sanitized PNG projection and black-until-Show checks; one Electron Forge shell-argument deprecation warning was non-fatal.
 - `npm run build` - passed after final renderer/backend changes; .NET Release build had 0 warnings and 0 errors.
 - Final verification rerun: `npm test` passed (40 Node tests + 20 xUnit tests); `npm run build` passed (.NET Release build: 0 warnings, 0 errors); `npm run test:e2e` passed with screenshots/logs at `artifacts/e2e/2026-10-29T22-39-15.385Z-a8f4aa6a/`; `npm run package:smoke` passed on Windows x64. E2E verified image hash synchronization after fog-enable, token-visibility, brush, and keyboard Enter mutations; Select/pan arrows moved the rendered map without committing a stroke; revealed pixels were nonblack while unrevealed pixels remained opaque black. Tablet, phone, phone encounter, and phone actor-details captures were retained.
+- Phase 3 concurrency verification follow-up: the backend mutation gate is covered by `MapApiTests.VisualMutationGateSerializesCommitAndPresentationRefreshSections`; focused backend suite passed 21/21, full `npm test` passed 40 Node + 21 xUnit, `npm run build` passed with 0 .NET warnings/errors, E2E passed at `artifacts/e2e/2026-10-29T23-30-46.101Z-d7076d68/`, and `npm run package:smoke` passed for Windows x64.
 
 ## Sign-off
 

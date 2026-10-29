@@ -11,6 +11,30 @@ namespace DungeonDeputy.Api.Tests;
 
 public sealed class MapApiTests : IDisposable
 {
+    [Fact]
+    public async Task VisualMutationGateSerializesCommitAndPresentationRefreshSections()
+    {
+        var gate = new MapVisualMutationGate();
+        var active = 0;
+        var maximumActive = 0;
+        var completed = new List<int>();
+        var tasks = Enumerable.Range(0, 12).Select(index => Task.Run(() => gate.Run(() =>
+        {
+            var nowActive = Interlocked.Increment(ref active);
+            maximumActive = Math.Max(maximumActive, nowActive);
+            Thread.Sleep(5);
+            completed.Add(index);
+            Interlocked.Decrement(ref active);
+            return index;
+        }))).ToArray();
+
+        await Task.WhenAll(tasks);
+
+        Assert.Equal(1, maximumActive);
+        Assert.Equal(12, completed.Count);
+        Assert.Equal(12, tasks.Select(task => task.Result).Distinct().Count());
+    }
+
     private static string Png() { var bytes = new byte[33]; new byte[] {137,80,78,71,13,10,26,10}.CopyTo(bytes,0); System.Buffers.Binary.BinaryPrimitives.WriteUInt32BigEndian(bytes.AsSpan(8,4),13); "IHDR"u8.CopyTo(bytes.AsSpan(12,4)); System.Buffers.Binary.BinaryPrimitives.WriteUInt32BigEndian(bytes.AsSpan(16,4),1200); System.Buffers.Binary.BinaryPrimitives.WriteUInt32BigEndian(bytes.AsSpan(20,4),760); return "data:image/png;base64,"+Convert.ToBase64String(bytes); }
     private readonly string _directory = Path.Combine(Path.GetTempPath(), "dungeon-map-test-" + Guid.NewGuid().ToString("N"));
     private MapService Open() { var settings = new Dictionary<string,string?> { ["DUNGEON_DEPUTY_DATA_DIR"] = _directory }; return new MapService(new ConfigurationBuilder().AddInMemoryCollection(settings).Build()); }

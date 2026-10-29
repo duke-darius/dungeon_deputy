@@ -15,6 +15,7 @@ if (!int.TryParse(portValue, out var port) || port is < 1 or > 65535)
 builder.WebHost.ConfigureKestrel(options => options.Listen(IPAddress.Loopback, port));
 builder.Services.AddSingleton<PresentationState>();
 builder.Services.AddSingleton(new MapService(builder.Configuration));
+builder.Services.AddSingleton<MapVisualMutationGate>();
 builder.Services.AddSingleton<IConditionCatalog, BuiltInConditionCatalog>();
 builder.Services.AddSingleton(sp => new EncounterService(builder.Configuration, sp.GetRequiredService<MapService>(), sp.GetRequiredService<IConditionCatalog>()));
 var app = builder.Build();
@@ -54,38 +55,38 @@ app.MapPost("/api/map/blank", (MapService maps) =>
     var current = maps.Get().Draft;
     return maps.Save(current with { Id = Guid.NewGuid().ToString("N"), Name = "Untitled map", Image = "", Tokens = [] }) ? Results.Ok(maps.Get()) : Results.BadRequest();
 });
-app.MapPost("/api/map/show", (MapPublication? publication, MapService maps, PresentationState presentation) => { if (publication is null) return Results.BadRequest(); try { var approved = maps.Publish(publication.ImageData); var publicMap = maps.GetPublic()!; presentation.ShowMap(publicMap); return Results.Ok(new MapState(maps.Get().Draft, approved)); } catch (InvalidOperationException) { return Results.BadRequest(); } });
-app.MapPost("/api/map/fog/enable", (FogEnableCommand? command, MapService maps, PresentationState presentation) =>
+app.MapPost("/api/map/show", (MapPublication? publication, MapService maps, PresentationState presentation, MapVisualMutationGate visualGate) => visualGate.Run<IResult>(() => { if (publication is null) return Results.BadRequest(); try { var approved = maps.Publish(publication.ImageData); var publicMap = maps.GetPublic()!; presentation.ShowMap(publicMap); return Results.Ok(new MapState(maps.Get().Draft, approved)); } catch (InvalidOperationException) { return Results.BadRequest(); } }));
+app.MapPost("/api/map/fog/enable", (FogEnableCommand? command, MapService maps, PresentationState presentation, MapVisualMutationGate visualGate) => visualGate.Run<IResult>(() =>
 {
     if (command is null) return Results.BadRequest();
     var committed = maps.EnableFog(command.ImageData);
     if (committed is null) return Results.BadRequest();
     presentation.RefreshMap(MapService.Project(committed));
     return Results.Ok(maps.Get());
-});
-app.MapPost("/api/map/fog/strokes", (FogCommand command, MapService maps, PresentationState presentation) =>
+}));
+app.MapPost("/api/map/fog/strokes", (FogCommand command, MapService maps, PresentationState presentation, MapVisualMutationGate visualGate) => visualGate.Run<IResult>(() =>
 {
     var committed = maps.ApplyFogWithImage(command);
     if (committed is null) return Results.BadRequest();
     presentation.RefreshMap(MapService.Project(committed));
     return Results.Ok(maps.Get());
-});
-app.MapPatch("/api/map/token/{id}/visibility", (string id, VisibilityCommand? command, MapService maps, PresentationState presentation) =>
+}));
+app.MapPatch("/api/map/token/{id}/visibility", (string id, VisibilityCommand? command, MapService maps, PresentationState presentation, MapVisualMutationGate visualGate) => visualGate.Run<IResult>(() =>
 {
     if (command is null) return Results.BadRequest();
     var committed = maps.ChangeTokenVisibility(id, command.Visible, command.ImageData);
     if (committed is null) return Results.BadRequest();
     presentation.RefreshMap(MapService.Project(committed));
     return Results.Ok(maps.Get());
-});
-app.MapPost("/api/map/show-encounter", (MapPublication? publication, MapService maps, PresentationState presentation) =>
+}));
+app.MapPost("/api/map/show-encounter", (MapPublication? publication, MapService maps, PresentationState presentation, MapVisualMutationGate visualGate) => visualGate.Run<IResult>(() =>
 {
     if (publication is null || string.IsNullOrEmpty(publication.ImageData)) return Results.BadRequest();
     var saved = maps.Save(maps.Get().Draft with { ImageData = publication.ImageData });
     if (!saved) return Results.BadRequest();
     presentation.ShowMap(maps.ProjectDraft());
     return Results.Ok(presentation.PublicPresentation);
-});
+}));
 
 app.MapGet("/api/encounter", (EncounterService encounters) => Results.Ok(encounters.Get()));
 app.MapPut("/api/encounter/actors/{id}/hp", (string id, HpCommand command, EncounterService encounters) => encounters.SetHp(id, command) ? Results.Ok(encounters.Get()) : Results.BadRequest());
