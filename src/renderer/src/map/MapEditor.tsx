@@ -17,6 +17,8 @@ export default function MapEditor() {
   const [message, setMessage] = useState('');
   const [selected, setSelected] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
+  const [fogTool, setFogTool] = useState<'reveal'|'hide'|null>(null);
+  const [brushSize, setBrushSize] = useState(96);
   const messageTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const notify = (text: string, duration = 3500) => {
@@ -142,6 +144,16 @@ export default function MapEditor() {
     }
   };
 
+  const applyFogCommand = async (path: string, body?: unknown) => {
+    try {
+      const saved = await command(path, 'POST', body) as MapState;
+      applySavedMap(saved);
+      notify('Fog change saved.');
+    } catch {
+      notify("Couldn’t save this change. Your last saved state is unchanged; retry the action.", 6000);
+    }
+  };
+
   const blackout = async () => {
     try {
       await command('/api/blackout', 'POST');
@@ -227,6 +239,15 @@ export default function MapEditor() {
 
       <section className="map-workspace" aria-label="Map editor">
         <div className="map-toolbar">
+          {!draft?.fogEnabled && <button className="quiet-action" onClick={() => {
+            const confirmConceal = publicPresentation.mode !== 'black' && window.confirm('Enable fog and conceal the map currently shown on the table?');
+            if (publicPresentation.mode === 'black' || confirmConceal) void applyFogCommand('/api/map/fog/enable');
+          }}>Enable fog</button>}
+          {draft?.fogEnabled && <>
+            <button aria-pressed={fogTool === 'reveal'} onClick={() => setFogTool(fogTool === 'reveal' ? null : 'reveal')}>Reveal</button>
+            <button aria-pressed={fogTool === 'hide'} onClick={() => setFogTool(fogTool === 'hide' ? null : 'hide')}>Hide</button>
+            <label>Brush size <input aria-label="Brush size" type="range" min="16" max="320" step="8" value={brushSize} onChange={event => setBrushSize(Number(event.target.value))} /><span>{brushSize} map px</span></label>
+          </>}
           <button className="save-action" disabled={!dirty} onClick={() => void save()}>{dirty ? 'Save changes' : 'Saved'}</button>
           <label className="grid-toggle"><input type="checkbox" checked={draft?.gridVisible ?? false} onChange={event => update({ gridVisible: event.target.checked })} />Square grid</label>
           <label className="scale-control">Scale <input aria-label="Grid scale" type="range" min="24" max="96" step="4" value={draft?.scale ?? 48} onChange={event => update({ scale: Number(event.target.value) })} /><span>{draft?.scale ?? 48}px</span></label>
@@ -234,7 +255,7 @@ export default function MapEditor() {
           <button className="quiet-action" onClick={() => void refresh()}>Reload saved map</button>
         </div>
         {draft
-          ? <MapCanvas image={draft.image} gridVisible={draft.gridVisible} scale={draft.scale} tokens={draft.tokens} onMove={(id, x, y) => void tokenChange(id, { x, y })} />
+          ? <MapCanvas image={draft.image} gridVisible={draft.gridVisible} scale={draft.scale} tokens={draft.tokens} fogEnabled={draft.fogEnabled ?? false} fogStrokes={draft.fogStrokes ?? []} fogTool={fogTool} brushSize={brushSize} onStroke={stamps => void applyFogCommand('/api/map/fog/strokes', { mode: fogTool, stamps })} onMove={(id, x, y) => void tokenChange(id, { x, y })} />
           : <div className="map-loading" role="status">Loading saved map…</div>}
         <div className="token-tray" aria-label="Tokens on map">
           <span className="tray-title">Tokens <small>{draft?.tokens.length ?? 0}</small></span>
@@ -251,7 +272,7 @@ export default function MapEditor() {
         </div>
         <h2>Publish draft</h2>
         <p>Only shown maps appear on the player screen.</p>
-        <button className="primary-action publish-action" disabled={!draft} onClick={() => void showMap()}>Show on table</button>
+            <button className="primary-action publish-action" disabled={!draft} onClick={() => void showMap()}>Show encounter</button>
         <button className="danger-action blackout-action" onClick={() => void blackout()}>Black out</button>
 
         {selected && draft?.tokens.find(token => token.id === selected) && (() => {
