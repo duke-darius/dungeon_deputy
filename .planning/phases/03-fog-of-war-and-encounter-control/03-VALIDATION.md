@@ -42,6 +42,7 @@ created: "2026-10-29"
 | 03-07-01 | 03-07 | 7 | ENCT-01, ENCT-03 | T-03-21 | `dotnet test src/backend.tests/DungeonDeputy.Api.Tests.csproj -c Release` (stroke plus supplied PNG are not atomically committed before active-map presentation or failures alter either state) | `src/backend.tests/MapApiTests.cs` | pending |
 | 03-07-02 | 03-07 | 7 | ENCT-01, ENCT-03 | T-03-22 | `dotnet test src/backend.tests/DungeonDeputy.Api.Tests.csproj -c Release` (fog-enable/token-visibility supplied image persistence, presentation mode gating, or rejection/failure no-op assertions fail); `npm test` (mutation request omits imageData or UI submits a second publication) | `src/backend.tests/MapApiTests.cs`, `src/renderer/src/map/MapEditor.tsx`, `src/renderer/src/api.ts` | pending |
 | 03-07-03 | 03-07 | 7 | ENCT-01, ENCT-03 | T-03-23 | `npm run test:e2e` (for each successful UI fog/token mutation, any captured public-presentation poll after command completion whose SHA-256 imageData hash differs from persisted map imageData fails; latest player image must also match) | `scripts/e2e.mjs`, `src/main.ts`, `scripts/e2e/fixtures.mjs` | pending |
+| 03-07-04 | 03-07 | 7 | ENCT-01, ENCT-02, ENCT-03 | T-03-24, T-03-25 | `npm test` — fails_when: keyboard brush/focus behavior or exactly-one-dab lifecycle assertions fail; `npm run test:e2e` — fails_when: tablet/phone manager screenshots, no-horizontal-overflow/reachability checks, player-window invariance, or manager-size restoration fail | `src/renderer/src/map/MapCanvas.tsx`, `src/renderer/src/map/MapCanvas.lifecycle.test.mjs`, `scripts/e2e.mjs` | pending |
 
 ## Wave 0 tests
 
@@ -75,4 +76,4 @@ created: "2026-10-29"
 - [x] `nyquist_compliant: true` for automated scope; human physical/platform caveats remain open.
 - [ ] Phase status/roadmap completion deliberately not marked here.
 
-**Plan coverage:** 03-01, 03-04, 03-02, 03-03, 03-05, and 03-06 complete; 03-07 pending. Threat mapping T-03-04 through T-03-23 is covered across the phase plans; closure plans retain package-install threat T-03-SC by avoiding new packages. Automation does not attest to physical HDMI or macOS behavior.
+**Plan coverage:** 03-01, 03-04, 03-02, 03-03, 03-05, and 03-06 complete; 03-07 has 4 tasks and remains pending (all four validation rows pending source execution). Threat mapping T-03-04 through T-03-25 is covered across the phase plans; closure plans retain package-install threat T-03-SC by avoiding new packages. Automation does not attest to physical HDMI or macOS behavior.
