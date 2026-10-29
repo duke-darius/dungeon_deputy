@@ -1,7 +1,7 @@
 ---
 phase: "3"
 slug: "fog-of-war-and-encounter-control"
-status: draft
+status: approved
 shadcn_initialized: false
 preset: none
 created: "2026-10-29"
@@ -81,7 +81,7 @@ Chalk `#e8e0d1` is primary foreground text; muted `#aeb7ac` is secondary text. A
 | Empty state heading | “No actors in this encounter” |
 | Empty state body | “Add a map token to track it here.” |
 | Error state | “Couldn’t save this change. Your last saved state is unchanged; retry the action.” |
-| Destructive confirmation | Remove actor: “Remove {actor name} from this encounter? This also removes its tracked HP, conditions, and initiative.” Confirm / Cancel. |
+| Destructive confirmation | Remove actor: “Remove {actor name} from this encounter? This also removes its tracked HP, conditions, and initiative.” Buttons: “Remove actor” / “Keep actor”. |
 
 Use direct sentence-case labels: “Reveal”, “Hide”, “Brush size”, “DM only”, “HP”, “Conditions”, “Initiative”, “Roll d20”, “Set initiative”, “Roll dice”, and “End turn”. Dice result and encounter values remain explicitly labelled “DM only”.
 
@@ -106,13 +106,14 @@ Applicable state considerations resolved: 8 covered, 0 backstop, 0 unresolved.
 
 - Preserve the existing left scene/map rail, central map workspace, and compact right inspector. The central canvas remains visually dominant. Add encounter controls in the existing DM dashboard; do not navigate away from the map or create another window.
 - Put fog mode and brush size in the map toolbar directly above the canvas. Reveal and Hide are separate, always-visible labelled buttons with a clear selected state; exactly one mode is active while painting. Place an adjustable brush-size slider beside them, show its current map-space size numerically, and render a circular preview on the canvas. The brush is freeform and independent of the optional square grid.
+- Enabling fog on an existing map initializes its terrain as fully concealed; the DM then paints revealed terrain. Show a one-time, explicit “Enable fog” action before this transition and require confirmation if it would conceal a currently published map.
 - Painting uses the existing canvas interaction surface. A drag paints a circular stroke; pointer release completes it. Do not let paint gestures move tokens or pan the map. Provide a keyboard-operable mode/size control and an accessible non-canvas method to choose Reveal/Hide and adjust size; provide keyboard focus visibility and a concise canvas accessible name/instructions.
-- Do not add a per-stroke Show/Publish step. After a successful completed stroke or token-visibility change is persisted, update the public projection through the existing player window and its existing one-second polling mechanism; no SignalR or new transport. On cold start, the player window remains black until the DM explicitly shows the encounter, even if private fog/visibility was persisted.
+- Do not add a per-stroke Show/Publish step. After a successful completed stroke or token-visibility change is persisted, update the active public projection through the existing player window; the existing one-second poll makes the committed visual state appear within the current refresh interval, with no SignalR or new transport. On cold start, the player window remains black until the DM explicitly selects “Show encounter”; that action publishes the persisted, filtered encounter once, after which fog/visibility changes apply live.
 - The right inspector groups “Table display” status first, then an “Encounter · DM only” section. Provide a compact actor/initiative order list; descending initiative is visually apparent. Use an explicit tie-break reorder control for equal initiative values. Identify the current turn with both text (“Current turn”) and an accent marker. Keep End turn as the visually strongest encounter action.
 - Selecting an actor exposes compact HP/current and max inputs, curated condition selection/removal, initiative numeric entry, and distinct “Roll d20” / “Set initiative” paths. Display the selected actor’s initiative source (rolled or manual) privately. The dice area uses a closed standard-die selector (d4, d6, d8, d10, d12, d20, d100), optional signed modifier, and “Roll dice”; result appears in the DM-only panel and is not projected publicly.
 - DM-only privacy must be unmistakable at every relevant grouping: persistent “DM only” label and lock indicator next to HP, conditions, initiative, and dice/result areas. Keep values out of public renderer content entirely. Public output remains edge-to-edge map art with revealed terrain and explicitly visible token visuals only; no editor chrome, actors’ combat values, hidden tokens, or unrevealed terrain.
 - Token visibility is a distinct labelled control from terrain fog. Revealing terrain does not reveal a hidden token. Newly created tokens start visible; provide an explicit hide/show token control and communicate its state to the DM.
-- Preserve Phase 2 black-out affordance and same player window. In DM workspace, show a clear “Black screen” status when public projection is black; never describe persisted private state as currently public.
+- Preserve Phase 2 black-out affordance and same player window. In DM workspace, show a clear “Black screen” status when public projection is black and an explicit “Show encounter” action to safely resume after cold start; never describe persisted private state as currently public.
 - Responsive behavior follows existing breakpoints: at tablet widths, retain canvas as first-priority region and stack the inspector below; at phone widths, use a single column, allow horizontal wrapping of toolbar groups, keep all controls reachable without clipping, and preserve usable canvas height. Do not hide essential controls behind hover-only UI.
 - All actions are keyboard reachable with visible focus, semantic labels/pressed/disabled states, and polite status announcements for save/publication outcomes. Use at least 44px touch targets where practical. Respect reduced-motion preferences; no required animation communicates mode, turn, or success.
 
