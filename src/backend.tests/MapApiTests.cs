@@ -1,6 +1,10 @@
 using DungeonDeputy.Api.Maps;
 using DungeonDeputy.Api;
 using Microsoft.Extensions.Configuration;
+using Microsoft.AspNetCore.Mvc.Testing;
+using System.Net;
+using System.Net.Http.Json;
+using Microsoft.Data.Sqlite;
 using Xunit;
 
 namespace DungeonDeputy.Api.Tests;
@@ -75,9 +79,9 @@ public sealed class MapApiTests : IDisposable
         Assert.Single(saved.FogStrokes!);
         Assert.False(saved.Tokens[0].Visible);
         var projection = reopened.ProjectDraft();
-        Assert.Equal("", projection.Image);
+         Assert.Equal("tavern.svg", projection.Image);
         Assert.DoesNotContain(projection.Tokens, token => token.Id == draft.Tokens[0].Id);
-        Assert.Single(projection.RevealedTerrain);
+         Assert.Single(projection.RevealedTerrain!);
         Assert.DoesNotContain("\"Visible\"", System.Text.Json.JsonSerializer.Serialize(projection));
     }
 
@@ -107,4 +111,57 @@ public sealed class MapApiTests : IDisposable
         Assert.Equal((300d,400d),(saved.X,saved.Y));
     }
     public void Dispose() { try { Directory.Delete(_directory,true); } catch {} }
+
+    [Fact]
+    public async Task AuthenticatedHttpMapShowKeepsColdStartBlackAndPublishesOnlyAfterPersistedFogUpdate()
+    {
+        var directory=Path.Combine(Path.GetTempPath(),"dungeon-map-http-"+Guid.NewGuid().ToString("N"));
+        var factory=new MapHttpFactory(directory);
+        try
+        {
+            using var client=factory.CreateClient();
+            Assert.Equal(HttpStatusCode.Unauthorized,(await client.PostAsync("/api/map/show-encounter",null)).StatusCode);
+            client.DefaultRequestHeaders.Add("X-Dungeon-Token","invalid-token");
+            Assert.Equal(HttpStatusCode.Unauthorized,(await client.PostAsync("/api/map/fog/enable",null)).StatusCode);
+            client.DefaultRequestHeaders.Remove("X-Dungeon-Token"); client.DefaultRequestHeaders.Add("X-Dungeon-Token",factory.Token);
+            Assert.Equal("black",(await client.GetFromJsonAsync<PublicPresentation>("/api/presentation"))!.Mode);
+            Assert.Equal(HttpStatusCode.OK,(await client.PostAsync("/api/map/fog/enable",null)).StatusCode);
+            var afterEnable=await client.PostAsync("/api/map/show-encounter",null); Assert.Equal(HttpStatusCode.OK,afterEnable.StatusCode);
+            var before=await afterEnable.Content.ReadFromJsonAsync<PublicPresentation>(); Assert.Equal("map",before!.Mode);
+            var bad=await client.PostAsJsonAsync("/api/map/fog/strokes",new FogCommand("erase",[new FogStamp(10,10,20)])); Assert.Equal(HttpStatusCode.BadRequest,bad.StatusCode);
+            Assert.Equal(System.Text.Json.JsonSerializer.Serialize(before),System.Text.Json.JsonSerializer.Serialize(await client.GetFromJsonAsync<PublicPresentation>("/api/presentation")));
+            using(var db=new SqliteConnection(new SqliteConnectionStringBuilder{DataSource=Path.Combine(directory,"dungeon-deputy.sqlite3")}.ToString()))
+            { db.Open(); using var fail=db.CreateCommand(); fail.CommandText="CREATE TRIGGER fail_map_update BEFORE UPDATE ON map_draft BEGIN SELECT RAISE(ABORT, 'injected persistence failure'); END;"; fail.ExecuteNonQuery(); }
+            var failedSave=await client.PostAsJsonAsync("/api/map/fog/strokes",new FogCommand("reveal",[new FogStamp(25,40,10)])); Assert.Equal(HttpStatusCode.InternalServerError,failedSave.StatusCode);
+            Assert.Equal(System.Text.Json.JsonSerializer.Serialize(before),System.Text.Json.JsonSerializer.Serialize(await client.GetFromJsonAsync<PublicPresentation>("/api/presentation")));
+            using(var db=new SqliteConnection(new SqliteConnectionStringBuilder{DataSource=Path.Combine(directory,"dungeon-deputy.sqlite3")}.ToString()))
+            { db.Open(); using var drop=db.CreateCommand(); drop.CommandText="DROP TRIGGER fail_map_update;"; drop.ExecuteNonQuery(); }
+            var saved=await client.PostAsJsonAsync("/api/map/fog/strokes",new FogCommand("reveal",[new FogStamp(25,40,10)])); Assert.Equal(HttpStatusCode.OK,saved.StatusCode);
+            var current=await client.GetFromJsonAsync<PublicPresentation>("/api/presentation");
+            Assert.Equal("tavern.svg",current!.Image); Assert.Single(current.RevealedTerrain!);
+            Assert.DoesNotContain("\"Visible\":",System.Text.Json.JsonSerializer.Serialize(current));
+        }
+        finally { factory.Dispose(); try{Directory.Delete(directory,true);}catch{} }
+    }
+
+    private sealed class MapHttpFactory : WebApplicationFactory<Program>
+    {
+        public string Token { get; } = "http-test-token-"+Guid.NewGuid().ToString("N");
+        private readonly string? _oldDirectory=Environment.GetEnvironmentVariable("DUNGEON_DEPUTY_DATA_DIR");
+        private readonly string? _oldPort=Environment.GetEnvironmentVariable("DUNGEON_DEPUTY_PORT");
+        private readonly string? _oldToken=Environment.GetEnvironmentVariable("DUNGEON_DEPUTY_TOKEN");
+        public MapHttpFactory(string directory)
+        {
+            Environment.SetEnvironmentVariable("DUNGEON_DEPUTY_DATA_DIR",directory);
+            Environment.SetEnvironmentVariable("DUNGEON_DEPUTY_PORT","43129");
+            Environment.SetEnvironmentVariable("DUNGEON_DEPUTY_TOKEN",Token);
+        }
+        protected override void Dispose(bool disposing)
+        {
+            base.Dispose(disposing);
+            Environment.SetEnvironmentVariable("DUNGEON_DEPUTY_DATA_DIR",_oldDirectory);
+            Environment.SetEnvironmentVariable("DUNGEON_DEPUTY_PORT",_oldPort);
+            Environment.SetEnvironmentVariable("DUNGEON_DEPUTY_TOKEN",_oldToken);
+        }
+    }
 }
