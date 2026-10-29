@@ -39,7 +39,7 @@ export function MapCanvas({ image, gridVisible, scale, tokens, fogEnabled, fogSt
        drawRef.current = render;
        await render();
        if (cancelled) return;
-         const finish=(e:{global:{x:number;y:number}})=>{if(painting){painting=false;if(stamps.length)latest.current.onStroke(stamps);stamps=[];}else if(dragging){const pos=screenToMap(e.global,camera);latest.current.onMove(dragging,pos.x,pos.y);dragging=null;}};
+          const finish=(e:{global:{x:number;y:number}})=>{if(painting){painting=false;if(stamps.length)latest.current.onStroke(stamps);stamps=[];preview?.destroy();preview=undefined;}else if(dragging){const pos=screenToMap(e.global,camera);latest.current.onMove(dragging,pos.x,pos.y);dragging=null;}};
           detachPointers=registerPointerLifecycle(initialized.stage,finish,(e:{global:{x:number;y:number}})=>{ if(painting){const pos=screenToMap(e.global,camera);const prev=stamps.at(-1);if(!prev||Math.hypot(pos.x-prev.x,pos.y-prev.y)>=latest.current.brushSize*.2)stamps.push({x:pos.x,y:pos.y,radius:latest.current.brushSize/2});if(preview){preview.clear().circle(pos.x,pos.y,latest.current.brushSize/2).stroke({color:0xb58d51,width:2});} }else if(dragging){const pos=screenToMap(e.global,camera);const item=latest.current.tokens.find(t=>t.id===dragging);if(item){item.x=pos.x;item.y=pos.y;void render();}} else if(panning){camera={...camera,x:camera.x+e.global.x-last.x,y:camera.y+e.global.y-last.y};last={x:e.global.x,y:e.global.y};world.position.set(camera.x,camera.y);} },(e:{global:{x:number;y:number}})=>{if(latest.current.fogEnabled&&latest.current.fogTool){painting=true;panning=false;dragging=null;stamps=[];const pos=screenToMap(e.global,camera);stamps.push({x:pos.x,y:pos.y,radius:latest.current.brushSize/2});preview=new Graphics();world.addChild(preview);}else if(!dragging){panning=true;last={x:e.global.x,y:e.global.y};}},()=>{panning=false;if(painting){painting=false;stamps=[];preview?.destroy();preview=undefined;} });
        initialized.stage.eventMode='static'; initialized.stage.hitArea=initialized.screen;
         const wheel=(e:WheelEvent)=>{e.preventDefault();camera=zoomAt(camera,{x:e.offsetX,y:e.offsetY},e.deltaY<0?1.1:.9);world.position.set(camera.x,camera.y);world.scale.set(camera.zoom);};
@@ -51,6 +51,6 @@ export function MapCanvas({ image, gridVisible, scale, tokens, fogEnabled, fogSt
     })();
     return ()=>{cancelled=true;detachPointers?.();detachWheel?.();if(lifecycleRef) lifecycleRef.dispose(); else app?.destroy(true,{children:true});};
   }, []);
-   useEffect(()=>{ void drawRef.current(); },[image,gridVisible,scale,tokens,fogEnabled,fogStrokes]);
+    useEffect(()=>{ void drawRef.current(); },[image,gridVisible,scale,tokens,fogEnabled,fogStrokes,fogTool,brushSize]);
   return <div className="map-canvas" ref={host} aria-label="Map canvas; drag to pan, scroll to zoom" role="application" />;
 }
