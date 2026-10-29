@@ -1,0 +1,10 @@
+{
+  "command": "node --test src/renderer/src/contracts.test.mjs",
+  "exitCode": 1,
+  "output": "✔ public output accepts only the public scene projection (0.6839ms)\n✔ private dashboard data cannot leak through the public projection (0.0816ms)\n✔ unknown public scenes fail closed and scene IDs are allowlisted (0.059ms)\n✔ black state and malformed DTOs produce a clean black projection (0.059ms)\n✔ public map projection preserves allowlisted camelCase visual fields only (0.2014ms)\n✖ public map fog projection contains revealed geometry only and omits hidden tokens and private fields (0.823ms)\nℹ tests 6\nℹ suites 0\nℹ pass 5\nℹ fail 1\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 44.3558\n\n✖ failing tests:\n\ntest at src\\renderer\\src\\contracts.test.mjs:34:1\n✖ public map fog projection contains revealed geometry only and omits hidden tokens and private fields (0.823ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:\n  actual projection omitted expected revealedTerrain property\n",
+  "targetTest": "public map fog projection contains revealed geometry only and omits hidden tokens and private fields",
+  "targetFile": "src/renderer/src/contracts.test.mjs",
+  "expected": "Allowlist revealedTerrain, while rejecting hidden tokens and excluding private fog/combat fields",
+  "actual": "map projection discarded revealedTerrain; hidden token payload was not rejected",
+  "semanticAssessment": "The named test executed and failed on deep equality because the current public map allowlist drops the planned revealedTerrain visual representation; intended RED, unrelated tests passed."
+}
