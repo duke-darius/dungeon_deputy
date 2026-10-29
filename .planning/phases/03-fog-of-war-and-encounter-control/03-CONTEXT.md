@@ -24,6 +24,7 @@ Deliver Stage 3: let the DM run a short, basic encounter from the main dashboard
 - A token remains hidden until explicitly made visible, even when its map location is revealed.
 - Newly added tokens start visible; the DM can hide them during setup for an ambush.
 - Fog and token visibility persist with the encounter through application restart.
+- On application restart, load the encounter privately but keep the public display black until the DM explicitly shows the encounter; persisted fog/visibility must never be auto-published during cold start.
 - HP, conditions, initiative, and dice results remain DM-only. Public output is limited to revealed terrain and explicitly visible token visuals; no encounter controls or private combat values enter the public projection.
 - Preserve the Phase 2 decision to defer SignalR until Phase 6/CHAR-04. Phase 3 still needs prompt public updates for completed fog/visibility actions using an appropriately small local mechanism; the player renderer must remain fail-closed.
 

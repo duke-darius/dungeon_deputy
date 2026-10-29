@@ -49,7 +49,7 @@
 | Ask on resume | Restore privately and ask the DM before showing. | |
 
 **User's choice:** Fog actions update immediately; token visibility is independent and defaults visible for new tokens; fog and visibility persist across restarts.
-**Notes:** HP, conditions, initiative, and dice outcomes are treated as private DM state under the existing public/private contract. SignalR remains reserved for Phase 6.
+**Notes:** HP, conditions, initiative, and dice outcomes are treated as private DM state under the existing public/private contract. Persist fog privately, but keep the public screen black after cold start until the DM explicitly shows the encounter. SignalR remains reserved for Phase 6.
 
 ---
 
