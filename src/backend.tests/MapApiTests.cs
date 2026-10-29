@@ -63,6 +63,34 @@ public sealed class MapApiTests : IDisposable
     }
 
     [Fact]
+    public void FogStrokesAndTokenVisibilityPersistWhileProjectionOmitsHiddenValues()
+    {
+        var service = Open(); var draft = service.Get().Draft;
+        Assert.All(draft.Tokens, token => Assert.True(token.Visible));
+        Assert.True(service.EnableFog());
+        Assert.True(service.ApplyFog(new FogCommand("reveal", [new FogStamp(25, 40, 10)])));
+        Assert.True(service.ChangeTokenVisibility(draft.Tokens[0].Id, false));
+        var reopened = Open(); var saved = reopened.Get().Draft;
+        Assert.True(saved.FogEnabled);
+        Assert.Single(saved.FogStrokes!);
+        Assert.False(saved.Tokens[0].Visible);
+        var projection = reopened.ProjectDraft();
+        Assert.Equal("", projection.Image);
+        Assert.DoesNotContain(projection.Tokens, token => token.Id == draft.Tokens[0].Id);
+        Assert.Single(projection.RevealedTerrain);
+        Assert.DoesNotContain("\"Visible\"", System.Text.Json.JsonSerializer.Serialize(projection));
+    }
+
+    [Fact]
+    public void FogRejectsUnboundedCoordinatesAndStrokeGrowth()
+    {
+        var service = Open(); Assert.True(service.EnableFog());
+        Assert.False(service.ApplyFog(new FogCommand("reveal", [new FogStamp(double.NaN, 0, 10)])));
+        Assert.False(service.ApplyFog(new FogCommand("erase", [new FogStamp(0, 0, 10)])));
+        Assert.False(service.ApplyFog(new FogCommand("reveal", [new FogStamp(0, 0, 5001)])));
+    }
+
+    [Fact]
     public async Task ConcurrentPartialTokenEditsPreserveEveryFieldChange()
     {
         var service=Open(); var token=service.Get().Draft.Tokens[0];

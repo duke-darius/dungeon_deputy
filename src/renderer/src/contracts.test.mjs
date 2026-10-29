@@ -34,13 +34,13 @@ test('public map projection preserves allowlisted camelCase visual fields only',
 test('public map fog projection contains revealed geometry only and omits hidden tokens and private fields', () => {
   const output = publicView({
     mode: 'map', id: 'tavern', image: 'tavern.svg', gridVisible: true, scale: 48,
-    revealedTerrain: [{ x: 0.25, y: 0.4, radius: 0.1 }],
+    revealedTerrain: [{ mode: 'reveal', stamps: [{ x: 25, y: 40, radius: 10 }] }],
     tokens: [{ id: 'hero-1', name: 'Mira', kind: 'hero', color: '#b89255', x: 10, y: 20, artwork: 'hero.svg' }],
     fogEnabled: true, hp: 3, initiative: 12,
   });
   assert.deepEqual(output, {
     mode: 'map', id: 'tavern', image: 'tavern.svg', gridVisible: true, scale: 48,
-    revealedTerrain: [{ x: 0.25, y: 0.4, radius: 0.1 }],
+    revealedTerrain: [{ mode: 'reveal', stamps: [{ x: 25, y: 40, radius: 10 }] }],
     tokens: [{ id: 'hero-1', name: 'Mira', kind: 'hero', color: '#b89255', x: 10, y: 20, artwork: 'hero.svg' }],
   });
   assert.equal(Object.hasOwn(output, 'hp'), false);

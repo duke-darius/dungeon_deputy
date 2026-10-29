@@ -52,6 +52,29 @@ app.MapPost("/api/map/blank", (MapService maps) =>
     return maps.Save(current with { Id = Guid.NewGuid().ToString("N"), Name = "Untitled map", Image = "", Tokens = [] }) ? Results.Ok(maps.Get()) : Results.BadRequest();
 });
 app.MapPost("/api/map/show", (MapService maps, PresentationState presentation) => { var approved = maps.Publish(); var publicMap = maps.GetPublic()!; presentation.ShowMap(publicMap); return Results.Ok(new MapState(maps.Get().Draft, approved)); });
+app.MapPost("/api/map/fog/enable", (MapService maps, PresentationState presentation) =>
+{
+    if (!maps.EnableFog()) return Results.BadRequest();
+    presentation.RefreshMap(maps.ProjectDraft());
+    return Results.Ok(maps.Get());
+});
+app.MapPost("/api/map/fog/strokes", (FogCommand command, MapService maps, PresentationState presentation) =>
+{
+    if (!maps.ApplyFog(command)) return Results.BadRequest();
+    presentation.RefreshMap(maps.ProjectDraft());
+    return Results.Ok(maps.Get());
+});
+app.MapPatch("/api/map/token/{id}/visibility", (string id, bool visible, MapService maps, PresentationState presentation) =>
+{
+    if (!maps.ChangeTokenVisibility(id, visible)) return Results.BadRequest();
+    presentation.RefreshMap(maps.ProjectDraft());
+    return Results.Ok(maps.Get());
+});
+app.MapPost("/api/map/show-encounter", (MapService maps, PresentationState presentation) =>
+{
+    presentation.ShowMap(maps.ProjectDraft());
+    return Results.Ok(presentation.PublicPresentation);
+});
 
 app.Run();
 
