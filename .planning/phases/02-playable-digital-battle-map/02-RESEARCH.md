@@ -112,9 +112,10 @@ GSD package-legitimacy seam checked `pixi.js` for npm on 2026-10-28: verdict `[S
 |---------|----------|-----|-----------|-------------|---------|-------------|
 | `pixi.js@8.22.0` | npm | 27 days since 2026-10-01 | 1,155,137/week (GSD legitimacy signal) | github.com/pixijs/pixijs | [SUS] | Flagged — planner must insert `checkpoint:human-verify` before install; no declared postinstall. |
 | `Microsoft.Data.Sqlite` | NuGet | Not audited this research pass | Not audited | Official Microsoft docs identify provider | Not assessed | Resolve exact version and audit package source before adding package. |
+| `playwright-core@1.64.1` | npm | 15 days since 2026-10-14 | 142.6M/week | github.com/microsoft/playwright | [SUS] | Flagged solely for recency; no postinstall. Use only in Phase 2 E2E Plan 02-06 after blocking package-legitimacy gate. User's prior blanket explicit approval of all npm installs is the gate's resume signal; do not ask again. |
 
 **Packages removed due to [SLOP] verdict:** none.  
-**Packages flagged as suspicious [SUS]:** `pixi.js@8.22.0` — checkpoint required.  
+**Packages flagged as suspicious [SUS]:** `pixi.js@8.22.0` — checkpoint required; `playwright-core@1.64.1` — checkpoint required, with prior blanket user approval as resume signal.
 **Packages with assumed identity/authority:** none recommended beyond above; no viewport/React-Pixi package recommendation.
 
 ## Architecture Patterns
