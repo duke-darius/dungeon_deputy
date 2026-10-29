@@ -11,6 +11,7 @@ namespace DungeonDeputy.Api.Tests;
 
 public sealed class MapApiTests : IDisposable
 {
+    private static string Png() { var bytes = new byte[33]; new byte[] {137,80,78,71,13,10,26,10}.CopyTo(bytes,0); System.Buffers.Binary.BinaryPrimitives.WriteUInt32BigEndian(bytes.AsSpan(8,4),13); "IHDR"u8.CopyTo(bytes.AsSpan(12,4)); System.Buffers.Binary.BinaryPrimitives.WriteUInt32BigEndian(bytes.AsSpan(16,4),1200); System.Buffers.Binary.BinaryPrimitives.WriteUInt32BigEndian(bytes.AsSpan(20,4),760); return "data:image/png;base64,"+Convert.ToBase64String(bytes); }
     private readonly string _directory = Path.Combine(Path.GetTempPath(), "dungeon-map-test-" + Guid.NewGuid().ToString("N"));
     private MapService Open() { var settings = new Dictionary<string,string?> { ["DUNGEON_DEPUTY_DATA_DIR"] = _directory }; return new MapService(new ConfigurationBuilder().AddInMemoryCollection(settings).Build()); }
     [Fact]
@@ -18,7 +19,7 @@ public sealed class MapApiTests : IDisposable
     {
         var service=Open(); var original=service.Get();
         Assert.Equal(7,original.Draft.Tokens.Count); Assert.Null(original.Approved);
-        service.Publish(); var published=service.Get().Approved!;
+        service.Publish(Png()); var published=service.Get().Approved!;
         var changed=original.Draft with { Name="Private revision", GridVisible=false, Tokens=original.Draft.Tokens.Select(t=>t with { X=t.X+23 }).ToList() };
         Assert.True(service.Save(changed));
         var reopened=Open().Get();
@@ -31,12 +32,12 @@ public sealed class MapApiTests : IDisposable
         var service=Open(); var presentation=new PresentationState();
         var draft=service.Get().Draft;
         Assert.Null(service.GetPublic());
-        service.Publish(); presentation.ShowMap(service.GetPublic()!);
+        service.Publish(Png()); presentation.ShowMap(service.GetPublic()!);
         var approved=service.GetPublic()!;
-        Assert.Equal("map", approved.Mode); Assert.Equal(draft.Id, approved.Id); Assert.Equal(7, approved.Tokens.Count);
+        Assert.Equal("map", approved.Mode); Assert.Equal(draft.Id, approved.Id); Assert.Equal(Png(),approved.ImageData); Assert.Equal(7, approved.Tokens.Count);
         Assert.True(service.Save(draft with { Id="private-change", Image="", Tokens=[] }));
         var afterDraftEdit=service.GetPublic()!;
-        Assert.Equal((approved.Id,approved.Image,approved.GridVisible,approved.Scale,approved.Tokens[0]),(afterDraftEdit.Id,afterDraftEdit.Image,afterDraftEdit.GridVisible,afterDraftEdit.Scale,afterDraftEdit.Tokens[0]));
+        Assert.Equal((approved.Id,approved.ImageData,approved.Tokens[0]),(afterDraftEdit.Id,afterDraftEdit.ImageData,afterDraftEdit.Tokens[0]));
         presentation.Blackout();
         _=service.Get();
         Assert.Equal("black", ((PublicPresentation)presentation.PublicPresentation).Mode);
@@ -53,6 +54,8 @@ public sealed class MapApiTests : IDisposable
         var service=Open(); var draft=service.Get().Draft;
         Assert.False(service.Save(draft with { Tokens=[draft.Tokens[0] with { Color="url(javascript:alert(1))" }] }));
         Assert.False(service.Save(draft with { Tokens=[draft.Tokens[0] with { X=double.PositiveInfinity }] }));
+        Assert.False(service.Save(draft with { ImageData = "data:image/jpeg;base64," + Png().Split(',')[1] }));
+        Assert.False(service.Save(draft with { ImageData = "data:image/png;base64," + new string('A', 5_600_000) }));
     }
     [Fact]
     public void TokenTransitionsPersistAndRejectUncataloguedArtwork()
@@ -69,7 +72,7 @@ public sealed class MapApiTests : IDisposable
     [Fact]
     public void FogStrokesAndTokenVisibilityPersistWhileProjectionOmitsHiddenValues()
     {
-        var service = Open(); var draft = service.Get().Draft;
+        var service = Open(); var draft = service.Get().Draft with { ImageData = Png() }; Assert.True(service.Save(draft));
         Assert.All(draft.Tokens, token => Assert.True(token.Visible));
         Assert.True(service.EnableFog());
         Assert.True(service.ApplyFog(new FogCommand("reveal", [new FogStamp(25, 40, 10)])));
@@ -79,9 +82,9 @@ public sealed class MapApiTests : IDisposable
         Assert.Single(saved.FogStrokes!);
         Assert.False(saved.Tokens[0].Visible);
         var projection = reopened.ProjectDraft();
-         Assert.Equal("tavern.svg", projection.Image);
+         Assert.Equal(Png(), projection.ImageData);
         Assert.DoesNotContain(projection.Tokens, token => token.Id == draft.Tokens[0].Id);
-         Assert.Single(projection.RevealedTerrain!);
+         Assert.DoesNotContain("FogStrokes", System.Text.Json.JsonSerializer.Serialize(projection));
         Assert.DoesNotContain("\"Visible\"", System.Text.Json.JsonSerializer.Serialize(projection));
     }
 
@@ -120,13 +123,15 @@ public sealed class MapApiTests : IDisposable
         try
         {
             using var client=factory.CreateClient();
-            Assert.Equal(HttpStatusCode.Unauthorized,(await client.PostAsync("/api/map/show-encounter",null)).StatusCode);
+            Assert.Equal(HttpStatusCode.Unauthorized,(await client.PostAsJsonAsync("/api/map/show-encounter",new MapPublication(Png()))).StatusCode);
             client.DefaultRequestHeaders.Add("X-Dungeon-Token","invalid-token");
             Assert.Equal(HttpStatusCode.Unauthorized,(await client.PostAsync("/api/map/fog/enable",null)).StatusCode);
             client.DefaultRequestHeaders.Remove("X-Dungeon-Token"); client.DefaultRequestHeaders.Add("X-Dungeon-Token",factory.Token);
             Assert.Equal("black",(await client.GetFromJsonAsync<PublicPresentation>("/api/presentation"))!.Mode);
+            Assert.Equal(HttpStatusCode.BadRequest,(await client.PostAsJsonAsync("/api/map/show",new MapPublication("data:image/jpeg;base64,AAAA"))).StatusCode);
+            Assert.Equal("black",(await client.GetFromJsonAsync<PublicPresentation>("/api/presentation"))!.Mode);
             Assert.Equal(HttpStatusCode.OK,(await client.PostAsync("/api/map/fog/enable",null)).StatusCode);
-            var afterEnable=await client.PostAsync("/api/map/show-encounter",null); Assert.Equal(HttpStatusCode.OK,afterEnable.StatusCode);
+            var afterEnable=await client.PostAsJsonAsync("/api/map/show-encounter",new MapPublication(Png())); Assert.Equal(HttpStatusCode.OK,afterEnable.StatusCode);
             var before=await afterEnable.Content.ReadFromJsonAsync<PublicPresentation>(); Assert.Equal("map",before!.Mode);
             var bad=await client.PostAsJsonAsync("/api/map/fog/strokes",new FogCommand("erase",[new FogStamp(10,10,20)])); Assert.Equal(HttpStatusCode.BadRequest,bad.StatusCode);
             Assert.Equal(System.Text.Json.JsonSerializer.Serialize(before),System.Text.Json.JsonSerializer.Serialize(await client.GetFromJsonAsync<PublicPresentation>("/api/presentation")));
@@ -138,8 +143,10 @@ public sealed class MapApiTests : IDisposable
             { db.Open(); using var drop=db.CreateCommand(); drop.CommandText="DROP TRIGGER fail_map_update;"; drop.ExecuteNonQuery(); }
             var saved=await client.PostAsJsonAsync("/api/map/fog/strokes",new FogCommand("reveal",[new FogStamp(25,40,10)])); Assert.Equal(HttpStatusCode.OK,saved.StatusCode);
             var current=await client.GetFromJsonAsync<PublicPresentation>("/api/presentation");
-            Assert.Equal("tavern.svg",current!.Image); Assert.Single(current.RevealedTerrain!);
+            Assert.Equal(Png(),current!.ImageData);
             Assert.DoesNotContain("\"Visible\":",System.Text.Json.JsonSerializer.Serialize(current));
+            Assert.DoesNotContain("tavern.svg",System.Text.Json.JsonSerializer.Serialize(current));
+            Assert.DoesNotContain("FogStrokes",System.Text.Json.JsonSerializer.Serialize(current));
         }
         finally { factory.Dispose(); try{Directory.Delete(directory,true);}catch{} }
     }

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { command } from '../api';
-import { MapCanvas } from './MapCanvas';
+import { command, publishMapRaster } from '../api';
+import { MapCanvas, rasterizePublicMap } from './MapCanvas';
 import type { MapState } from './types';
 import { SCENES, sceneById } from '../contracts.mjs';
 
@@ -114,6 +114,10 @@ export default function MapEditor() {
         ? await command(`/api/map/token/${id}/visibility?visible=${String(change.visible)}`, 'PATCH')
         : await command(`/api/map/token/${id}`, 'PATCH', change);
       applySavedMap(saved as MapState);
+      if ('visible' in change && publicPresentation.mode === 'map' && saved) {
+        const map = (saved as MapState).draft;
+        setPublicPresentation(await publishMapRaster({ imageData: await rasterizePublicMap(map.image, map.fogEnabled ?? false, map.fogStrokes ?? []) }, true) as Presentation);
+      }
       notify('Token updated.');
     } catch (error) {
       notify(error instanceof Error ? `${error.message} Save changes to retry.` : 'Token could not be updated.', 6000);
@@ -143,8 +147,10 @@ export default function MapEditor() {
     if (!draft) return;
     try {
       if (dirty) await command('/api/map/draft', 'PUT', draft);
-      const approved = await command('/api/map/show', 'POST') as MapState;
+      const imageData = await rasterizePublicMap(draft.image, draft.fogEnabled ?? false, draft.fogStrokes ?? []);
+      const approved = await publishMapRaster({ imageData }) as MapState;
       applySavedMap(approved);
+      setPublicPresentation({ mode: 'map', sceneId: null });
       setDirty(false);
       notify('Map shown on table.');
     } catch (error) {
@@ -156,6 +162,10 @@ export default function MapEditor() {
     try {
       const saved = await command(path, 'POST', body) as MapState;
       applySavedMap(saved);
+      if (publicPresentation.mode === 'map') {
+        const map = saved.draft;
+        setPublicPresentation(await publishMapRaster({ imageData: await rasterizePublicMap(map.image, map.fogEnabled ?? false, map.fogStrokes ?? []) }, true) as Presentation);
+      }
       notify('Fog change saved.');
     } catch {
       notify("Couldn’t save this change. Your last saved state is unchanged; retry the action.", 6000);

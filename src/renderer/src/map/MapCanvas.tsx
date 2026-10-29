@@ -11,6 +11,21 @@ import type { Camera } from './camera.mjs';
 import { attachCanvas, registerPointerLifecycle } from './canvasPolicy.mjs';
 import { rasterizeFogMask } from './fogMask.mjs';
 
+export async function rasterizePublicMap(image: string, fogEnabled: boolean, fogStrokes: FogStroke[]): Promise<string> {
+  const canvas = document.createElement('canvas'); canvas.width = 1200; canvas.height = 760;
+  const context = canvas.getContext('2d'); if (!context) throw new Error('Canvas rasterization is unavailable.');
+  if (image === 'tavern.svg') {
+    const source = new Image(); source.src = tavernArt; await source.decode(); context.drawImage(source, 0, 0, 1200, 760);
+  }
+  if (fogEnabled) {
+    const mask = rasterizeFogMask(1200, 760, fogStrokes);
+    const pixels = context.getImageData(0, 0, 1200, 760);
+    for (let i = 0; i < mask.length; i += 4) if (mask[i + 3] !== 0) { pixels.data[i] = 0; pixels.data[i + 1] = 0; pixels.data[i + 2] = 0; pixels.data[i + 3] = 255; }
+    context.putImageData(pixels, 0, 0);
+  }
+  return canvas.toDataURL('image/png');
+}
+
 export function MapCanvas({ image, gridVisible, scale, tokens, fogEnabled, fogStrokes, fogTool, brushSize, onStroke, onMove }: { image:string; gridVisible:boolean; scale:number; tokens:MapToken[]; fogEnabled:boolean; fogStrokes:FogStroke[]; fogTool:'reveal'|'hide'|null; brushSize:number; onStroke:(stamps:FogStamp[])=>void; onMove:(id:string,x:number,y:number)=>void }) {
   const host = useRef<HTMLDivElement>(null);
   const drawRef = useRef<() => Promise<void>>(async () => {});

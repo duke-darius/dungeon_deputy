@@ -1,8 +1,15 @@
 using DungeonDeputy.Api.Maps;
+using System.Text.Json.Serialization;
 
 namespace DungeonDeputy.Api;
 
-public sealed record PublicPresentation(string Mode, string? SceneId, string? Title, string? Description, string? Id = null, string? Image = null, bool? GridVisible = null, double? Scale = null, List<PublicToken>? Tokens = null, List<FogStroke>? RevealedTerrain = null);
+public sealed record PublicPresentation(string Mode,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? SceneId,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Title,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Description,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Id = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? ImageData = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] List<PublicToken>? Tokens = null);
 
 public sealed class PresentationState
 {
@@ -39,7 +46,7 @@ public sealed class PresentationState
         return true;
     }
 
-    public void ShowMap(PublicMap map) => _active = new PublicPresentation(map.Mode, null, null, null, map.Id, map.Image, map.GridVisible, map.Scale, map.Tokens, map.RevealedTerrain);
+    public void ShowMap(PublicMap map) => _active = new PublicPresentation(map.Mode, null, null, null, map.Id, map.ImageData, map.Tokens);
     public void RefreshMap(PublicMap map) { if (_active.Mode == "map") ShowMap(map); }
 
     public void Blackout() { _public = new PublicPresentation("black", null, null, null); _active = _public; }

@@ -54,27 +54,30 @@ app.MapPost("/api/map/blank", (MapService maps) =>
     var current = maps.Get().Draft;
     return maps.Save(current with { Id = Guid.NewGuid().ToString("N"), Name = "Untitled map", Image = "", Tokens = [] }) ? Results.Ok(maps.Get()) : Results.BadRequest();
 });
-app.MapPost("/api/map/show", (MapService maps, PresentationState presentation) => { var approved = maps.Publish(); var publicMap = maps.GetPublic()!; presentation.ShowMap(publicMap); return Results.Ok(new MapState(maps.Get().Draft, approved)); });
+app.MapPost("/api/map/show", (MapPublication? publication, MapService maps, PresentationState presentation) => { if (publication is null) return Results.BadRequest(); try { var approved = maps.Publish(publication.ImageData); var publicMap = maps.GetPublic()!; presentation.ShowMap(publicMap); return Results.Ok(new MapState(maps.Get().Draft, approved)); } catch (InvalidOperationException) { return Results.BadRequest(); } });
 app.MapPost("/api/map/fog/enable", (MapService maps, PresentationState presentation) =>
 {
     if (!maps.EnableFog()) return Results.BadRequest();
-    presentation.RefreshMap(maps.ProjectDraft());
+    if (maps.Get().Draft.ImageData is not null) presentation.RefreshMap(maps.ProjectDraft());
     return Results.Ok(maps.Get());
 });
 app.MapPost("/api/map/fog/strokes", (FogCommand command, MapService maps, PresentationState presentation) =>
 {
     if (!maps.ApplyFog(command)) return Results.BadRequest();
-    presentation.RefreshMap(maps.ProjectDraft());
+    if (maps.Get().Draft.ImageData is not null) presentation.RefreshMap(maps.ProjectDraft());
     return Results.Ok(maps.Get());
 });
 app.MapPatch("/api/map/token/{id}/visibility", (string id, bool visible, MapService maps, PresentationState presentation) =>
 {
     if (!maps.ChangeTokenVisibility(id, visible)) return Results.BadRequest();
-    presentation.RefreshMap(maps.ProjectDraft());
+    if (maps.Get().Draft.ImageData is not null) presentation.RefreshMap(maps.ProjectDraft());
     return Results.Ok(maps.Get());
 });
-app.MapPost("/api/map/show-encounter", (MapService maps, PresentationState presentation) =>
+app.MapPost("/api/map/show-encounter", (MapPublication? publication, MapService maps, PresentationState presentation) =>
 {
+    if (publication is null || string.IsNullOrEmpty(publication.ImageData)) return Results.BadRequest();
+    var saved = maps.Save(maps.Get().Draft with { ImageData = publication.ImageData });
+    if (!saved) return Results.BadRequest();
     presentation.ShowMap(maps.ProjectDraft());
     return Results.Ok(presentation.PublicPresentation);
 });
