@@ -200,7 +200,9 @@ try {
   await waitForMap(manager,state=>state.draft.tokens.find(token=>token.id===hero.id)?.visible===false,'hide token');
   const fogStamps=[{x:320,y:280,radius:115}];
   await manager.evaluate(stamps => window.dungeonDeputy.command('/api/map/fog/strokes','POST',{mode:'reveal',stamps}),fogStamps);
-  await player.waitForFunction(() => document.querySelector('.public-map-fog-mask'), {timeout:5000});
+  const pollStarted=Date.now();
+  await player.waitForFunction(() => document.querySelector('.public-map-fog-mask'), {timeout:2500});
+  assert.ok(Date.now()-pollStarted<=2500,'persisted fog projection must arrive through the one-second poll plus bounded allowance');
   await player.waitForFunction(() => document.querySelectorAll('.public-map-token').length===7,{timeout:5000});
   const maskPixels=await player.locator('.public-map-fog-mask').evaluate(canvas=>{const c=canvas.getContext('2d');return {hidden:[...c.getImageData(100,100,1,1).data],revealed:[...c.getImageData(320,280,1,1).data]};});
   assert.deepEqual(maskPixels.hidden,[8,10,9,255],'unrevealed source terrain remains fully opaque black');
