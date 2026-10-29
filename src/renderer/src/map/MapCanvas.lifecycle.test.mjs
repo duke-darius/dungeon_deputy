@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { attachCanvas, registerPointerLifecycle } from './canvasPolicy.mjs';
+import { attachCanvas, registerPointerLifecycle, createRedrawGeneration } from './canvasPolicy.mjs';
 import { mapToScreen, screenToMap } from './camera.mjs';
 
 test('late async initialization after unmount destroys without attaching stale canvas', async () => {
@@ -39,8 +39,11 @@ test('pointercancel clears active gesture state and unregisters its handler', ()
 });
 
 test('redraw implementation rejects stale async work before scene mutation', async () => {
-  const source = await readFile(new URL('./MapCanvas.tsx', import.meta.url), 'utf8');
-  assert.match(source, /generation\.isCurrent/);
+  const generation = createRedrawGeneration(); const scene = [];
+  const redraw = async wait => { const current=generation.begin(); await wait; if (!generation.isCurrent(current)) return; scene.push(current); };
+  let finish; const old=redraw(new Promise(resolve=>{finish=resolve;}));
+  await redraw(Promise.resolve()); finish(); await old;
+  assert.deepEqual(scene,[2]);
 });
 
 test('pointercancel invokes cancellation cleanup without committing the preview', () => {
@@ -55,8 +58,7 @@ test('pointercancel invokes cancellation cleanup without committing the preview'
 test('brush mode and save rejection paths clear painting without publishing a stroke', async () => {
   const source=await readFile(new URL('./MapCanvas.tsx',import.meta.url),'utf8');
   assert.match(source,/state\.fogTool === null \|\| !state\.fogEnabled/);
-  assert.match(source,/\(\)=>\{panning=false;dragging=null;if\(painting\)/);
-  assert.match(source,/if\(painting\)\{painting=false;stamps=\[\];preview\?\.destroy\(\);preview=undefined;\}/);
+  assert.match(source,/const cancelGesture=\(\)=>\{panning=false;dragging=null;painting=false;stamps=\[\];preview\?\.destroy\(\);preview=undefined;\}/);
   assert.match(source,/latest\.current\.onStroke\(stamps\)/);
   assert.doesNotMatch(source,/setFogStrokes\(stamps\)/);
 });

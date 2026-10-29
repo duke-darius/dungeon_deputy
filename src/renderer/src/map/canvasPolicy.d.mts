@@ -1,2 +1,3 @@
 export function attachCanvas(app: { init(options: unknown): Promise<void>; canvas: HTMLElement; stage: unknown; destroy(...args: unknown[]): void }, host: HTMLElement, onReady: (app: any) => void | Promise<void>): { ready: Promise<boolean>; dispose(): void };
-export function registerPointerLifecycle(stage: { on(name: string, fn: (event: any) => void): void; off(name: string, fn: (event: any) => void): void }, finishDrag: (event: any) => void, move: (event: any) => void, panStart: (event: any) => void, panEnd: () => void): () => void;
+export function registerPointerLifecycle(stage: { on(name: string, fn: (event: any) => void): void; off(name: string, fn: (event: any) => void): void }, finishDrag: (event: any) => void, move: (event: any) => void, panStart: (event: any) => void, panEnd: () => void, cancelGesture?: () => void): () => void;
+export function createRedrawGeneration(): { begin(): number; isCurrent(value: number): boolean };

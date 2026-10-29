@@ -28,9 +28,14 @@ export function attachCanvas(app, host, onReady) {
   return { ready, dispose() { disposed = true; destroy(); } };
 }
 
-export function registerPointerLifecycle(stage, finishDrag, move, panStart, panEnd) {
+export function createRedrawGeneration() {
+  let generation = 0;
+  return { begin: () => ++generation, isCurrent: value => value === generation };
+}
+
+export function registerPointerLifecycle(stage, finishDrag, move, panStart, panEnd, cancelGesture = panEnd) {
   const end = event => { finishDrag(event); panEnd(); };
-  const cancel = () => panEnd();
+  const cancel = () => cancelGesture();
   stage.on('pointerup', end);
   stage.on('pointerupoutside', end);
   stage.on('pointercancel', cancel);
