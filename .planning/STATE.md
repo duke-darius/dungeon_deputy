@@ -3,16 +3,16 @@ gsd_state_version: "1.0"
 current_phase: 03
 current_phase_name: Fog of War and Encounter Control
 status: verifying
-stopped_at: Completed 03-05-PLAN.md
-last_updated: "2026-10-29T20:52:06.842Z"
+stopped_at: Completed 03-06-PLAN.md
+last_updated: "2026-10-29T21:01:36.932Z"
 last_activity: 2026-10-29
 last_activity_desc: Phase 03 Plan 05 completed; Plan 06 remains
-state_head: b7dda1dfd6b4b8f1b5877be4788946165b4ff138
+state_head: ffd59accd8272d608356f1739c53f0d0b7dc06a1
 progress:
   total_phases: 7
   completed_phases: 1
   total_plans: 17
-  completed_plans: 14
+  completed_plans: 15
   percent: 14
 ---
 
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-10-28)
 ## Current Position
 
 Phase: 03 (Fog of War and Encounter Control) — EXECUTING
-Plan: 5 of 6
+Plan: 6 of 6
 Status: Plan 05 complete - Plan 06 ready
 Last activity: 2026-10-29 - Phase 03 Plan 05 execution completed
 
@@ -69,6 +69,7 @@ Progress: ░░░░░░░░░░ [█░░░░░░░░░] 14%
 | Phase 03 P03 | 12min | 3 tasks | 6 files |
 | Phase 03 P03 | 12min | 3 tasks | 6 files |
 | Phase 03 P05 | 30min | 2 tasks | 15 files |
+| Phase 03 P06 | 10min | 2 tasks | 12 files |
 
 ## Accumulated Context
 
@@ -103,6 +104,8 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase 03]: DM encounter commands remain inside the trusted IPC allowlist; player display consumes only the filtered visual projection.
 - [Phase 03]: Use a trusted PNG raster imageData boundary; keep source terrain and ordered fog operations DM-side.
 - [Phase 03]: Restrict public CSP to data images and embed approved scene SVGs as data URLs.
+- [Phase 03]: Initiative reordering validates the complete unique actor set and persists one transactional ordered list.
+- [Phase 03]: Current and maximum HP remain independently nullable through UI, API, and SQLite persistence.
 
 ### Pending Todos
 
@@ -122,6 +125,6 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 
 ## Session Continuity
 
-Last session: 2026-10-29T20:52:06.809Z
-Stopped at: Completed 03-05-PLAN.md
+Last session: 2026-10-29T21:01:36.899Z
+Stopped at: Completed 03-06-PLAN.md
 Resume file: None
