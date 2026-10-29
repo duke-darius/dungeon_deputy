@@ -12,12 +12,12 @@ provides:
   - Pointer cancellation and authenticated persistence/publication coverage
 affects: [03-02, 03-03]
 actuals:
-  tokens: 7081
+  tokens: 7104
   tasks: 3
-  commits: 5
-commits: 5
+  commits: 7
+commits: 7
 plan_head_before: 15cd3f19546e1b53d6aaeefb3e84df1619b7afb0
-plan_head_after: 69a24a5b21066955fe427f106b4b76d6ccd1097d
+plan_head_after: f504ae77afbf54ec911a16a48d881dfcd936d134
 tech-stack:
   added: []
   patterns: [deterministic pixel-center fog mask, authenticated HTTP publication lifecycle tests]
@@ -62,7 +62,7 @@ coverage:
 metrics:
   duration: 24m
   completed_date: 2026-10-29
-  commits: 5
+  commits: 7
 status: complete
 ---
 
@@ -91,8 +91,9 @@ status: complete
 3. **Task 3: Prove authenticated persistence-before-publication and record closure coverage** - `27a564a`.
 4. **Task 2 follow-up: reset brush after terminal gestures** - `b72ac12`.
 5. **E2E selector alignment** - `69a24a5`.
+6. **Task 2 follow-up: cancel in-progress token drags on pointer cancellation** - `f504ae7`.
 
-The five commits are measured from `15cd3f19546e1b53d6aaeefb3e84df1619b7afb0` through `69a24a5b21066955fe427f106b4b76d6ccd1097d`.
+The seven plan commits are measured from `15cd3f19546e1b53d6aaeefb3e84df1619b7afb0` through `f504ae77afbf54ec911a16a48d881dfcd936d134`, including the initial plan-metadata commit preceding the final brush correction.
 
 ## Files Created/Modified
 
@@ -166,5 +167,5 @@ None.
 ## Self-Check: PASSED
 
 - Summary, validation matrix, and new mask artifacts exist.
-- All five plan commits are ancestors of the current HEAD.
+- All seven plan commits measured from the recorded plan base are ancestors of the current plan HEAD.
 - Pre-existing `.planning/STATE.md`, `.planning/state.json`, `.idea/`, and `tabletop_dm_gsd_brief.md` changes were preserved.
