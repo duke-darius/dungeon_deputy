@@ -17,7 +17,7 @@ affects: [phase-03-verification, map-editor, presentation-polling]
 actuals:
   tokens: 9037
   tasks: 4
-  commits: 5
+   commits: 9
   plan_head_before: 37498634a5a560778556c54f2e2670094587e0a4
   plan_head_after: 0522b5e4f114f1a4fc4a797263a80ea9ede20a57
 tech-stack:
@@ -90,7 +90,7 @@ commits: 5
 
 - **Duration:** 14 min
 - **Started:** 2026-10-29T21:55:39Z
-- **Completed:** 2026-10-29T22:09:35Z
+- **Completed:** 2026-10-29T22:32:06Z
 - **Tasks:** 4
 - **Files modified:** 10 (including validation matrix)
 
@@ -166,6 +166,7 @@ commits: 5
 - `npm test` - passed, 39 Node tests and 20 xUnit tests.
 - `npm run build` - passed, including production renderer/Electron and .NET Release build (0 warnings, 0 errors).
 - `npm run test:e2e` - passed; evidence/screenshots: `artifacts/e2e/2026-10-29T22-06-38.973Z-e24bef5d/`.
+- Final authorized rerun: `npm test` passed (40 Node tests + 20 xUnit tests); `npm run build` passed (0 backend warnings/errors); `npm run test:e2e` passed with evidence at `artifacts/e2e/2026-10-29T22-31-44.927Z-72813109/`. Public presentation hashes synchronized after all three mutations, revealed terrain at the sampled stroke point was nonblack, hidden terrain remained black, and tablet/phone/encounter/actor-details screenshots were captured.
 
 ## Known Stubs
 
@@ -179,5 +180,5 @@ None found in files created or modified by this plan.
 ## Self-Check: PASSED
 
 - All 11 summary-listed created/modified paths exist.
-- All five task commits are ancestors of the current plan head.
-- Measured task-commit count is 5, matching `actuals.commits` and the persisted plan ledger.
+- All five task commits are ancestors of the current plan head; the authorized UI iteration commit `c259471` is also included in the measured plan history.
+- Measured plan history count includes the five task commits, plan-summary commits, and the authorized UI iteration; `commits` and `plan_head_after` are finalized after the documentation commit.
