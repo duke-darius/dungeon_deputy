@@ -182,7 +182,7 @@ try {
   await manager.mouse.up();
   assert.deepEqual(await readMap(manager).then(state => state.draft.tokens.find(token => token.name === 'Mira E2E')), cameraToken, 'pan/zoom must not modify canonical map-space positions');
 
-  await manager.getByRole('button', { name: 'Show on table' }).click();
+  await manager.getByRole('button', { name: 'Show encounter' }).click();
   await manager.locator('.map-toast').filter({ hasText: 'Map shown on table.' }).waitFor();
   await player.locator('.public-stage .public-map').waitFor();
   assert.equal(await player.locator('.public-map-token').count(), 8);
@@ -213,7 +213,7 @@ try {
   assert.equal(restored.draft.scale, 72);
   assert.equal(restored.approved.scale, 64, 'approved public snapshot must restore independently from newer draft');
   await assertBlack();
-  await manager.getByRole('button', { name: 'Show on table' }).click();
+  await manager.getByRole('button', { name: 'Show encounter' }).click();
   await player.waitForFunction(() => document.querySelector('.public-map')?.getAttribute('style')?.includes('72px'));
   await screenshot('09-restored-map', true);
 
