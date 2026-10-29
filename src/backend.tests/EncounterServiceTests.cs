@@ -31,6 +31,14 @@ public sealed class EncounterServiceTests
             Assert.True(service.SetTieBreak(second, new TieBreakCommand(0)));
             Assert.True(service.SetTieBreak(first, new TieBreakCommand(1)));
             Assert.Equal(second, service.Get().Actors[0].TokenId);
+            Assert.True(service.ReorderInitiative(new InitiativeOrderCommand([second, first, .. initial.Actors.Skip(2).Select(a => a.TokenId)])));
+            var orderedIds = service.Get().Actors.Select(a => a.TokenId).ToArray();
+            Assert.False(service.ReorderInitiative(new InitiativeOrderCommand([first, first])));
+            Assert.False(service.ReorderInitiative(new InitiativeOrderCommand([first, "unknown", .. initial.Actors.Skip(2).Select(a => a.TokenId)])));
+            Assert.Equal(orderedIds, service.Get().Actors.Select(a => a.TokenId).ToArray());
+            Assert.True(service.SetHp(first, new HpCommand(null, 12)));
+            Assert.Null(service.Get().Actors.Single(a => a.TokenId == first).CurrentHp);
+            Assert.Equal(12, service.Get().Actors.Single(a => a.TokenId == first).MaximumHp);
             Assert.True(service.RollInitiative(first));
             Assert.Equal("d20", service.Get().Actors.Single(a => a.TokenId == first).InitiativeSource);
             Assert.Equal(second, service.EndTurn().ActiveTokenId);
@@ -54,10 +62,11 @@ public sealed class EncounterServiceTests
             var maps = new MapService(config);
             var service = new EncounterService(config, maps, new BuiltInConditionCatalog(), _ => 4);
             var actor = service.Get().Actors[0].TokenId;
-            Assert.True(service.SetHp(actor, new HpCommand(3, 7)));
+            Assert.True(service.SetHp(actor, new HpCommand(null, 7)));
             Assert.NotNull(service.RollDice(new DiceCommand(4, 1)));
             var reopened = new EncounterService(config, maps, new BuiltInConditionCatalog(), _ => 1).Get();
-            Assert.Equal(3, reopened.Actors.Single(a => a.TokenId == actor).CurrentHp);
+            Assert.Null(reopened.Actors.Single(a => a.TokenId == actor).CurrentHp);
+            Assert.Equal(7, reopened.Actors.Single(a => a.TokenId == actor).MaximumHp);
             Assert.Single(reopened.Rolls);
         }
         finally { try { Directory.Delete(dir, true); } catch { } }

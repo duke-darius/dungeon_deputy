@@ -28,9 +28,10 @@ public sealed record DiceRoll(int Sides, int Face, int Modifier, int Total);
 public sealed record EncounterDocument(List<EncounterActor> Actors, string? ActiveTokenId = null, List<DiceRoll>? Rolls = null);
 public sealed record EncounterState(List<EncounterActor> Actors, string? ActiveTokenId, List<DiceRoll> Rolls,
     IReadOnlyList<ConditionDefinition> Conditions);
-public sealed record HpCommand(int Current, int Maximum);
+public sealed record HpCommand(int? Current, int? Maximum);
 public sealed record InitiativeCommand(int Value);
 public sealed record TieBreakCommand(int Order);
+public sealed record InitiativeOrderCommand(List<string>? ActorIds);
 public sealed record ConditionsCommand(List<string>? ConditionIds);
 public sealed record DiceCommand(int Sides, int Modifier = 0);
 
@@ -87,7 +88,9 @@ public sealed class EncounterService
     private static bool Valid(EncounterDocument state) => state.Actors.Count <= 100 && (state.Rolls?.Count ?? 0) <= 100 &&
         state.Actors.Select(a => a.TokenId).Distinct(StringComparer.Ordinal).Count() == state.Actors.Count &&
         state.Actors.All(a => !string.IsNullOrWhiteSpace(a.TokenId) && a.TokenId.Length <= 80 &&
-            (a.CurrentHp is null && a.MaximumHp is null || a.CurrentHp is >= 0 and <= MaxHitPoints && a.MaximumHp is >= 0 and <= MaxHitPoints && a.CurrentHp <= a.MaximumHp) &&
+            (a.CurrentHp is null || a.CurrentHp is >= 0 and <= MaxHitPoints) &&
+            (a.MaximumHp is null || a.MaximumHp is >= 0 and <= MaxHitPoints) &&
+            (a.CurrentHp is null || a.MaximumHp is null || a.CurrentHp <= a.MaximumHp) &&
             (a.Initiative is null ? a.InitiativeSource is null : a.Initiative is >= -MaxInitiative and <= MaxInitiative && a.InitiativeSource is "manual" or "d20") &&
             a.TieBreakOrder >= 0 && (a.ConditionIds?.Count ?? 0) <= 20 && (a.ConditionIds ?? []).Distinct(StringComparer.Ordinal).Count() == (a.ConditionIds?.Count ?? 0)) &&
         (state.ActiveTokenId is null || state.Actors.Any(a => a.TokenId == state.ActiveTokenId)) &&
@@ -128,7 +131,7 @@ public sealed class EncounterService
         var actors = state.Actors.ToList(); var actor = update(actors[index]); if (actor is null) return null;
         actors[index] = actor; return state with { Actors = actors };
     }
-    public bool SetHp(string id, HpCommand command) => command is not null && command.Current is >= 0 and <= MaxHitPoints && command.Maximum is >= 0 and <= MaxHitPoints && command.Current <= command.Maximum &&
+    public bool SetHp(string id, HpCommand command) => command is not null && (command.Current is null || command.Current is >= 0 and <= MaxHitPoints) && (command.Maximum is null || command.Maximum is >= 0 and <= MaxHitPoints) && (command.Current is null || command.Maximum is null || command.Current <= command.Maximum) &&
         Change(s => UpdateActor(s, id, a => a with { CurrentHp = command.Current, MaximumHp = command.Maximum }));
     public bool SetConditions(string id, ConditionsCommand command) => command?.ConditionIds is { Count: <= 20 } ids && ids.Distinct(StringComparer.Ordinal).Count() == ids.Count && ids.All(id => _conditions.All.Any(c => c.Id == id)) &&
         Change(s => UpdateActor(s, id, a => a with { ConditionIds = ids.ToList() }));
@@ -141,6 +144,12 @@ public sealed class EncounterService
     }));
     public bool SetTieBreak(string id, TieBreakCommand command) => command is not null && command.Order is >= 0 and <= 100 &&
         Change(s => UpdateActor(s, id, a => a with { TieBreakOrder = command.Order }));
+    public bool ReorderInitiative(InitiativeOrderCommand command) => command?.ActorIds is { Count: <= 100 } ids &&
+        Change(s => {
+            if (ids.Count != s.Actors.Count || ids.Distinct(StringComparer.Ordinal).Count() != ids.Count || !ids.ToHashSet(StringComparer.Ordinal).SetEquals(s.Actors.Select(a => a.TokenId))) return null;
+            var order = ids.Select((id, index) => (id, index)).ToDictionary(pair => pair.id, pair => pair.index, StringComparer.Ordinal);
+            return s with { Actors = s.Actors.Select(a => a with { TieBreakOrder = order[a.TokenId] }).ToList() };
+        });
     public EncounterState EndTurn() => Change(s =>
     {
         var eligible = Order(s.Actors.Where(a => a.Initiative is not null));

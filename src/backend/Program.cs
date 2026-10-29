@@ -87,7 +87,7 @@ app.MapPut("/api/encounter/actors/{id}/hp", (string id, HpCommand command, Encou
 app.MapPut("/api/encounter/actors/{id}/conditions", (string id, ConditionsCommand command, EncounterService encounters) => encounters.SetConditions(id, command) ? Results.Ok(encounters.Get()) : Results.BadRequest());
 app.MapPut("/api/encounter/actors/{id}/initiative", (string id, InitiativeCommand command, EncounterService encounters) => encounters.SetInitiative(id, command) ? Results.Ok(encounters.Get()) : Results.BadRequest());
 app.MapPost("/api/encounter/actors/{id}/initiative/roll", (string id, EncounterService encounters) => encounters.RollInitiative(id) ? Results.Ok(encounters.Get()) : Results.BadRequest());
-app.MapPut("/api/encounter/actors/{id}/tie-break", (string id, TieBreakCommand command, EncounterService encounters) => encounters.SetTieBreak(id, command) ? Results.Ok(encounters.Get()) : Results.BadRequest());
+app.MapPost("/api/encounter/initiative/order", (InitiativeOrderCommand command, EncounterService encounters) => encounters.ReorderInitiative(command) ? Results.Ok(new { actors = encounters.Get().Actors }) : Results.BadRequest());
 app.MapPost("/api/encounter/turn/end", (EncounterService encounters) =>
 {
     try { return Results.Ok(encounters.EndTurn()); }

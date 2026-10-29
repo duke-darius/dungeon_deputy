@@ -12,6 +12,10 @@ export type SanitizedMapRaster = { imageData: string };
 export const publishMapRaster = (raster: SanitizedMapRaster, activeDraft = false) =>
   command(activeDraft ? '/api/map/show-encounter' : '/api/map/show', 'POST', raster);
 
+export type InitiativeActor = { tokenId: string; initiative: number | null; tieBreakOrder: number };
+export const reorderInitiative = (actorIds: string[]): Promise<{ actors: InitiativeActor[] }> =>
+  command('/api/encounter/initiative/order', 'POST', { actorIds }) as Promise<{ actors: InitiativeActor[] }>;
+
 export const getPresentation = () => {
   if (!window.dungeonDeputy || typeof window.dungeonDeputy.getPresentation !== 'function') {
     throw new Error('The local presentation service is unavailable.');

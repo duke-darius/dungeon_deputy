@@ -24,12 +24,18 @@ public sealed class EncounterApiTests
             var actorId = state.RootElement.GetProperty("actors")[0].GetProperty("tokenId").GetString()!;
             Assert.False(state.RootElement.GetProperty("actors")[0].TryGetProperty("currentHp", out _));
             Assert.Equal(HttpStatusCode.OK, (await client.PutAsJsonAsync($"/api/encounter/actors/{actorId}/hp", new { current = 8, maximum = 12 })).StatusCode);
-            Assert.Equal(HttpStatusCode.BadRequest, (await client.PutAsJsonAsync($"/api/encounter/actors/{actorId}/hp", new { current = 13, maximum = 12 })).StatusCode);
+             Assert.Equal(HttpStatusCode.BadRequest, (await client.PutAsJsonAsync($"/api/encounter/actors/{actorId}/hp", new { current = 13, maximum = 12 })).StatusCode);
+             Assert.Equal(HttpStatusCode.OK, (await client.PutAsJsonAsync($"/api/encounter/actors/{actorId}/hp", new { current = (int?)null, maximum = 12 })).StatusCode);
+             using (var partialHp = JsonDocument.Parse(await (await client.GetAsync("/api/encounter")).Content.ReadAsStringAsync()))
+             {
+                 var partial = partialHp.RootElement.GetProperty("actors").EnumerateArray().Single(a => a.GetProperty("tokenId").GetString() == actorId);
+                 Assert.False(partial.TryGetProperty("currentHp", out _)); Assert.Equal(12, partial.GetProperty("maximumHp").GetInt32());
+             }
             using (var unchanged = JsonDocument.Parse(await (await client.GetAsync("/api/encounter")).Content.ReadAsStringAsync()))
             {
                 var actor = unchanged.RootElement.GetProperty("actors").EnumerateArray().Single(a => a.GetProperty("tokenId").GetString() == actorId);
-                Assert.Equal(8, actor.GetProperty("currentHp").GetInt32());
-                Assert.Equal(12, actor.GetProperty("maximumHp").GetInt32());
+                 Assert.False(actor.TryGetProperty("currentHp", out _));
+                 Assert.Equal(12, actor.GetProperty("maximumHp").GetInt32());
             }
             Assert.Equal(HttpStatusCode.OK, (await client.PutAsJsonAsync($"/api/encounter/actors/{actorId}/initiative", new { value = 15 })).StatusCode);
             Assert.Equal(HttpStatusCode.OK, (await client.PostAsJsonAsync($"/api/encounter/actors/{actorId}/initiative/roll", new { })).StatusCode);
@@ -42,8 +48,13 @@ public sealed class EncounterApiTests
                 var otherActor = actors.First(a => a.GetProperty("tokenId").GetString() != actorId).GetProperty("tokenId").GetString()!;
                 var actorInitiative = actors.Single(a => a.GetProperty("tokenId").GetString() == actorId).GetProperty("initiative").GetInt32();
                 Assert.Equal(HttpStatusCode.OK, (await client.PutAsJsonAsync($"/api/encounter/actors/{otherActor}/initiative", new { value = actorInitiative })).StatusCode);
-                Assert.Equal(HttpStatusCode.OK, (await client.PutAsJsonAsync($"/api/encounter/actors/{otherActor}/tie-break", new { order = 0 })).StatusCode);
-                Assert.Equal(HttpStatusCode.OK, (await client.PutAsJsonAsync($"/api/encounter/actors/{actorId}/tie-break", new { order = 1 })).StatusCode);
+                 var actorIds = actors.Select(a => a.GetProperty("tokenId").GetString()!).ToArray();
+                 Array.Reverse(actorIds);
+                 using var unauthenticated = factory.CreateClient();
+                 Assert.Equal(HttpStatusCode.Unauthorized, (await unauthenticated.PostAsJsonAsync("/api/encounter/initiative/order", new { actorIds })).StatusCode);
+                 Assert.Equal(HttpStatusCode.OK, (await client.PostAsJsonAsync("/api/encounter/initiative/order", new { actorIds })).StatusCode);
+                 Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/api/encounter/initiative/order", new { actorIds = actorIds.Concat(new[] { actorIds[0] }).ToArray() })).StatusCode);
+                 Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/api/encounter/initiative/order", new { actorIds = new[] { actorId, "not-a-token" } })).StatusCode);
                 using var ordered = JsonDocument.Parse(await (await client.GetAsync("/api/encounter")).Content.ReadAsStringAsync());
                 Assert.Equal(otherActor, ordered.RootElement.GetProperty("actors")[0].GetProperty("tokenId").GetString());
             }

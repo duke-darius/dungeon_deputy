@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { command, publishMapRaster } from '../api';
+import { command, publishMapRaster, reorderInitiative } from '../api';
 import { MapCanvas, rasterizePublicMap } from './MapCanvas';
 import type { MapState } from './types';
 import { SCENES, sceneById } from '../contracts.mjs';
@@ -184,8 +184,10 @@ export default function MapEditor() {
     if (!neighbor || actor.initiative !== neighbor.initiative || encounterBusy) return;
     setEncounterBusy(true);
     try {
-      const first = await command(`/api/encounter/actors/${actor.tokenId}/tie-break`, 'PUT', {order:neighbor.tieBreakOrder});
-      setEncounter(await command(`/api/encounter/actors/${neighbor.tokenId}/tie-break`, 'PUT', {order:actor.tieBreakOrder}) ?? first);
+      const actorIds = encounter.actors.map((item: any) => item.tokenId);
+      [actorIds[index], actorIds[index + direction]] = [actorIds[index + direction], actorIds[index]];
+      const ordered = await reorderInitiative(actorIds);
+      setEncounter((current: any) => ({ ...current, actors: ordered.actors }));
       notify('Initiative tie order updated.');
     } catch { notify("Couldn't save this change. Your last saved state is unchanged; retry the action.",6000); }
     finally { setEncounterBusy(false); }
@@ -322,7 +324,7 @@ export default function MapEditor() {
             <button className="primary-action" disabled={encounterBusy || !encounter.actors.some((actor: any) => actor.initiative != null)} onClick={() => void encounterCommand('/api/encounter/turn/end', 'POST', undefined, 'Turn advanced.')}>End turn</button>
             {selected && encounter.actors.some((actor: any) => actor.tokenId === selected) && (() => { const actor = encounter.actors.find((item: any) => item.tokenId === selected); const token = draft?.tokens.find(item => item.id === selected); return <div className="encounter-fields">
               <h3>{token?.name ?? selected}</h3>
-              <label>🔒 HP · DM only <span><input aria-label="Current HP" type="number" min="0" max="9999" placeholder="—" defaultValue={actor.currentHp ?? ''} /> / <input aria-label="Maximum HP" type="number" min="0" max="9999" placeholder="—" defaultValue={actor.maximumHp ?? ''} /></span><button disabled={encounterBusy} onClick={event => { const root=event.currentTarget.parentElement!; void encounterCommand(`/api/encounter/actors/${selected}/hp`, 'PUT', { current: Number((root.querySelector('[aria-label="Current HP"]') as HTMLInputElement | null)?.value), maximum: Number((root.querySelector('[aria-label="Maximum HP"]') as HTMLInputElement | null)?.value) }); }}>Save HP</button></label>
+              <label>🔒 HP · DM only <span><input aria-label="Current HP" type="number" min="0" max="9999" placeholder="—" defaultValue={actor.currentHp ?? ''} /> / <input aria-label="Maximum HP" type="number" min="0" max="9999" placeholder="—" defaultValue={actor.maximumHp ?? ''} /></span><button disabled={encounterBusy} onClick={event => { const root=event.currentTarget.parentElement!; const current=(root.querySelector('[aria-label="Current HP"]') as HTMLInputElement | null)?.value ?? ''; const maximum=(root.querySelector('[aria-label="Maximum HP"]') as HTMLInputElement | null)?.value ?? ''; void encounterCommand(`/api/encounter/actors/${selected}/hp`, 'PUT', { current: current.trim() === '' ? null : Number(current), maximum: maximum.trim() === '' ? null : Number(maximum) }); }}>Save HP</button></label>
               <label>🔒 Conditions · DM only <select aria-label="Add condition" onChange={event => { const ids=[...(actor.conditionIds ?? [])]; if(event.target.value && !ids.includes(event.target.value)) ids.push(event.target.value); void encounterCommand(`/api/encounter/actors/${selected}/conditions`, 'PUT', { conditionIds: ids }); event.target.value=''; }}><option value="">Add condition</option>{encounter.conditions?.map((condition: any)=><option key={condition.id} value={condition.id}>{condition.name}</option>)}</select></label><div className="condition-chips">{(actor.conditionIds ?? []).map((id: string)=><button key={id} disabled={encounterBusy} onClick={() => void encounterCommand(`/api/encounter/actors/${selected}/conditions`, 'PUT', {conditionIds: actor.conditionIds.filter((entry: string)=>entry!==id)})}>{encounter.conditions?.find((item: any)=>item.id===id)?.name ?? id} ×</button>)}</div>
               <label>🔒 Initiative · DM only <input aria-label="Initiative" type="number" placeholder="—" defaultValue={actor.initiative ?? ''} /><small>{actor.initiativeSource ?? 'Unset'}</small><button disabled={encounterBusy} onClick={event => { const input=event.currentTarget.parentElement?.querySelector('input'); if(input?.value) void encounterCommand(`/api/encounter/actors/${selected}/initiative`, 'PUT', {value:Number(input.value)}); }}>Set initiative</button><button disabled={encounterBusy} onClick={() => void encounterCommand(`/api/encounter/actors/${selected}/initiative/roll`, 'POST')}>Roll d20</button></label>
             </div>; })()}
