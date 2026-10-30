@@ -59,8 +59,10 @@ try {
   wav.write('RIFF', 0); wav.writeUInt32LE(836, 4); wav.write('WAVEfmt ', 8); wav.writeUInt32LE(16, 16); wav.writeUInt16LE(1, 20); wav.writeUInt16LE(1, 22); wav.writeUInt32LE(8000, 24); wav.writeUInt32LE(16000, 28); wav.writeUInt16LE(2, 32); wav.writeUInt16LE(16, 34); wav.write('data', 36); wav.writeUInt32LE(800, 40);
   const audioFixture = join(process.cwd(), 'artifacts', 'e2e-audio-fixture.wav');
   const invalidAudioFixture = join(process.cwd(), 'artifacts', 'e2e-audio-invalid.wav');
+  const cc0AudioFixtures = ['bookOpen.ogg','doorOpen_1.ogg','handleCoins.ogg'].map(name=>join(process.cwd(),'scripts','e2e','open-audio',name));
   await mkdir(join(process.cwd(), 'artifacts'), { recursive: true }); await writeFile(audioFixture, wav); await writeFile(invalidAudioFixture, Buffer.from('not a decodable WAV'));
   process.env.DUNGEON_DEPUTY_E2E_AUDIO_FIXTURE = audioFixture;
+  process.env.DUNGEON_DEPUTY_E2E_AUDIO_FIXTURES = JSON.stringify([audioFixture,...cc0AudioFixtures]);
   process.env.DUNGEON_DEPUTY_E2E_AUDIO_INVALID_FIXTURE = invalidAudioFixture;
   process.env.DUNGEON_DEPUTY_E2E_AUDIO_FAIL_IMPORT_FIRST = '1';
   await setup();
@@ -109,6 +111,17 @@ try {
   await manager.getByRole('button', { name: 'Import sound' }).first().click();
   await manager.getByText('e2e-audio-fixture', { exact: true }).waitFor();
   const importedPad=manager.locator('.audio-pads article').first();
+  const openSourceSamples=[['bookOpen','bookOpen.ogg'],['doorOpen_1','doorOpen_1.ogg'],['handleCoins','handleCoins.ogg']];
+  for(let index=0;index<openSourceSamples.length;index++){
+    const [label]=openSourceSamples[index];
+    const samplePad=manager.locator('.audio-pads article').nth(index+1);
+    await samplePad.getByRole('button',{name:'Import sound'}).click();
+    await samplePad.getByText(label,{exact:true}).waitFor();
+    await samplePad.getByRole('button',{name:'Play'}).click();
+    await manager.locator('.audio-status').filter({hasText:`Playing ${label}.`}).waitFor();
+  }
+  await manager.getByRole('button',{name:'Stop all'}).click();
+  log('OPEN SOURCE AUDIO: imported and decoded Kenney CC0 RPG Audio bookOpen.ogg, doorOpen_1.ogg, and handleCoins.ogg through the DM picker; playback state verified.');
   await manager.getByRole('button', { name: 'Add cue' }).click();
   await manager.getByText('Saving shortcut…',{exact:true}).waitFor();
   assert.equal(await manager.getByLabel('Cue target 1').isDisabled(),true,'cue editor is disabled during successful save');
@@ -199,9 +212,14 @@ try {
   await manager.getByRole('status').filter({ hasText: 'Playing e2e-audio-fixture' }).waitFor();
   assert.equal(await player.locator('.public-stage .public-art, .public-stage .public-map').count(), 0, 'persisted audio must not auto-publish a map after restart');
   assert.equal(await player.evaluate(() => 'audioImport' in window.dungeonDeputy || 'audioConfig' in window.dungeonDeputy), false, 'public preload must remain audio-free after restart');
-  manager.once('dialog', dialog=>void dialog.accept());
-  await restoredPad.getByRole('button', { name: 'Clear pad' }).click();
-  await manager.getByText('Soundboard changes saved.',{exact:true}).waitFor();
+  for(const index of [0,1,2,3]){
+    const assignedPad=manager.locator('.audio-pads article').nth(index);
+    if(await assignedPad.getByRole('button',{name:'Clear pad'}).count()===0)continue;
+    manager.once('dialog', dialog=>void dialog.accept());
+    await assignedPad.getByRole('button',{name:'Clear pad'}).click();
+    await manager.getByText('Saving soundboard changes…',{exact:true}).waitFor();
+    await manager.getByText('Soundboard changes saved.',{exact:true}).waitFor();
+  }
   assert.equal(await manager.evaluate(()=>window.dungeonDeputy.audioConfig().then(value=>value.assets.length)),0,'clearing the last reference removes persisted asset metadata');
   assert.equal((await readdir(join(evidence,'data','audio'))).some(name=>/^a_[a-f0-9]{32}\.(wav|mp3|ogg)$/.test(name)),false,'clearing the last reference reclaims the committed file');
   await manager.getByRole('button', { name: 'Import sound' }).first().click();

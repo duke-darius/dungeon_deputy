@@ -4,7 +4,7 @@
 
 The Audio workspace and its names, banks, local files, assignments, and cue shortcuts are DM-only. Import from the native file picker; paths are not entered into the app. Current limits are 25 MiB per file, 256 MiB total retained audio, and 10 minutes per sound. Staged imports are bounded and discarded on decode/save failure; assignments are committed atomically. Clearing the last slot reference deletes the imported file after the settings save succeeds. Decoded buffers are capped at 192 MiB; playback allows one ambience loop and up to eight one-shots. Playback starts only after an explicit Play or cue action and is silent after restart. Missing files keep their assignment and can be relinked.
 
-WAV, MP3 and Ogg-family extensions are candidates, not a support guarantee. The current automated runtime smoke decodes a generated WAV; other formats and packaged-runtime codec availability have not been verified. Automated playback state does not prove audible speaker output.
+WAV, MP3 and Ogg-family extensions are candidates, not a support guarantee. Electron E2E imports and decodes a generated WAV plus three CC0 Ogg Vorbis examples from Kenney's RPG Audio pack (`scripts/e2e/open-audio/`; source and license are recorded alongside the files). This verifies these fixtures in the Windows Electron test runtime; MP3, macOS codecs and other packaged-runtime combinations remain unverified. Automated playback state does not prove audible speaker output.
 
 ## Cue shortcuts
 

@@ -46,6 +46,8 @@ test('private audio import is picker-only, sender checked, opaque and E2E gated'
   assert.match(main, /showOpenDialog/);
   assert.match(main, /randomBytes\(16\)/);
   assert.match(main, /DUNGEON_DEPUTY_E2E/);
+  assert.match(main, /DUNGEON_DEPUTY_E2E_AUDIO_FIXTURES: _audioFixtures/);
+  assert.match(main, /if \(!e2e \|\| app\.isPackaged \|\| !process\.env\.DUNGEON_DEPUTY_E2E_AUDIO_FIXTURES\) return \[\]/);
   assert.match(preload, /audioImport/);
   assert.doesNotMatch(preload.slice(preload.indexOf('? Object.freeze'), preload.indexOf(': Object.freeze')), /audioImport|audioConfig/);
 });

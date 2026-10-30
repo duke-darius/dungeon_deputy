@@ -20,3 +20,13 @@ test('audio save injections are passed only to Electron, never publisher or Vite
   assert.match(main,/DUNGEON_DEPUTY_E2E_AUDIO_SAVE_DELAY_MS: _audioDelaySetting/);
   assert.match(main,/env: \{ \.\.\.backendEnvironment,[\s\S]*DUNGEON_DEPUTY_PORT/);
 });
+
+test('open-source audio fixture paths are forwarded only to the E2E Electron process',async()=>{
+  const fixture=await readFile(new URL('./fixtures.mjs',import.meta.url),'utf8');
+  const main=await readFile(new URL('../../src/main.ts',import.meta.url),'utf8');
+  assert.match(fixture,/DUNGEON_DEPUTY_E2E_AUDIO_FIXTURES: _audioFixtures/);
+  assert.match(fixture,/DUNGEON_DEPUTY_E2E_AUDIO_FIXTURES\?\{DUNGEON_DEPUTY_E2E_AUDIO_FIXTURES:process\.env\.DUNGEON_DEPUTY_E2E_AUDIO_FIXTURES\}:\{\}/);
+  assert.doesNotMatch(fixture,/DUNGEON_DEPUTY_E2E_AUDIO_FIXTURES[^\n]*spawn\(/);
+  assert.match(main,/DUNGEON_DEPUTY_E2E_AUDIO_FIXTURES: _audioFixtures/);
+  assert.match(main,/if \(!e2e \|\| app\.isPackaged \|\| !process\.env\.DUNGEON_DEPUTY_E2E_AUDIO_FIXTURES\) return \[\]/);
+});

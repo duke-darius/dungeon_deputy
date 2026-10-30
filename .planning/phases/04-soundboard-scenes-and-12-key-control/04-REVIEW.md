@@ -1,23 +1,18 @@
 ---
 phase: 04-soundboard-scenes-and-12-key-control
-reviewed: 2026-10-30T10:54:02Z
+reviewed: 2026-10-30T17:50:00Z
 depth: deep
-files_reviewed: 14
+files_reviewed: 9
 files_reviewed_list:
   - src/main.ts
   - src/preload.cts
-  - src/renderer/src/api.ts
-  - src/renderer/src/audio/model.mjs
-  - src/renderer/src/audio/playback.mjs
   - src/renderer/src/audio/AudioWorkspace.tsx
-  - src/renderer/src/audio/cues.mjs
-  - src/renderer/src/audio/CueEditor.tsx
-  - src/renderer/src/audio/saveTestPolicy.mjs
-  - src/renderer/src/map/MapEditor.tsx
   - scripts/e2e/fixtures.mjs
-  - src/renderer/src/audio/importPolicy.mjs
-  - src/renderer/src/audio/importPolicy.test.mjs
+  - scripts/e2e.mjs
+  - scripts/e2e/open-audio/README.md
+  - scripts/e2e/open-audio/License.txt
   - src/main.test.mjs
+  - scripts/e2e/fixtures.test.mjs
 findings:
   critical: 0
   warning: 0
@@ -28,14 +23,14 @@ status: clean
 
 # Phase 4: Code Review Report
 
-**Reviewed:** 2026-10-30T10:54:02Z
-**Depth:** deep  
-**Files Reviewed:** 14
+**Reviewed:** 2026-10-30T17:50:00Z
+**Depth:** deep
+**Files Reviewed:** 9
 **Status:** clean
 
 ## Summary
 
-Re-audited the latest Plan 04-07 bounded-copy change and refreshed the prior re-audit metadata and verification references. All previously raised findings CR-01, CR-02, WR-01, and WR-02 are closed; there are no open findings. CR-02 closure is supported by the implementation and direct asynchronous destination-error test, not merely by the reported passing commands.
+Final security/correctness re-review after CC0 sample integration. All previously raised findings CR-01, CR-02, WR-01, and WR-02 remain closed; no new findings. Fixture paths are isolated to un-packaged E2E Electron and stripped before Vite/backend launches; the public preload remains presentation-only. The Ogg files match the hashes in their provenance README, which identifies Kenney RPG Audio and includes its original CC0 license. They are test fixtures only, not installed or auto-played by the application. E2E exercises import through the existing picker/opaque-ID, bounded staging/quota, decode, save, discard and playback path. Playback-state verification does not establish physical audible output.
 
 ## Narrative Findings (AI reviewer)
 
@@ -43,22 +38,20 @@ No open findings.
 
 ### Closed finding dispositions
 
-- **CR-01 — CLOSED (BLOCKER).** Earlier review evidence remains: serialized quota reservations, actual-byte bounded staging, transactional promotion/rollback and renderer discard cleanup are wired through main. No new regression in the latest review.
-- **CR-02 — CLOSED (BLOCKER), verified in Plan 04-07.** `src/renderer/src/audio/importPolicy.mjs:54-74` constructs input, byte-counting Transform and output, then immediately awaits `stream/promises.pipeline(input, bounded, output)`. Pipeline owns error observation across stream setup, writes and completion; destination write errors reject that promise, including asynchronous errors after write acceptance. The catch path destroys input/transform/output, awaits removal of the partial destination, and rethrows the original pipeline error. The test `src/renderer/src/audio/importPolicy.test.mjs:14-31` injects a Writable whose write callback asynchronously reports the original failure after acceptance, then asserts rejection with that same error, destination cleanup, and destruction of input/output. Actual-byte limit checks remain in the Transform; exact-limit and over-limit cases remain tested at lines 6-12. Thus the required before-first-write-through-completion error observation is established by pipeline's awaited lifecycle and exercised at the asynchronous write-error boundary.
-- **WR-01 — CLOSED (WARNING).** Earlier review evidence remains: successful settings replacement reclaims unreferenced managed assets; generated-name-only startup reconciliation and clear/reimport E2E coverage remain intact.
-- **WR-02 — CLOSED (WARNING), with prior limitation retained.** The focused/visible document guard and E2E focus-state assertions remain in place. This verifies document focus handling only; native OS focus transitions are still unverified, not an open code finding.
+- **CR-01 — CLOSED (BLOCKER).** Serialized quota reservations, actual-byte bounded staging, transactional promotion/rollback and renderer discard cleanup remain wired through main. No new regression found.
+- **CR-02 — CLOSED (BLOCKER).** `src/renderer/src/audio/importPolicy.mjs` uses awaited `stream/promises.pipeline`; async destination errors reject and trigger partial-file cleanup. The direct injected async Writable failure test verifies rejection, cleanup and stream destruction.
+- **WR-01 — CLOSED (WARNING).** Successful settings replacement reclaims unreferenced managed assets; generated-name-only startup reconciliation and clear/reimport E2E coverage remain intact.
+- **WR-02 — CLOSED (WARNING), limitation retained.** Visible/focused document guard and E2E focus-state assertions remain. Native OS focus transitions are still unverified, not an open code finding.
 
-### Latest Plan 04-07 verification evidence
+### Final CC0 fixture and isolation re-review
 
-- Focused bounded-copy test: `node --test src/renderer/src/audio/importPolicy.test.mjs` — reported PASS, 7 tests.
-- Full suite: `npm test` — reported PASS, 68 Node tests and 21 backend tests.
-- Build: `npm run build` — reported PASS.
-- E2E: `npm run test:e2e` — final Windows run log `artifacts/e2e/2026-10-30T10-54-54.753Z-b6b02c15/run.log`, terminal PASS at line 218.
-- Packaging smoke: `npm run package:smoke` — reported PASS, Windows x64.
-- Current repository HEAD at review time: `576b01b5437d8a4519def4f754fedcae5a241bf4` (`2026-10-30T10:54:02Z`, Plan 04-07 documentation completion). The previous audit's 64/67 Node counts and older E2E artifact references are superseded by the above latest 68-test run and artifact.
+- **BLOCKER/WARNING findings: none.** `scripts/e2e.mjs` supplies paths only to the Electron launcher. `scripts/e2e/fixtures.mjs` removes audio fixture variables from the inherited environment for backend publishing and Vite, then explicitly forwards paths only to the E2E Electron child. `src/main.ts` strips those variables from `backendEnvironment`, accepts the fixture list only when E2E is enabled and Electron is not packaged, and selects fixtures only in the corresponding un-packaged E2E import path. Normal packaged app imports continue to use the native file picker.
+- `src/preload.cts` exposes only `getPresentation` in the public role; it exposes no local paths, filesystem, or audio import/bytes API. DM import continues through sender validation, opaque random IDs, bounded pending copy/quota reservation, decode, config transaction and discard cleanup.
+- `scripts/e2e/open-audio/README.md` identifies source and CC0 1.0; original `License.txt` is present. SHA-256 values match the README: `bookOpen.ogg` `953390534377222BEE89AC8CD9E60A58FDC037C71A4D7C18C43CD647C7F34BA8`, `doorOpen_1.ogg` `4AB93BAB96522D8EB109FF96DC57CB6765DEB02448FE14C10472084BE5BB2A0B`, `handleCoins.ogg` `8A91F969E932DF709DF80EE124D86A51389EED9B67F22E5E716BC2BBF60D8DAB`.
+- Latest verification evidence supplied and inspected: 69 Node + 21 backend tests, build, E2E `artifacts/e2e/2026-10-30T17-35-28.837Z-373c71c2/` (run log records all three fixture imports/playback-state checks and final PASS), and Windows package smoke PASS. Physical audio output and macOS remain unverified.
 
 ---
 
-_Reviewed: 2026-10-30T10:54:02Z_
+_Reviewed: 2026-10-30T17:50:00Z_
 _Reviewer: the agent (gsd-code-reviewer)_  
 _Depth: deep_

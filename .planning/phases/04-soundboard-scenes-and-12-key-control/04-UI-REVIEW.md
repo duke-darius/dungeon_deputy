@@ -1,10 +1,10 @@
 # Phase 4 — UI Review
 
-**Audited:** 2026-10-30 (final re-audit)  
-**Baseline:** Approved `04-UI-SPEC.md`; current source and final E2E run `2026-10-30T10-54-54.753Z-b6b02c15`
+**Audited:** 2026-10-30 (final E2E evidence refresh)
+**Baseline:** Approved `04-UI-SPEC.md`; current audio/cue source and final E2E run `2026-10-30T17-35-28.837Z-373c71c2`
 
-**Screenshots:** Captured by final E2E run: desktop manager 1441×902 (`15–16`), phone manager 391×845 (`17–18`). Paired player captures are intentionally blank for private audio. Run also verified responsive layouts at tablet and phone widths without horizontal overflow.
-**Interaction captures:** E2E interactions/assertions in latest run; no separate auditor-generated interaction capture. Audio E2E supports the focus guard using simulated document visibility/`hasFocus`; it does not verify native OS-window focus or physical speaker output.
+**Screenshots:** Captured in `artifacts/e2e/2026-10-30T17-35-28.837Z-373c71c2/screenshots/`: desktop manager audio top/shortcuts (`15–16`, 1441×902), phone manager pads/cues (`17–18`, 391×845). The desktop pad preview includes imported CC0 Ogg samples; paired player screenshots are intentionally black. E2E verifies phone’s 2-column/12-pad grid, cue reachability by vertical scroll, and no horizontal overflow.
+**Interaction captures:** E2E interactions/assertions in the same run; no separate auditor-generated capture. Focus behavior is tested with simulated document visibility/`hasFocus`, not native OS-window focus. Physical audible output and macOS are unverified.
 
 ---
 
@@ -12,24 +12,24 @@
 
 | Pillar | Score | Key Finding |
 |--------|-------|-------------|
-| 1. Copywriting | 4/4 | Contract labels and actionable save/import/cue status copy are present and exercised. |
-| 2. Visuals | 4/4 | Desktop 3×4 and phone 2×6 grids, cue controls, and private/public separation match the layout contract. |
-| 3. Color | 4/4 | Ink/slate dominate; restrained brass/teal states and destructive coral align with contract. |
-| 4. Typography | 4/4 | Current audio rules use the four specified sizes and two weights with no visible clipping. |
-| 5. Spacing | 3/4 | Cue rows use the intended 16px rhythm, but workspace padding 18px and legacy 6/10/12px gaps violate the no-exceptions, multiple-of-four scale. |
-| 6. Experience Design | 4/4 | Save-pending controls, one polite status region, private public surface, and simulated focus guard have E2E coverage; real OS focus/audio output remain unverified. |
+| 1. Copywriting | 4/4 | Contract labels, import/error/status copy and cue actions are present and exercised. |
+| 2. Visuals | 4/4 | Imported-sample desktop preview and scrollable phone pad/cue layouts match the contract. |
+| 3. Color | 4/4 | Ink/slate dominate; brass/teal states and destructive coral stay restrained. |
+| 4. Typography | 4/4 | Audio rules use the four contract sizes and two weights; screenshots show legible labels. |
+| 5. Spacing | 3/4 | Several legacy off-scale declarations remain, including 18px workspace padding and 6/10/12px gaps. |
+| 6. Experience Design | 4/4 | Import, save recovery, cue persistence/actions, DM-only boundary and responsive scrolling have E2E coverage; hardware/native-focus limits remain. |
 
 **Overall: 23/24**
 
-**Shipping blockers:** None found in the requested checks. Physical audio output and native OS-window focus are not verified by this E2E run.
+**Shipping blockers:** None found in the requested checks. Do not claim verified physical audio output or native macOS focus behavior.
 
 ---
 
 ## Top 3 Priority Fixes
 
-1. **Normalize spacing to the approved scale** — the 18px workspace inset and non-scale 6/10/12px gaps contradict “All values are multiples of 4. Exceptions: none” — replace with nearest 16/8px tokens, then recheck the rendered layouts.
-2. **Add native focus validation if focus behavior is a release-critical guarantee** — E2E overrides `document.hasFocus()` in-page, not actual OS activation — validate a real blur/refocus path in a desktop-window automation or manual acceptance test.
-3. **Verify audible output on target hardware before claiming sound works end-to-end** — browser decode/playback status does not prove speakers emitted sound — perform and record a physical speaker/headphone check; do not infer it from these screenshots or automated playback state.
+1. **Normalize remaining spacing declarations** — contract disallows exceptions to multiples of 4 — replace `.audio-workspace` 18px padding and stale 6/10/12px gaps in `styles.css` with scale tokens, remove superseded declarations, then recheck desktop/mobile.
+2. **Validate focus on a real desktop window if it is a release guarantee** — E2E simulates `document.hasFocus()` — add native blur/refocus acceptance coverage.
+3. **Verify audible output on target hardware before claiming end-to-end sound** — decoded/playback status does not prove physical output — manually test speakers/headphones and record result; macOS remains unverified.
 
 ---
 
@@ -37,39 +37,35 @@
 
 ### Pillar 1: Copywriting (4/4)
 
-- **PASS:** UI uses “Audio · DM only,” “Import sound,” “No sounds in this bank,” “Cue shortcuts,” and explicit bank/pad actions (`AudioWorkspace.tsx:95-104`; `CueEditor.tsx:28-45`), matching `04-UI-SPEC.md:64-74`.
-- **PASS:** A single status channel reports “Saving soundboard changes…”, “Saving shortcut…”, specific save failure/retry, import/decode failures, and playback outcomes (`AudioWorkspace.tsx:32-50,53-70,72-75,109`). Latest E2E run deliberately induces one save rejection (`run.log:23-25`) and proceeds through the tested rollback/recovery flow.
-- **PASS:** Cue recording explains the chord requirement and Escape cancellation; conflict feedback names the existing target and promises no reassignment (`CueEditor.tsx:14-21,41`).
+- **PASS:** `AudioWorkspace.tsx:95-109` uses “Audio · DM only”, actionable empty-state copy, Import/Relink/Play/Stop and one polite status region; `CueEditor.tsx:28-47` supplies named cue targets, recording/cancel, conflict and save feedback. Matches `04-UI-SPEC.md:64-74`.
+- **PASS:** E2E induces a save rejection and verifies rollback/re-enabled controls, import decode failure, then success (`scripts/e2e.mjs:90-123`; run log `:23-29`).
 
 ### Pillar 2: Visuals (4/4)
 
-- **PASS:** Latest desktop capture `15-audio-soundboard-top-manager.png` shows bank controls, master volume, and a clear 3-column pad focal area. `16-audio-shortcuts-manager.png` shows the grouped cue editor, single status treatment, and Stop all. Phone captures `17–18` show a two-column grid and vertically flowing cue form without clipped actions.
-- **PASS:** E2E asserts exactly 12 slots and 3 desktop columns (`scripts/e2e.mjs:84-87`), then 2 phone columns, all slots, and no horizontal overflow (`:169-171,258-261`). Latest run logs the matching captures at `run.log:67-74` and responsive no-overflow checks at `:204-207`.
-- **PASS:** Selected workspace navigation uses the brass outline; keyboard focus rules provide a visible 2px focus outline in the audio workspace (`styles.css:271,292`). Cue capture gets a distinct active-row state (`styles.css:288-290,316`). The screenshot set itself is static and does not demonstrate every transient focus-ring state.
-- **PASS:** Public/player audio screenshots are blank by design (`run.log:67,69,71,73`); manager audio remains clearly labeled and locked (`AudioWorkspace.tsx:95-96`).
+- **PASS:** Latest `15-audio-soundboard-top-manager.png` shows the desktop 3-column soundboard with an assigned fixture and imported Ogg samples; `16-audio-shortcuts-manager.png` shows grouped cue controls. `17–18` show a two-column phone pad grid and vertically stacked, reachable cues. Corresponding player captures are black by design (run log `:74-81`).
+- **PASS:** E2E asserts exactly 12 pads and exactly one “Import sound” action per empty pad (`scripts/e2e.mjs:84-89`); phone retains all 12 pads, two columns, no horizontal overflow, and cue controls reached by scroll (`:182-184,274-284`).
+- **PASS:** Persistent lock and DM-only label are visible (`AudioWorkspace.tsx:95-96`); focus styling is present (`styles.css:271,292`).
 
 ### Pillar 3: Color (4/4)
 
-- **PASS:** Audio styles use ink `#202523`, slate `#303835`, chalk text, and border `#414944`; teal denotes looping/status, brass is used for focus/selected states, and coral is confined to Stop all (`styles.css:275,280-292,307-308`). Distribution is surface-led, not accent-led.
-- **PASS:** The audio view is explicitly DM-only and paired with a lock (`AudioWorkspace.tsx:95-96`). Latest paired public captures remain blank while manager audio is visible (`run.log:67-74`).
+- **PASS:** Ink/slate/chalk surfaces dominate; brass focus/selection, teal looping/status, and coral Stop all are limited to semantic states (`styles.css:275,280-292,307-308`). No accent-led surface treatment is apparent in latest captures.
+- **PASS:** Manager explicitly marks audio DM-only (`AudioWorkspace.tsx:95-96`); E2E verifies public preload exposes neither `audioImport` nor `audioConfig`, and public output remains blank after audio actions (`scripts/e2e.mjs:185-187,211-214`).
 
 ### Pillar 4: Typography (4/4)
 
-- **PASS:** Audio stylesheet declarations use 12px metadata, 14px body/control, 16px section labels, and 20px workspace heading; regular/semibold are the only specified weights in these rules (`styles.css:275-287,290-292,314`). Desktop and phone captures show legible labels without evident clipping.
+- **PASS:** Audio styles specify 12px metadata, 14px body/control, 16px section labels and 20px workspace heading; regular/semibold are used (`styles.css:275-287,290-292,314`). Current desktop/phone captures show readable content without evident clipping.
 
 ### Pillar 5: Spacing (3/4)
 
-- **WARNING:** Cue row structure is well grouped at 16px outer padding/gaps and 8px label/control gaps (`styles.css:288,309-315`); phone cue form stacks and retains usable buttons (`:305,318`). Pad columns keep 16px desktop gaps and contract-appropriate tighter 8px phone gaps (`:299-305`).
-- **WARNING:** Contract explicitly permits no spacing exceptions and requires multiples of 4 (`04-UI-SPEC.md:26-38`). Current rules include `.audio-workspace { padding:18px 0 }` and older `.audio-actions { gap:6px }`, `.audio-bankbar { gap:10px }`, `.audio-pads { gap:12px }` declarations (`styles.css:275`); 18/6/10 are off-scale. Later overrides change some cases but not the 18px workspace padding; the leftover declarations make the spacing system internally inconsistent. Replace with 16/8px values and remove superseded rules.
-- **PASS:** Shared buttons and cue selects are at least 44px high; loop targets are explicitly 44px, while phone bank/action controls wrap (`styles.css:275,295,312,315,318`). Latest E2E reports no horizontal overflow at tablet/phone widths (`run.log:204-207`).
+- **WARNING:** Approved scale requires multiples of four with no exceptions (`04-UI-SPEC.md:26-38`). Base declarations still include `.audio-workspace { padding:18px 0 }`, `.audio-actions { gap:6px }`, `.audio-bankbar { gap:10px }`, `.audio-pads { gap:12px }` (`styles.css:275`); later overrides fix some gaps but not desktop 18px padding (`:276-278,293-305`).
+- **PASS:** Current cue rows use 16px padding/gaps and 8px control gaps; phone cue form stacks, pad cards keep usable targets and scroll (`styles.css:309-318`). E2E confirms no horizontal overflow and phone cue reachability (`scripts/e2e.mjs:182-184,274-284`).
 
 ### Pillar 6: Experience Design (4/4)
 
-- **PASS:** Latest run exercises pending save and rejected save behavior; the intended pending state disables editing and recovery restores controls and persisted values (`AudioWorkspace.tsx:32-50`; `scripts/e2e.mjs:90-104,112-121`; expected injected error `run.log:23-25`).
-- **PASS:** Exactly one polite `role="status"`/`aria-live="polite"` region is rendered (`AudioWorkspace.tsx:109`). Cue inline feedback is `aria-live="off"` and forwards announcements to that status region (`CueEditor.tsx:16-21,47`).
-- **PASS with scope limit:** Cue keys require an active/visible document (`AudioWorkspace.tsx:78-86`; `cues.mjs:49-50`). E2E flips a simulated `document.hasFocus()` value, checks a matching cue does not dispatch while false, restores true, then confirms dispatch (`scripts/e2e.mjs:78,127-145`). This is evidence for application focus-guard logic, not native OS window-focus behavior.
-- **PASS:** Public preload is checked for absence of audio APIs and player surface remains blank after private playback (`scripts/e2e.mjs:173-174,199-201`; `run.log:67-74`). Automated playback state does not verify physical speaker output.
-- **PASS:** Keyboard focus styling is specified in CSS (`styles.css:271,292`); focused cue chord, conflict/cancel, and success behaviors have E2E assertions (`scripts/e2e.mjs:124-145`).
+- **PASS:** One “Import sound” button appears per empty pad (`scripts/e2e.mjs:84-89`). Three named Kenney CC0 files—`bookOpen.ogg`, `doorOpen_1.ogg`, `handleCoins.ogg`—are selected through the DM picker, decoded, shown by basename, and playback status verified (`scripts/e2e.mjs:114-124`; run log `:29`). Decode failure preserves the empty assignment (`:107-110`).
+- **PASS:** Save-pending disable/recovery and persisted cue state are exercised (`scripts/e2e.mjs:90-106,125-139,190-200`). Cue record/cancel, conflict rejection, play-pad, show-scene, current-encounter and blackout paths are covered (`:137-158,201-241`); `CueEditor.tsx:41-45` provides clear/remove/reset actions, with reset confirmation.
+- **PASS:** Audio data stays private: public preload does not expose audio APIs and player output remains blank (`scripts/e2e.mjs:185-187,211-214`). Audio/cue labels and status handling live in `AudioWorkspace.tsx:95-109` and `CueEditor.tsx:28-47`.
+- **CAVEAT:** Cue focus guard has test coverage only under simulated `document.hasFocus()`/visibility (`scripts/e2e.mjs:78,140-145`); native OS focus and physical audible output are not verified. E2E reports macOS unverified (`run.log:228`).
 
 ---
 
@@ -81,10 +77,9 @@
 - `src/renderer/src/audio/cues.mjs`
 - `src/renderer/src/styles.css`
 - `scripts/e2e.mjs`
-- `artifacts/e2e/2026-10-30T10-54-54.753Z-b6b02c15/run.log`
-- `artifacts/e2e/2026-10-30T10-54-54.753Z-b6b02c15/screenshots/15-audio-soundboard-top-manager.png`
-- `artifacts/e2e/2026-10-30T03-07-40.574Z-02584797/screenshots/15-audio-soundboard-top-player.png`
-- `artifacts/e2e/2026-10-30T10-54-54.753Z-b6b02c15/screenshots/16-audio-shortcuts-manager.png`
-- `artifacts/e2e/2026-10-30T03-07-40.574Z-02584797/screenshots/16-audio-shortcuts-player.png`
-- `artifacts/e2e/2026-10-30T10-54-54.753Z-b6b02c15/screenshots/17-audio-phone-pads-manager.png`
-- `artifacts/e2e/2026-10-30T10-54-54.753Z-b6b02c15/screenshots/18-audio-phone-shortcuts-manager.png`
+- `artifacts/e2e/2026-10-30T17-35-28.837Z-373c71c2/run.log`
+- `artifacts/e2e/2026-10-30T17-35-28.837Z-373c71c2/screenshots/15-audio-soundboard-top-manager.png`
+- `artifacts/e2e/2026-10-30T17-35-28.837Z-373c71c2/screenshots/16-audio-shortcuts-manager.png`
+- `artifacts/e2e/2026-10-30T17-35-28.837Z-373c71c2/screenshots/17-audio-phone-pads-manager.png`
+- `artifacts/e2e/2026-10-30T17-35-28.837Z-373c71c2/screenshots/18-audio-phone-shortcuts-manager.png`
+- Matching `15–18` player screenshots (black by design)

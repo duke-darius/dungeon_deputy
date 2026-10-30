@@ -27,8 +27,18 @@ let audioConfig: any = defaultAudioConfig();
 const pendingAudioIds = new Map<string, {format: string; size: number}>();
 const withAudioLock = createSerialLock();
 let invalidFixtureConsumed = false;
+let e2eAudioFixtureIndex = 0;
 const e2e = process.env.DUNGEON_DEPUTY_E2E === '1';
-const { DUNGEON_DEPUTY_E2E_AUDIO_SAVE_DELAY_MS: _audioDelaySetting, DUNGEON_DEPUTY_E2E_AUDIO_SAVE_FAIL_FIRST: _audioFailSetting, ...backendEnvironment } = process.env;
+const e2eAudioFixtures: string[] = (() => {
+  if (!e2e || app.isPackaged || !process.env.DUNGEON_DEPUTY_E2E_AUDIO_FIXTURES) return [];
+  try {
+    const value = JSON.parse(process.env.DUNGEON_DEPUTY_E2E_AUDIO_FIXTURES);
+    return Array.isArray(value) && value.length <= 8 && value.every((item: unknown) => typeof item === 'string' && item.length <= 2048)
+      ? value.map((item: string) => resolve(item))
+      : [];
+  } catch { return []; }
+})();
+const { DUNGEON_DEPUTY_E2E_AUDIO_SAVE_DELAY_MS: _audioDelaySetting, DUNGEON_DEPUTY_E2E_AUDIO_SAVE_FAIL_FIRST: _audioFailSetting, DUNGEON_DEPUTY_E2E_AUDIO_FIXTURE: _audioFixture, DUNGEON_DEPUTY_E2E_AUDIO_FIXTURES: _audioFixtures, DUNGEON_DEPUTY_E2E_AUDIO_INVALID_FIXTURE: _invalidAudioFixture, DUNGEON_DEPUTY_E2E_AUDIO_FAIL_IMPORT_FIRST: _failAudioImport, ...backendEnvironment } = process.env;
 const audioSaveTestPolicy = saveTestPolicy({
   e2e,
   isPackaged: app.isPackaged,
@@ -151,8 +161,13 @@ function installIpc() {
   ipcMain.handle('audio:import', async event => {
     if (!allowedSender('dm', event)) throw new Error('Denied');
     const failInvalid = e2e && !app.isPackaged && process.env.DUNGEON_DEPUTY_E2E_AUDIO_INVALID_FIXTURE && process.env.DUNGEON_DEPUTY_E2E_AUDIO_FAIL_IMPORT_FIRST === '1' && !invalidFixtureConsumed;
-    const selected = e2e && !app.isPackaged && (failInvalid || process.env.DUNGEON_DEPUTY_E2E_AUDIO_FIXTURE)
-      ? { canceled: false, filePaths: [resolve(failInvalid ? process.env.DUNGEON_DEPUTY_E2E_AUDIO_INVALID_FIXTURE! : process.env.DUNGEON_DEPUTY_E2E_AUDIO_FIXTURE!)] }
+    const fixturePath = failInvalid
+      ? process.env.DUNGEON_DEPUTY_E2E_AUDIO_INVALID_FIXTURE
+      : e2eAudioFixtures.length
+        ? e2eAudioFixtures[e2eAudioFixtureIndex++ % e2eAudioFixtures.length]
+        : process.env.DUNGEON_DEPUTY_E2E_AUDIO_FIXTURE;
+    const selected = e2e && !app.isPackaged && fixturePath
+      ? { canceled: false, filePaths: [resolve(fixturePath)] }
       : await dialog.showOpenDialog(windows.get('dm')!, { properties: ['openFile'], filters: [{ name: 'Audio', extensions: ['wav', 'mp3', 'ogg', 'oga', 'opus'] }] });
     if (selected.canceled || selected.filePaths.length !== 1) return null;
     const source = selected.filePaths[0];
