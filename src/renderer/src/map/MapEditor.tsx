@@ -3,8 +3,9 @@ import { command, publishMapRaster, reorderInitiative } from '../api';
 import { MapCanvas, rasterizePublicMap } from './MapCanvas';
 import type { MapState } from './types';
 import { SCENES, sceneById } from '../contracts.mjs';
+import AudioWorkspace from '../audio/AudioWorkspace';
 
-type Workspace = 'scenes' | 'map';
+type Workspace = 'scenes' | 'map' | 'audio';
 type Presentation = { mode: string; sceneId: string | null };
 const RETRY_MESSAGE = 'Couldn’t save this change. Your last saved state is unchanged; retry the action.';
 
@@ -232,7 +233,9 @@ export default function MapEditor() {
     <nav className="work-mode" aria-label="Workspace">
       <button aria-pressed={mode === 'scenes'} onClick={() => setMode('scenes')}>Scenes</button>
       <button aria-pressed={mode === 'map'} onClick={() => setMode('map')}>Battle map</button>
+      <button aria-pressed={mode === 'audio'} onClick={() => setMode('audio')}>Audio · DM only</button>
     </nav>
+    {mode === 'audio' && <AudioWorkspace />}
     <div className="map-status-region" aria-live="polite">{message && <p className="map-toast" role="status">{message}</p>}</div>
 
     {mode === 'scenes' && <section className="scene-mode" aria-label="Scene presentation">

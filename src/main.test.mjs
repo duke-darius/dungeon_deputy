@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { chooseExternalDisplay } from './display-policy.mjs';
 import { mapToScreen, screenToMap, zoomAt, ZOOM_MIN, ZOOM_MAX } from './renderer/src/map/camera.mjs';
+import './renderer/src/audio/model.test.mjs';
 const main = await readFile(new URL('./main.ts', import.meta.url), 'utf8');
 const preload = await readFile(new URL('./preload.cts', import.meta.url), 'utf8');
 test('main owns Electron display and backend lifecycle securely', () => {
@@ -38,6 +39,15 @@ test('public preload exposes only public presentation retrieval', () => {
   assert.match(preload, /const api = publicWindow\s*\? Object\.freeze\(\{ getPresentation/);
   assert.match(main, /allowedSender\('public', event\)/);
   assert.doesNotMatch(preload.slice(preload.indexOf('? Object.freeze'), preload.indexOf(': Object.freeze')), /command:|preferences:|displays:/);
+});
+test('private audio import is picker-only, sender checked, opaque and E2E gated', () => {
+  assert.match(main, /audio:import/);
+  assert.match(main, /allowedSender\('dm', event\)/);
+  assert.match(main, /showOpenDialog/);
+  assert.match(main, /randomBytes\(16\)/);
+  assert.match(main, /DUNGEON_DEPUTY_E2E/);
+  assert.match(preload, /audioImport/);
+  assert.doesNotMatch(preload.slice(preload.indexOf('? Object.freeze'), preload.indexOf(': Object.freeze')), /audioImport|audioConfig/);
 });
 test('sandboxed preload uses CommonJS output rather than unsupported ESM imports', async () => {
   const tsconfig = await readFile(new URL('../tsconfig.electron.json', import.meta.url), 'utf8');

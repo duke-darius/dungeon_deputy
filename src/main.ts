@@ -1,9 +1,10 @@
-import { app, BrowserWindow, ipcMain, screen, type Display } from 'electron';
+import { app, BrowserWindow, ipcMain, screen, dialog, type Display } from 'electron';
 import { spawn, type ChildProcess } from 'node:child_process';
 import { createHash, randomBytes } from 'node:crypto';
-import { readFile, writeFile, mkdir } from 'node:fs/promises';
+import { readFile, writeFile, mkdir, stat, copyFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { chooseExternalDisplay } from './display-policy.mjs';
+import { defaultAudioConfig, validateAudioConfig, MAX_FILE_BYTES, MAX_TOTAL_BYTES } from './renderer/src/audio/model.mjs';
 
 type Role = 'dm' | 'public';
 type Preferences = { sceneId: string; displayId: number | null };
@@ -17,6 +18,8 @@ let prefs: Preferences = fallback;
 let quitting = false;
 let activeDisplayId: number | null = null;
 let displayStateInitialized = false;
+let audioConfig: any = defaultAudioConfig();
+const pendingAudioIds = new Map<string, string>();
 const e2e = process.env.DUNGEON_DEPUTY_E2E === '1';
 const e2eDataRoot = process.env.DUNGEON_DEPUTY_DATA_DIR;
 const e2eBackendRoot = process.env.DUNGEON_DEPUTY_BACKEND_ROOT;
@@ -40,6 +43,21 @@ async function loadPreferences() {
 async function savePreferences() {
   await mkdir(app.getPath('userData'), { recursive: true });
   await writeFile(join(app.getPath('userData'), 'preferences.json'), JSON.stringify(prefs), { mode: 0o600 });
+}
+const audioRoot = () => join(app.getPath('userData'), 'audio');
+const audioConfigPath = () => join(app.getPath('userData'), 'audio-config.json');
+async function loadAudioConfig() {
+  try { audioConfig = validateAudioConfig(JSON.parse(await readFile(audioConfigPath(), 'utf8'))); }
+  catch { audioConfig = defaultAudioConfig(); }
+}
+async function saveAudioConfig(value: unknown) {
+  const next = validateAudioConfig(value);
+  if (JSON.stringify(next) !== JSON.stringify(value)) throw new Error('Invalid soundboard configuration.');
+  await mkdir(app.getPath('userData'), { recursive: true });
+  const temp = `${audioConfigPath()}.tmp`;
+  await writeFile(temp, JSON.stringify(next), { mode: 0o600 });
+  const { rename } = await import('node:fs/promises');
+  await rename(temp, audioConfigPath()); audioConfig = next;
 }
 function api(path: string, method = 'GET', body?: unknown) {
   return fetch(`${backendUrl}${path}`, { method, headers: { 'X-Dungeon-Token': backendToken, Accept: 'application/json', ...(body === undefined ? {} : { 'Content-Type': 'application/json' }) }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
@@ -72,9 +90,41 @@ function allowedSender(role: Role, event: Electron.IpcMainInvokeEvent) {
   return !!win && event.sender === win.webContents && event.senderFrame?.url === win.webContents.getURL();
 }
 function installIpc() {
-  for (const channel of ['dm:command', 'dm:preferences', 'display:list', 'public:presentation']) {
+  for (const channel of ['dm:command', 'dm:preferences', 'display:list', 'public:presentation', 'audio:config', 'audio:import', 'audio:bytes']) {
     ipcMain.removeHandler(channel);
   }
+  ipcMain.handle('audio:config', async (event, value?: unknown) => {
+    if (!allowedSender('dm', event)) throw new Error('Denied');
+    if (value !== undefined) await saveAudioConfig(value);
+    return audioConfig;
+  });
+  ipcMain.handle('audio:import', async event => {
+    if (!allowedSender('dm', event)) throw new Error('Denied');
+    const selected = e2e && process.env.DUNGEON_DEPUTY_E2E_AUDIO_FIXTURE
+      ? { canceled: false, filePaths: [resolve(process.env.DUNGEON_DEPUTY_E2E_AUDIO_FIXTURE)] }
+      : await dialog.showOpenDialog(windows.get('dm')!, { properties: ['openFile'], filters: [{ name: 'Audio', extensions: ['wav', 'mp3', 'ogg', 'oga', 'opus'] }] });
+    if (selected.canceled || selected.filePaths.length !== 1) return null;
+    const source = selected.filePaths[0];
+    const ext = source.split('.').pop()?.toLowerCase();
+    if (!['wav', 'mp3', 'ogg', 'oga', 'opus'].includes(ext ?? '')) throw new Error('Unsupported audio file type.');
+    const info = await stat(source);
+    if (!info.isFile() || info.size <= 0 || info.size > MAX_FILE_BYTES) throw new Error('Audio file must be 25 MiB or smaller.');
+    if (audioConfig.assets.reduce((n: number, a: {size: number}) => n + a.size, 0) + info.size > MAX_TOTAL_BYTES) throw new Error('Imported audio total exceeds 256 MiB.');
+    const id = `a_${randomBytes(16).toString('hex')}`;
+    const format = ['oga', 'opus'].includes(ext!) ? 'ogg' : ext!;
+    await mkdir(audioRoot(), { recursive: true });
+    await copyFile(source, join(audioRoot(), `${id}.${format}`));
+    pendingAudioIds.set(id, format);
+    return { id, name: source.split(/[\\/]/).pop()!.replace(/\.[^.]+$/, '').slice(0, 80), format, size: info.size, duration: 0 };
+  });
+  ipcMain.handle('audio:bytes', async (event, id: unknown) => {
+    if (!allowedSender('dm', event) || typeof id !== 'string' || !/^a_[a-f0-9]{32}$/.test(id)) throw new Error('Denied');
+    const asset = audioConfig.assets.find((a: {id: string; format: string}) => a.id === id);
+    if (!asset && !pendingAudioIds.has(id)) throw new Error('Unknown audio asset.');
+    const format = asset?.format ?? pendingAudioIds.get(id)!;
+    const bytes = await readFile(join(audioRoot(), `${id}.${format}`)).catch(() => { throw new Error('Audio file is missing.'); });
+    return Uint8Array.from(bytes);
+  });
   ipcMain.handle('dm:command', async (event, path: unknown, method: unknown, body?: unknown) => {
     if (!allowedSender('dm', event) || typeof path !== 'string' || !/^\/api\/(scenes|presentation|selection\/[a-z-]+|show\/[a-z-]+|blackout|map|map\/draft|map\/blank|map\/show|map\/show-encounter|map\/fog\/(?:enable|strokes)|map\/token(?:\/[a-zA-Z0-9-]+(?:\/(?:visibility|hp|conditions|initiative(?:\/roll)?|tie-break))?)?|encounter(?:\/actors\/[a-zA-Z0-9-]+\/(?:hp|conditions|initiative(?:\/roll)?|tie-break)|\/turn\/end|\/dice)?)\/?(?:\?.*)?$/.test(path) || !['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].includes(String(method))) throw new Error('Denied');
     const response = await api(path, String(method), body);
@@ -165,7 +215,7 @@ function safeTopology(metricsDisplayId?: number) {
   if (!e2e && !publicWindow.isFullScreen()) publicWindow.setFullScreen(true);
 }
 app.whenReady().then(async () => {
-  screen.getAllDisplays(); await loadPreferences(); installIpc(); await startBackend(); createWindows();
+  screen.getAllDisplays(); await loadPreferences(); await loadAudioConfig(); installIpc(); await startBackend(); createWindows();
   screen.on('display-added', () => safeTopology()); screen.on('display-removed', () => safeTopology());
   screen.on('display-metrics-changed', (_event, display) => safeTopology(display.id));
 }).catch(error => { console.error(error); app.quit(); });

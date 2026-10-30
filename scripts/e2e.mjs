@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { setup, launch, cleanup, evidence, log, getRendererErrors, getLogLines } from './e2e/fixtures.mjs';
 import { createHash } from 'node:crypto';
@@ -55,6 +55,11 @@ async function assertWindowsStable() {
 }
 
 try {
+  const wav = Buffer.alloc(44 + 800);
+  wav.write('RIFF', 0); wav.writeUInt32LE(836, 4); wav.write('WAVEfmt ', 8); wav.writeUInt32LE(16, 16); wav.writeUInt16LE(1, 20); wav.writeUInt16LE(1, 22); wav.writeUInt32LE(8000, 24); wav.writeUInt32LE(16000, 28); wav.writeUInt16LE(2, 32); wav.writeUInt16LE(16, 34); wav.write('data', 36); wav.writeUInt32LE(800, 40);
+  const audioFixture = join(process.cwd(), 'artifacts', 'e2e-audio-fixture.wav');
+  await mkdir(join(process.cwd(), 'artifacts'), { recursive: true }); await writeFile(audioFixture, wav);
+  process.env.DUNGEON_DEPUTY_E2E_AUDIO_FIXTURE = audioFixture;
   await setup();
   await mkdir(join(evidence, 'screenshots'), { recursive: true });
 
@@ -70,6 +75,12 @@ try {
   };
 
   let { manager, player } = await launchPair(join(evidence, 'data'));
+  await manager.getByRole('button', { name: 'Audio · DM only' }).click();
+  await manager.getByRole('button', { name: 'Import sound' }).first().click();
+  await manager.getByText('e2e-audio-fixture', { exact: true }).waitFor();
+  await manager.getByRole('button', { name: 'Battle map' }).click();
+  await manager.getByRole('button', { name: 'Play', exact: true }).click();
+  assert.equal(await player.evaluate(() => 'audioImport' in window.dungeonDeputy || 'audioConfig' in window.dungeonDeputy), false, 'public preload must not expose soundboard APIs');
 
   const capture = async (name, role, route, expectedVisual = false) => {
     const captured = await app.evaluate(async ({ BrowserWindow }, suffix) => {
@@ -362,6 +373,9 @@ try {
 
   await app.close();
   ({ manager, player } = await launchPair(join(evidence, 'data')));
+  await manager.getByRole('button', { name: 'Audio · DM only' }).click();
+  await manager.getByText('e2e-audio-fixture', { exact: true }).waitFor();
+  await manager.getByRole('button', { name: 'Battle map' }).click();
   const restored = await waitForMap(manager, state => state.draft?.tokens?.some(token => token.name === 'E2E ranger'), 'draft restore after app restart');
   assert.equal(restored.draft.scale, 72);
   assert.equal(restored.draft.fogEnabled,true,'fog state persists across restart');
@@ -399,6 +413,7 @@ try {
   console.error(error);
   process.exitCode = 1;
 } finally {
+  await rm(join(process.cwd(), 'artifacts', 'e2e-audio-fixture.wav'), { force: true });
   await cleanup({ success });
   console.log(`${success ? 'PASS' : 'FAIL'} E2E evidence: ${evidence}`);
 }

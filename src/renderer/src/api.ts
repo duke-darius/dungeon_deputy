@@ -1,5 +1,5 @@
 import type { PublicPresentation } from './contracts.mjs';
-declare global { interface Window { dungeonDeputy: { command(path: string, method?: string, body?: unknown): Promise<unknown>; getPresentation(): Promise<PublicPresentation>; preferences?: (value?: unknown) => Promise<{ sceneId: string; displayId: number | null }>; displays?: () => Promise<Array<{id: number; label: string}>> } } }
+declare global { interface Window { dungeonDeputy: { command(path: string, method?: string, body?: unknown): Promise<unknown>; getPresentation(): Promise<PublicPresentation>; preferences?: (value?: unknown) => Promise<{ sceneId: string; displayId: number | null }>; displays?: () => Promise<Array<{id: number; label: string}>>; audioConfig?: (value?: unknown) => Promise<any>; audioImport?: () => Promise<any>; audioBytes?: (id: string) => Promise<Uint8Array> } } }
 
 export async function command(path: string, method = 'GET', body?: unknown): Promise<unknown> {
   if (!window.dungeonDeputy || typeof window.dungeonDeputy.command !== 'function') {
