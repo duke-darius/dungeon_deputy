@@ -4,6 +4,8 @@ import { createHash, randomBytes } from 'node:crypto';
 import { readFile, writeFile, mkdir, stat, copyFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { chooseExternalDisplay } from './display-policy.mjs';
+// @ts-ignore JS policy is exercised by Node TAP tests.
+import { saveTestPolicy, createFailOnce } from './renderer/src/audio/saveTestPolicy.mjs';
 // @ts-ignore JS model is exercised by Node TAP tests.
 import { defaultAudioConfig, validateAudioConfig, MAX_FILE_BYTES, MAX_TOTAL_BYTES } from './renderer/src/audio/model.mjs';
 
@@ -22,6 +24,13 @@ let displayStateInitialized = false;
 let audioConfig: any = defaultAudioConfig();
 const pendingAudioIds = new Map<string, string>();
 const e2e = process.env.DUNGEON_DEPUTY_E2E === '1';
+const audioSaveTestPolicy = saveTestPolicy({
+  e2e,
+  isPackaged: app.isPackaged,
+  delayMs: process.env.DUNGEON_DEPUTY_E2E_AUDIO_SAVE_DELAY_MS === undefined ? undefined : Number(process.env.DUNGEON_DEPUTY_E2E_AUDIO_SAVE_DELAY_MS),
+  failFirst: process.env.DUNGEON_DEPUTY_E2E_AUDIO_SAVE_FAIL_FIRST === '1',
+});
+const failFirstAudioSave = createFailOnce(audioSaveTestPolicy.failFirst);
 const e2eDataRoot = process.env.DUNGEON_DEPUTY_DATA_DIR;
 const e2eBackendRoot = process.env.DUNGEON_DEPUTY_BACKEND_ROOT;
 const e2eDevUrl = process.env.DUNGEON_DEPUTY_DEV_URL;
@@ -52,6 +61,8 @@ async function loadAudioConfig() {
   catch { audioConfig = defaultAudioConfig(); }
 }
 async function saveAudioConfig(value: unknown) {
+  if (audioSaveTestPolicy.delayMs > 0) await new Promise(resolve => setTimeout(resolve, audioSaveTestPolicy.delayMs));
+  if (failFirstAudioSave()) throw new Error('Soundboard save failed. Your previous settings were restored; try again.');
   const next = validateAudioConfig(value);
   if (JSON.stringify(next) !== JSON.stringify(value)) throw new Error('Invalid soundboard configuration.');
   await mkdir(app.getPath('userData'), { recursive: true });

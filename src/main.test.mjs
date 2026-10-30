@@ -49,6 +49,13 @@ test('private audio import is picker-only, sender checked, opaque and E2E gated'
   assert.match(preload, /audioImport/);
   assert.doesNotMatch(preload.slice(preload.indexOf('? Object.freeze'), preload.indexOf(': Object.freeze')), /audioImport|audioConfig/);
 });
+test('audio-save test seam is gated by immutable packaged state and only wraps config writes', () => {
+  assert.match(main, /saveTestPolicy\(\{[\s\S]*e2e,[\s\S]*isPackaged: app\.isPackaged/);
+  assert.match(main, /process\.env\.DUNGEON_DEPUTY_E2E_AUDIO_SAVE_DELAY_MS/);
+  assert.match(main, /process\.env\.DUNGEON_DEPUTY_E2E_AUDIO_SAVE_FAIL_FIRST === '1'/);
+  assert.match(main, /async function saveAudioConfig\(value: unknown\) \{[\s\S]*audioSaveTestPolicy\.delayMs[\s\S]*failFirstAudioSave\(\)/);
+  assert.match(main, /ipcMain\.handle\('audio:config',[\s\S]*if \(value !== undefined\) await saveAudioConfig\(value\)/);
+});
 test('sandboxed preload uses CommonJS output rather than unsupported ESM imports', async () => {
   const tsconfig = await readFile(new URL('../tsconfig.electron.json', import.meta.url), 'utf8');
   const buildCheck = await readFile(new URL('../scripts/verify-electron-output.mjs', import.meta.url), 'utf8');
