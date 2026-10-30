@@ -64,7 +64,7 @@ Plans:
   1. The DM can manually hide and reveal map regions and tokens, and players see no hidden token or unrevealed information.
   2. The DM can manage actor HP and simple conditions, set initiative, advance turns, and make basic dice rolls.
   3. The DM can complete a basic encounter without leaving the main dashboard while only approved visual state is public.
-**Plans:** 7/7 plans executed
+**Plans:** 7/8 plans executed
 Plans:
 - [x] 03-01-PLAN.md — Trace persisted fog and filtered public visibility end-to-end
 - [x] 03-04-PLAN.md — Close fog rendering, brush lifecycle, and authenticated publication gaps
@@ -93,6 +93,7 @@ Plans:
 - [x] 04-05-PLAN.md — Close transactional audio import and managed-asset reclamation review gaps
 - [x] 04-06-PLAN.md — Close behavioral evidence gaps for concurrent quota staging and promotion rollback
 - [x] 04-07-PLAN.md — Close CR-02 asynchronous destination-stream error handling gap
+- [ ] 04-08-PLAN.md — Bundle safe CC0 soundboard defaults and prove first-run/clear lifecycle
 **UI hint**: yes
 
 ### Phase 5: Offline 2024 SRD Compendium

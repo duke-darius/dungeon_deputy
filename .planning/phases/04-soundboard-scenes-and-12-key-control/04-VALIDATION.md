@@ -18,6 +18,9 @@ Phase 3 verifier report: 4/4 truths passed after the shared map publication gate
 | 04-06-01 | AUD-01 | Production `stageWithinAudioQuota` helper behavior test proves serialized concurrent six-byte imports against ten-byte aggregate capacity; budgets are exactly 10 then 4, second is rejected and cleaned, and committed-plus-reserved usage remains at most 10 | `node --test src/renderer/src/audio/importPolicy.test.mjs src/main.test.mjs` PASS; threat T-04-13 |
 | 04-06-02 | AUD-01 | Production `commitStagedAudioConfig` fake-collaborator tests prove post-promotion replacement failure preserves prior config and retryable pending/reservation while removing final/config temps, and success replaces settings before reservation release | `node --test src/renderer/src/audio/importPolicy.test.mjs src/main.test.mjs` PASS; threat T-04-14 |
 | 04-07-01 | AUD-01 | Injected destination Writable emits an asynchronous write error after accepting a write; bounded copy rejects without an unhandled error, removes partial output, tears down streams, and retains actual-byte budget enforcement including exact-byte cases | `node --test src/renderer/src/audio/importPolicy.test.mjs`; threat T-04-15 |
+| 04-08-01 | AUD-01 | Three Kenney RPG Audio CC0 clips converted to compact PCM WAV with source/license/hash README; actual Forge package smoke asserts all resources at runtime destination; original Ogg import fixtures remain | `npm run package:smoke`; threat T-04-16 |
+| 04-08-02 | AUD-01 | Pure model tests cover first-run and legacy-pristine eligibility, Pads 1–3 assignment/Pads 4–12 empty, untouched custom config; main tests cover bounded atomic copy, missing-resource rollback/retry, durable clear marker, no save-failure seam use, and private path boundary | `node --test src/renderer/src/audio/model.test.mjs src/main.test.mjs`; threats T-04-16, T-04-17, T-04-18 |
+| 04-08-03 | AUD-01 | Isolated Electron E2E shows and explicitly plays defaults without autoplay, restart persistence, Ogg imports into empty pads, clear/reclaim then relaunch with no reseed; docs distinguish defaults from import fixtures and avoid platform/hardware claims | `npm run test:e2e`; threat T-04-18 |
 | Review closure WR-02 | AUD-02 | Cue dispatch requires visible/focused DM document; unfocused chord does not dispatch, then focused chord dispatches; input/IME/canvas guards remain intact | `npm test` PASS; `npm run test:e2e` PASS at `artifacts/e2e/2026-10-30T17-35-28.837Z-373c71c2` |
 
 ## Four-source coverage audit
@@ -37,9 +40,11 @@ Phase 3 verifier report: 4/4 truths passed after the shared map publication gate
 | CONTEXT | D-05: Unique in-app modifier chords, safe target union and capture/conflict/clear/reset | 04-03 | COVERED |
 | CONTEXT | D-06: Editable/IME, cue and canvas keyboard arbitration | 04-03 | COVERED |
 | CONTEXT | D-07: Gesture-started private Web Audio, tracked gains/stop lifecycle and silent restart | 04-01, 04-02 | COVERED |
+| CONTEXT | D-08: Three licensed Kenney CC0 PCM WAV defaults on Pads 1–3, safe first-run/pristine migration, packaged resources, persistent clear marker and Ogg import fixtures retained | 04-08-01, 04-08-02, 04-08-03 | COVERED |
 | REVIEW | CR-01: bounded transactional imports, pending cleanup and aggregate quota enforcement | 04-05-01, 04-05-02, 04-06-01 | CLOSED — unit/Electron E2E plus direct concurrent-helper behavior evidence |
 | VERIFICATION | Concurrent aggregate reservations and failed staged promotion/config rollback | 04-06-01, 04-06-02 | CLOSED — direct behavior tests exercise production helpers invoked by main |
 | REVIEW | CR-02: asynchronous destination write-stream errors during bounded copy | 04-07-01 | CLOSED - direct async Writable failure test and cleanup assertions |
+| VERIFICATION | First-run soundboard lacks bundled editable sample defaults and clear/no-reseed lifecycle evidence | 04-08-01, 04-08-02, 04-08-03 | PLANNED — execute Wave 8; do not claim closure before tests pass |
 | REVIEW | WR-01: reclaim unassigned imported files and quota after successful settings write | 04-05-02 | CLOSED — verified clear/reimport and restart E2E |
 | REVIEW | WR-02: prevent cue dispatch while the DM window is unfocused/hidden | 04-03-03 | CLOSED — visible+focused guard and E2E focused/unfocused checks |
 
