@@ -77,7 +77,7 @@ commits: 2
 1. **Task 04-06-01 RED tests** - `dff17e8` (`test`): behavioral quota, rollback, and release-order tests. RED output failed on the intended assertions: competing copies both received 10 instead of 10/4; reservation was released before replacement.
 2. **Task 04-06-01 GREEN** - `36dee8d` (`feat`): production helpers and main-process integration.
 
-**Plan metadata:** pending.
+**Plan metadata:** `aa58914` (`docs`: summary, state, and roadmap update).
 
 ## Files Created/Modified
 
