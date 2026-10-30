@@ -84,12 +84,13 @@ Plans:
   1. The DM can load user-provided sounds into a 12-pad board, organize named banks, adjust volume, loop ambience, play one-shots, and stop all audio.
   2. The DM can bind persistent shortcuts to sound and scene/show/reveal/blackout cues, and ordinary typing is not unnecessarily disrupted.
   3. During a live map, the DM can trigger a honk, start rain ambience, change to a battle scene, and stop audio using a 12-key controller or ordinary keyboard; Mac/Windows results are reported only for platforms actually tested.
-**Plans:** 4/4 plans executed
+**Plans:** 4/5 plans executed
 Plans:
 - [x] 04-01-PLAN.md — Secure audio import and persisted 12-slot bank tracer
 - [x] 04-02-PLAN.md — Bounded WebAudio soundboard and private workspace
 - [x] 04-03-PLAN.md — Persistent safe cues, keyboard controls, and verification docs
 - [x] 04-04-PLAN.md — Close pending-save and failed-save UI E2E verification gap
+- [ ] 04-05-PLAN.md — Close transactional audio import and managed-asset reclamation review gaps
 **UI hint**: yes
 
 ### Phase 5: Offline 2024 SRD Compendium

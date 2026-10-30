@@ -13,6 +13,8 @@ Phase 3 verifier report: 4/4 truths passed after the shared map publication gate
 | 04-03-03 | AUD-02 | Isolated shortcut/cue E2E, persistence, typing/canvas behavior, public separation and truthful support docs | `npm run test:e2e` |
 | 04-04-01 | AUD-01 | Pure helper denies packaged and non-E2E runtimes even with all options; clamps 0..5000ms and ignores invalid/non-finite delay; exact-true failFirst; fail-once consumer rejects only its first write; main.ts uses app.isPackaged and injects only E2E audio-config writes | `node --test src/renderer/src/audio/saveTestPolicy.test.mjs`; `npm test` - PASS (59 Node tests; 21 backend tests) |
 | 04-04-02 | AUD-01 | Electron-only E2E environment (no backend/Vite propagation); delayed pending status and disabled master/bank/pad/cue controls; failed save rollback to persisted 100%; later save success and cue persistence after restart | `npm run test:e2e` - PASS (Windows Electron E2E) |
+| 04-05-01 | AUD-01 | Actual-byte bounded stream copy and serialized aggregate reservations; sender-checked pending bytes/discard; exact pending ID/size/format validation; atomic config promotion/rollback; renderer cleanup after decode/metadata/save failure/cancel/unmount; packaged E2E seam denial | `node --test src/renderer/src/audio/importPolicy.test.mjs src/main.test.mjs`; `npm test` - PENDING execution |
+| 04-05-02 | AUD-01 | Startup removes only generated `.pending`/unreferenced managed files and preserves unknown files; successful clear reclaims last-reference asset/quota only after write; shared references and relink retained; E2E rollback, clear/reimport and restart recovery | `npm run test:e2e`; `npm run package:smoke` - PENDING execution; threats T-04-09–T-04-12 |
 
 ## Four-source coverage audit
 
@@ -31,6 +33,8 @@ Phase 3 verifier report: 4/4 truths passed after the shared map publication gate
 | CONTEXT | D-05: Unique in-app modifier chords, safe target union and capture/conflict/clear/reset | 04-03 | COVERED |
 | CONTEXT | D-06: Editable/IME, cue and canvas keyboard arbitration | 04-03 | COVERED |
 | CONTEXT | D-07: Gesture-started private Web Audio, tracked gains/stop lifecycle and silent restart | 04-01, 04-02 | COVERED |
+| REVIEW | CR-01: bounded transactional imports, pending cleanup and aggregate quota enforcement | 04-05-01, 04-05-02 | PLANNED — pending execution |
+| REVIEW | WR-01: reclaim unassigned imported files and quota after successful settings write | 04-05-02 | PLANNED — pending execution |
 
 ## Phase-level commands
 
