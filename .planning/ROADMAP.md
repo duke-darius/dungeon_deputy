@@ -76,7 +76,7 @@ Plans:
 **UI hint**: yes
 
 ### Phase 4: Soundboard, Scenes, and 12-Key Control
-**Goal**: The DM can control ambience, sound effects, and simple presentation cues during play using pads or configurable keyboard shortcuts.
+**Goal**: As a DM, I want to control ambience, sound effects, and simple presentation cues during play using 12-pad controls or configurable keyboard shortcuts, so that I can manage sound and presentation without interrupting the game.
 **Mode:** mvp
 **Depends on**: Phase 3
 **Requirements**: AUD-01, AUD-02
