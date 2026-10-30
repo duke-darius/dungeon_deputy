@@ -1,7 +1,7 @@
 # Phase 4 — UI Review
 
 **Audited:** 2026-10-30 (final re-audit)  
-**Baseline:** Approved `04-UI-SPEC.md`; current source and final E2E run `2026-10-30T03-15-06.765Z-f69ddeda`
+**Baseline:** Approved `04-UI-SPEC.md`; current source and final E2E run `2026-10-30T10-54-54.753Z-b6b02c15`
 
 **Screenshots:** Captured by final E2E run: desktop manager 1441×902 (`15–16`), phone manager 391×845 (`17–18`). Paired player captures are intentionally blank for private audio. Run also verified responsive layouts at tablet and phone widths without horizontal overflow.
 **Interaction captures:** E2E interactions/assertions in latest run; no separate auditor-generated interaction capture. Audio E2E supports the focus guard using simulated document visibility/`hasFocus`; it does not verify native OS-window focus or physical speaker output.
@@ -81,10 +81,10 @@
 - `src/renderer/src/audio/cues.mjs`
 - `src/renderer/src/styles.css`
 - `scripts/e2e.mjs`
-- `artifacts/e2e/2026-10-30T03-15-06.765Z-f69ddeda/run.log`
-- `artifacts/e2e/2026-10-30T03-15-06.765Z-f69ddeda/screenshots/15-audio-soundboard-top-manager.png`
+- `artifacts/e2e/2026-10-30T10-54-54.753Z-b6b02c15/run.log`
+- `artifacts/e2e/2026-10-30T10-54-54.753Z-b6b02c15/screenshots/15-audio-soundboard-top-manager.png`
 - `artifacts/e2e/2026-10-30T03-07-40.574Z-02584797/screenshots/15-audio-soundboard-top-player.png`
-- `artifacts/e2e/2026-10-30T03-15-06.765Z-f69ddeda/screenshots/16-audio-shortcuts-manager.png`
+- `artifacts/e2e/2026-10-30T10-54-54.753Z-b6b02c15/screenshots/16-audio-shortcuts-manager.png`
 - `artifacts/e2e/2026-10-30T03-07-40.574Z-02584797/screenshots/16-audio-shortcuts-player.png`
-- `artifacts/e2e/2026-10-30T03-15-06.765Z-f69ddeda/screenshots/17-audio-phone-pads-manager.png`
-- `artifacts/e2e/2026-10-30T03-15-06.765Z-f69ddeda/screenshots/18-audio-phone-shortcuts-manager.png`
+- `artifacts/e2e/2026-10-30T10-54-54.753Z-b6b02c15/screenshots/17-audio-phone-pads-manager.png`
+- `artifacts/e2e/2026-10-30T10-54-54.753Z-b6b02c15/screenshots/18-audio-phone-shortcuts-manager.png`
