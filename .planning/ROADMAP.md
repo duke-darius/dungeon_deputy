@@ -143,7 +143,7 @@ Phases execute in the specified stage order: 1 → 2 → 3 → 4 → 5 → 6 →
 | 1. Safe Two-Screen Scene Presentation | 5/5 | Complete (user approved) | 2026-10-28 |
 | 2. Playable Digital Battle Map | 4/6 | In Progress | - |
 | 3. Fog of War and Encounter Control | 7/7 | In Progress | - |
-| 4. Soundboard, Scenes, and 12-Key Control | 7/7 | In Progress | - |
+| 4. Soundboard, Scenes, and 12-Key Control | 7/8 | In Progress | - |
 | 5. Offline 2024 SRD Compendium | 0/TBD | Not started | - |
 | 6. SRD Characters and Local Player Sheets | 0/TBD | Not started | - |
 | 7. Optional AI Preparation and Map Proposals | 0/TBD | Not started | - |
