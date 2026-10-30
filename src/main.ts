@@ -4,6 +4,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import { readFile, writeFile, mkdir, stat, copyFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { chooseExternalDisplay } from './display-policy.mjs';
+// @ts-ignore JS model is exercised by Node TAP tests.
 import { defaultAudioConfig, validateAudioConfig, MAX_FILE_BYTES, MAX_TOTAL_BYTES } from './renderer/src/audio/model.mjs';
 
 type Role = 'dm' | 'public';
