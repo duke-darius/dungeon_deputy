@@ -86,6 +86,15 @@ try {
   await manager.locator('.audio-pads article').first().waitFor();
   assert.equal(await manager.locator('.audio-pads article').count(),12,'soundboard must always render exactly twelve pads');
   assert.equal(await manager.locator('.audio-status').innerText(), '', 'bundled defaults must not autoplay on startup');
+  const initialAudio=await manager.evaluate(()=>window.dungeonDeputy.audioConfig());
+  assert.deepEqual(initialAudio.assets.map(asset=>asset.name),['Book open','Door opens','Coins handled'],'fresh soundboard seeds the three CC0 samples in order');
+  assert.deepEqual(initialAudio.banks[0].slots.slice(0,3).map(slot=>slot.asset),initialAudio.assets.map(asset=>asset.id),'default audio assets are assigned to Pads 1–3');
+  const defaultScreenshot=await app.evaluate(async({BrowserWindow})=>{
+    const win=BrowserWindow.getAllWindows().find(candidate=>new URL(candidate.webContents.getURL()).pathname.endsWith('/index.html'));
+    return win.webContents.capturePage(undefined,{stayHidden:true}).then(image=>image.toPNG().toString('base64'));
+  });
+  await writeFile(join(evidence,'screenshots','00-audio-defaults-manager.png'),Buffer.from(defaultScreenshot,'base64'));
+  log(`SCREENSHOT ${join(evidence,'screenshots','00-audio-defaults-manager.png')} first-run CC0 soundboard defaults`);
   for (let index = 0; index < 3; index++) {
     const pad = manager.locator('.audio-pads article').nth(index);
     const name = ['Book open', 'Door opens', 'Coins handled'][index];
