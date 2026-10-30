@@ -3,16 +3,16 @@ gsd_state_version: "1.0"
 current_phase: 04
 current_phase_name: Soundboard, Scenes, and 12-Key Control
 status: executing
-stopped_at: Completed 04-01-PLAN.md
-last_updated: "2026-10-30T00:27:52.577Z"
+stopped_at: Completed 04-02-PLAN.md
+last_updated: "2026-10-30T00:42:03.505Z"
 last_activity: 2026-10-30
 last_activity_desc: Phase 04 Plan 01 completed; private audio import/playback E2E verified
-state_head: 9f890a9d0daf45deee97e677e9db11191d38eb11
+state_head: c7a5721e8ecc4e6ec2d8259f77ea608888a65dc1
 progress:
   total_phases: 7
   completed_phases: 1
   total_plans: 21
-  completed_plans: 17
+  completed_plans: 18
   percent: 14
 ---
 
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-10-28)
 ## Current Position
 
 Phase: 04 (Soundboard, Scenes, and 12-Key Control) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-10-30 - Phase 04 Plan 01 completed; private audio import/playback E2E verified
 
@@ -72,6 +72,7 @@ Progress: ░░░░░░░░░░ [█░░░░░░░░░] 14%
 | Phase 03 P06 | 10min | 2 tasks | 12 files |
 | Phase 03 P07 | 14 min | 4 tasks | 10 files |
 | Phase 04 P01 | 22min | 2 tasks | 10 files |
+| Phase 04 P02 | 12min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -112,6 +113,8 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase 03]: E2E verifies public map image hashes after successful UI mutations while preserving explicit cold-start Show.
 - [Phase 04]: Keep audio imports, metadata, controls and playback in the DM-only window; public preload remains presentation-only.
 - [Phase 04]: Reject persisted malformed audio models to a safe one-bank/twelve-slot default.
+- [Phase 04]: Keep audio private to the DM renderer and preserve the existing public preload/DTO boundary.
+- [Phase 04]: Persist assignments and controls only; playback remains gesture-started and silent after restart.
 
 ### Pending Todos
 
@@ -132,6 +135,6 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 
 ## Session Continuity
 
-Last session: 2026-10-30T00:27:52.415Z
-Stopped at: Completed 04-01-PLAN.md
+Last session: 2026-10-30T00:42:03.342Z
+Stopped at: Completed 04-02-PLAN.md
 Resume file: None
