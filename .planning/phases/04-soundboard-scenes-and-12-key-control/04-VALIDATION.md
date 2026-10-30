@@ -11,6 +11,8 @@ Phase 3 verifier report: 4/4 truths passed after the shared map publication gate
 | 04-03-01 | AUD-02 | Chord normalization, uniqueness, persisted mappings, capture/reset and input/IME/repeat/defaultPrevented filters | `npm test` |
 | 04-03-02 | AUD-02 | Closed cue union; explicit scene show; saved clean map only; fog-safe projection and blackout error semantics | `npm test` |
 | 04-03-03 | AUD-02 | Isolated shortcut/cue E2E, persistence, typing/canvas behavior, public separation and truthful support docs | `npm run test:e2e` |
+| 04-04-01 | AUD-01 | E2E-only explicit save delay/fail-once seam is inactive without mode gate, bounded, and one-shot | `npm test` — PENDING |
+| 04-04-02 | AUD-01 | Delayed pending/disabled UI, failed save rollback to persisted 100%, later saved/re-enabled status, cue persistence after restart | `npm run test:e2e` — PENDING |
 
 ## Four-source coverage audit
 
