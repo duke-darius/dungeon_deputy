@@ -7,7 +7,7 @@ import { chooseExternalDisplay } from './display-policy.mjs';
 // @ts-ignore JS policy is exercised by Node TAP tests.
 import { saveTestPolicy, createFailOnce } from './renderer/src/audio/saveTestPolicy.mjs';
 // @ts-ignore Shared JS policy is covered by Node TAP tests.
-import { copyBounded, createSerialLock, reconcileManagedFiles, AUDIO_ID_PATTERN } from './renderer/src/audio/importPolicy.mjs';
+import { copyBounded, createSerialLock, reconcileManagedFiles, stageWithinAudioQuota, commitStagedAudioConfig, AUDIO_ID_PATTERN } from './renderer/src/audio/importPolicy.mjs';
 // @ts-ignore JS model is exercised by Node TAP tests.
 import { defaultAudioConfig, validateAudioConfig, MAX_FILE_BYTES, MAX_TOTAL_BYTES } from './renderer/src/audio/model.mjs';
 
@@ -85,23 +85,27 @@ async function saveAudioConfig(value: unknown) {
       const pending = pendingAudioIds.get(asset.id);
       if (!pending || pending.size !== asset.size || pending.format !== asset.format) throw new Error('Audio import metadata does not match the staged file.');
     }
-    await mkdir(app.getPath('userData'), { recursive: true });
     const temp = `${audioConfigPath()}.${randomBytes(8).toString('hex')}.tmp`;
     const promoted: string[] = [];
-    try {
-      await writeFile(temp, JSON.stringify(next), { mode: 0o600, flag: 'wx' });
-      for (const asset of additions) {
-        await rename(join(audioRoot(), `${asset.id}.pending`), join(audioRoot(), `${asset.id}.${asset.format}`));
-        promoted.push(asset.id);
-      }
-      await rename(temp, audioConfigPath());
-    } catch (error) {
-      await rm(temp, { force: true }).catch(() => {});
-      for (const asset of additions) if (promoted.includes(asset.id)) await rename(join(audioRoot(), `${asset.id}.${asset.format}`), join(audioRoot(), `${asset.id}.pending`)).catch(() => {});
-      throw error;
-    }
-    audioConfig = next;
-    for (const asset of additions) pendingAudioIds.delete(asset.id);
+    await mkdir(app.getPath('userData'), { recursive: true });
+    await commitStagedAudioConfig({
+      config: next,
+      tempPath: temp,
+      writePrepared: (path: string, value: unknown) => writeFile(path, JSON.stringify(value), { mode: 0o600, flag: 'wx' }),
+      promote: async () => {
+        for (const asset of additions) {
+          await rename(join(audioRoot(), `${asset.id}.pending`), join(audioRoot(), `${asset.id}.${asset.format}`));
+          promoted.push(asset.id);
+        }
+      },
+      replace: (path: string) => rename(path, audioConfigPath()),
+      rollbackPromotion: async () => {
+        for (const asset of additions) if (promoted.includes(asset.id)) await rename(join(audioRoot(), `${asset.id}.${asset.format}`), join(audioRoot(), `${asset.id}.pending`));
+      },
+      remove: (path: string) => rm(path, { force: true }),
+      releaseReservation: () => { for (const asset of additions) pendingAudioIds.delete(asset.id); },
+      setConfig: (value: unknown) => { audioConfig = value; },
+    });
     for (const asset of previousConfig.assets) if (!next.assets.some((a: {id:string}) => a.id === asset.id)) await rm(join(audioRoot(), `${asset.id}.${asset.format}`), { force: true }).catch(() => {});
   });
 }
@@ -155,20 +159,29 @@ function installIpc() {
     const ext = source.split('.').pop()?.toLowerCase();
     if (!['wav', 'mp3', 'ogg', 'oga', 'opus'].includes(ext ?? '')) throw new Error('Unsupported audio file type.');
     const format = ['oga', 'opus'].includes(ext!) ? 'ogg' : ext!;
-    const result = await withAudioLock(async () => {
-      const info = await stat(source);
-      if (!info.isFile() || info.size <= 0) throw new Error('Choose a non-empty audio file.');
-      const committed = audioConfig.assets.reduce((n: number, a: {size: number}) => n + a.size, 0);
-      const reserved = [...pendingAudioIds.values()].reduce((n, p) => n + p.size, 0);
-      const budget = Math.min(MAX_FILE_BYTES, MAX_TOTAL_BYTES - committed - reserved);
-      if (budget <= 0) throw new Error('Imported audio total exceeds 256 MiB.');
-      const id = `a_${randomBytes(16).toString('hex')}`;
-      await mkdir(audioRoot(), { recursive: true });
-      const size = await copyBounded(source, join(audioRoot(), `${id}.pending`), budget);
-      if (size > MAX_FILE_BYTES) throw new Error('Audio file must be 25 MiB or smaller.');
-      pendingAudioIds.set(id, { format, size });
-      return { id, name: source.split(/[\\/]/).pop()!.replace(/\.[^.]+$/, '').slice(0, 80), format, size, duration: 0 };
+    const id = `a_${randomBytes(16).toString('hex')}`;
+    const pendingPath = join(audioRoot(), `${id}.pending`);
+    const size = await stageWithinAudioQuota({
+      lock: withAudioLock,
+      committedBytes: async () => {
+        const info = await stat(source);
+        if (!info.isFile() || info.size <= 0) throw new Error('Choose a non-empty audio file.');
+        return audioConfig.assets.reduce((n: number, a: {size: number}) => n + a.size, 0);
+      },
+      reservedBytes: () => [...pendingAudioIds.values()].reduce((n, pending) => n + pending.size, 0),
+      maxFileBytes: MAX_FILE_BYTES,
+      maxTotalBytes: MAX_TOTAL_BYTES,
+      tempPath: pendingPath,
+      copy: async (budget: number) => {
+        await mkdir(audioRoot(), { recursive: true });
+        const copied = await copyBounded(source, pendingPath, budget);
+        if (copied > MAX_FILE_BYTES) throw new Error('Audio file must be 25 MiB or smaller.');
+        return copied;
+      },
+      reserve: (copied: number) => pendingAudioIds.set(id, { format, size: copied }),
+      remove: (path: string) => rm(path, { force: true }),
     });
+    const result = { id, name: source.split(/[\\/]/).pop()!.replace(/\.[^.]+$/, '').slice(0, 80), format, size, duration: 0 };
     if (failInvalid) invalidFixtureConsumed = true;
     return result;
   });

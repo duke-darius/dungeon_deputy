@@ -84,7 +84,7 @@ test('successful staged commit releases its reservation after config replacement
     tempPath: 'config.tmp',
     writePrepared: async path => state.files.add(path),
     promote: async () => { state.files.delete('asset.pending'); state.files.add('asset.wav'); },
-    replace: async () => { state.replacementSawReservation = state.reserved; },
+    replace: async path => { state.replacementSawReservation = state.reserved; state.files.delete(path); },
     rollbackPromotion: async () => { state.files.delete('asset.wav'); state.files.add('asset.pending'); },
     remove: async path => state.files.delete(path),
     releaseReservation: () => { state.reserved = false; },

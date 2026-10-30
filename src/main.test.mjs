@@ -57,11 +57,10 @@ test('audio-save test seam is gated by immutable packaged state and only wraps c
   assert.match(main, /ipcMain\.handle\('audio:config',[\s\S]*if \(value !== undefined\) await saveAudioConfig\(value\)/);
 });
 test('audio import, bytes, and discard remain DM-only with bounded opaque pending lifecycle', () => {
-  assert.match(main, /withAudioLock\(async \(\) => \{[\s\S]*const budget = Math\.min\(MAX_FILE_BYTES, MAX_TOTAL_BYTES - committed - reserved\)/);
-  assert.match(main, /copyBounded\(source, join\(audioRoot\(\), `\$\{id\}\.pending`\), budget\)/);
+  assert.match(main, /stageWithinAudioQuota\(\{[\s\S]*maxFileBytes: MAX_FILE_BYTES[\s\S]*maxTotalBytes: MAX_TOTAL_BYTES[\s\S]*copyBounded\(source, pendingPath, budget\)/);
   assert.match(main, /ipcMain\.handle\('audio:discard',[\s\S]*allowedSender\('dm', event\)[\s\S]*pendingAudioIds\.delete\(id\)/);
   assert.match(main, /pending\.size !== asset\.size \|\| pending\.format !== asset\.format/);
-  assert.match(main, /await rename\(temp, audioConfigPath\(\)\)/);
+  assert.match(main, /commitStagedAudioConfig\(\{[\s\S]*replace: \(path: string\) => rename\(path, audioConfigPath\(\)\)[\s\S]*releaseReservation:/);
   assert.match(preload, /audioDiscard/);
   assert.doesNotMatch(preload.slice(preload.indexOf('? Object.freeze'), preload.indexOf(': Object.freeze')), /audioDiscard/);
 });

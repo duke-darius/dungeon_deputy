@@ -16,6 +16,40 @@ export function createSerialLock() {
   };
 }
 
+export function stageWithinAudioQuota({ lock, committedBytes, reservedBytes, maxFileBytes, maxTotalBytes, tempPath, copy, reserve, remove }) {
+  return lock(async () => {
+    try {
+      const committed = await committedBytes();
+      const reserved = await reservedBytes();
+      const budget = Math.min(maxFileBytes, maxTotalBytes - committed - reserved);
+      if (budget <= 0) throw new Error('Imported audio total exceeds 256 MiB.');
+      const size = await copy(budget);
+      if (!Number.isSafeInteger(size) || size <= 0 || size > budget || size > maxFileBytes) throw new Error('Audio file exceeds the available import limit.');
+      await reserve(size);
+      return size;
+    } catch (error) {
+      await Promise.resolve().then(() => remove(tempPath)).catch(() => {});
+      throw error;
+    }
+  });
+}
+
+export async function commitStagedAudioConfig({ config, tempPath, writePrepared, promote, replace, rollbackPromotion, remove, releaseReservation, setConfig }) {
+  let promotionAttempted = false;
+  try {
+    await writePrepared(tempPath, config);
+    promotionAttempted = true;
+    await promote();
+    await replace(tempPath);
+    setConfig(config);
+    await releaseReservation();
+  } catch (error) {
+    if (promotionAttempted) await Promise.resolve().then(() => rollbackPromotion()).catch(() => {});
+    await Promise.resolve().then(() => remove(tempPath)).catch(() => {});
+    throw error;
+  }
+}
+
 export async function copyBounded(source, destination, limit, { createReadStreamFn, createWriteStreamFn = createWriteStream, remove = rm } = {}) {
   const read = createReadStreamFn ?? (await import('node:fs')).createReadStream;
   const input = read(source);
