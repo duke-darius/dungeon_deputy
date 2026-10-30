@@ -22,11 +22,13 @@ Phase 3 verifier report: 4/4 truths passed after the shared map publication gate
 | RESEARCH | No dependencies; WebAudio; DM picker-only import; main-owned persistence and opaque IDs | 04-01, 04-02 | COVERED |
 | RESEARCH | Decode/size/duration/cache/voice bounds; private/public isolation; lifecycle cleanup | 04-01, 04-02 | COVERED |
 | RESEARCH | Keyboard focus/IME/repeat/defaultPrevented guards; safe existing cue operations | 04-03 | COVERED |
-| CONTEXT | Exactly twelve slots, one default, max twelve named banks, protect final bank | 04-01, 04-02 | COVERED |
-| CONTEXT | Picker-only native import, generated app-owned opaque assets, limits and bounded cache | 04-01, 04-02 | COVERED |
-| CONTEXT | One loop/eight one-shots; master/pad volume; silent restart | 04-02 | COVERED |
-| CONTEXT | In-app modifier chords, unique mappings, safe target union, no global shortcut | 04-03 | COVERED |
-| CONTEXT | Saved-clean-map-only cue, no draft auto-save/fog bypass, blackout and canvas coexistence | 04-03 | COVERED |
+| CONTEXT | D-01: Exactly twelve stable slots, one default, maximum twelve named banks, final bank protected | 04-01, 04-02 | COVERED |
+| CONTEXT | D-02: Master/pad volume, one loop, eight one-shots and immediate idempotent Stop All | 04-02 | COVERED |
+| CONTEXT | D-03: Picker-only candidate formats, import limits, decode acceptance and missing-file recovery | 04-01, 04-02 | COVERED |
+| CONTEXT | D-04: App-owned opaque assets, safe metadata and atomic path-free configuration | 04-01, 04-03 | COVERED |
+| CONTEXT | D-05: Unique in-app modifier chords, safe target union and capture/conflict/clear/reset | 04-03 | COVERED |
+| CONTEXT | D-06: Editable/IME, cue and canvas keyboard arbitration | 04-03 | COVERED |
+| CONTEXT | D-07: Gesture-started private Web Audio, tracked gains/stop lifecycle and silent restart | 04-01, 04-02 | COVERED |
 
 ## Phase-level commands
 
