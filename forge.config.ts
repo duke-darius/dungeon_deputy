@@ -13,6 +13,7 @@ const config: ForgeConfig = {
     extraResource: [
       backendPath,
       'src/renderer/dist',
+      'assets/audio-defaults',
     ],
     ignore: [/^\/src\//, /^\/artifacts\//],
   },

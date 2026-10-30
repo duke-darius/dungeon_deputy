@@ -5,6 +5,7 @@ import { resolve } from 'node:path';
 import { spawn } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { deflateSync } from 'node:zlib';
+import { createHash } from 'node:crypto';
 const rid = process.platform === 'win32' ? 'win-x64' : process.platform === 'darwin' ? `osx-${process.arch}` : null;
 if (!rid) throw new Error(`Package smoke unsupported on ${process.platform}`);
 mkdirSync('artifacts', { recursive: true });
@@ -17,6 +18,30 @@ if (made.status !== 0) { rmSync(buildRoot, { recursive: true, force: true }); pr
 const packagedResources = resolve('out', `dungeon-deputy-${process.platform}-${process.arch}`, 'resources');
 const packagedBackend = resolve(packagedResources, `backend-${rid}`);
 if (!existsSync(resolve(packagedBackend, process.platform === 'win32' ? 'DungeonDeputy.Api.exe' : 'DungeonDeputy.Api'))) throw new Error('Packaged backend resource is missing.');
+const bundledDefaults = [
+  ['book-open.wav', '6254CBE36FBBEED7A23273634B5EC16FA0C31B0DF112ADCCA477AE896CE7B4EF'],
+  ['door-opens.wav', 'A8546AC2AA488EE411C2641E5F860689133BBCDF91E8FB018C6AAEAC1A4329F2'],
+  ['coins-handled.wav', '9EF4D312AB28D3E305B854635DB0E0B4126C795A056CB95DC5C36CA1C5ABDBFE'],
+];
+for (const [name, expectedHash] of bundledDefaults) {
+  const file = resolve(packagedResources, 'audio-defaults', name);
+  if (!existsSync(file)) throw new Error(`Packaged audio default is missing: ${name}`);
+  const bytes = readFileSync(file);
+  let format;
+  let dataBytes = 0;
+  if (bytes.toString('ascii', 0, 4) !== 'RIFF' || bytes.toString('ascii', 8, 12) !== 'WAVE') throw new Error(`Packaged audio default is not WAV: ${name}`);
+  for (let offset = 12; offset + 8 <= bytes.length;) {
+    const size = bytes.readUInt32LE(offset + 4), start = offset + 8;
+    if (start + size > bytes.length) throw new Error(`Packaged audio WAV chunk exceeds file bounds: ${name}`);
+    const type = bytes.toString('ascii', offset, offset + 4);
+    if (type === 'fmt ') format = bytes.subarray(start, start + size);
+    if (type === 'data') dataBytes += size;
+    offset = start + size + (size & 1);
+  }
+  if (bytes.length > 2 * 1024 * 1024 || !format || format.length < 16 || format.readUInt16LE(0) !== 1 || format.readUInt16LE(14) !== 16 || dataBytes === 0 || !format.readUInt32LE(8)) throw new Error(`Packaged audio default is not compact PCM WAV: ${name}`);
+  if (createHash('sha256').update(bytes).digest('hex').toUpperCase() !== expectedHash.toUpperCase()) throw new Error(`Packaged audio default hash differs from provenance: ${name}`);
+}
+if (!existsSync(resolve(packagedResources, 'audio-defaults', 'README.md')) || !existsSync(resolve(packagedResources, 'audio-defaults', 'License.txt'))) throw new Error('Packaged audio default provenance/license is missing.');
 const publicHtml = readFileSync(resolve('src/renderer/dist/public.html'),'utf8');
 if (!/img-src data:/.test(publicHtml) || /img-src[^;]*'self'/.test(publicHtml) || !/connect-src ws:\/\/127\.0\.0\.1:5173/.test(publicHtml) || !/frame-src 'none'/.test(publicHtml) || !/object-src 'none'/.test(publicHtml)) throw new Error('Public CSP must deny same-origin/network images, same-origin fetch, frames, and objects while allowing only the Vite HMR websocket.');
 for (const asset of ['index.html', 'public.html', 'scenes/ashen-road.svg', 'scenes/moonlit-fen.svg', 'scenes/old-bridge.svg']) if (!existsSync(resolve(packagedResources, 'dist', asset))) throw new Error(`Packaged renderer resource is missing: ${asset}`);
