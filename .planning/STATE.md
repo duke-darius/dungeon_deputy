@@ -3,16 +3,16 @@ gsd_state_version: "1.0"
 current_phase: 04
 current_phase_name: Soundboard, Scenes, and 12-Key Control
 status: verifying
-stopped_at: Completed 04-07-PLAN.md
-last_updated: "2026-10-30T17:35:28.837Z"
+stopped_at: Completed 04-08-PLAN.md
+last_updated: "2026-10-30T19:46:10.312Z"
 last_activity: 2026-10-30
 last_activity_desc: Phase 04 verifier returned human_needed after CC0 sound E2E; automated checks pass, user UAT/platform review remains
-state_head: 576b01b5437d8a4519def4f754fedcae5a241bf4
+state_head: 05658af66b54ca946ce4671e3a9262d35c6dc665
 progress:
   total_phases: 7
   completed_phases: 1
-  total_plans: 25
-  completed_plans: 23
+  total_plans: 26
+  completed_plans: 24
   percent: 14
 ---
 
@@ -28,8 +28,8 @@ See: .planning/PROJECT.md (updated 2026-10-28)
 ## Current Position
 
 Phase: 04 (Soundboard, Scenes, and 12-Key Control) — VERIFYING
-Plan: 7 of 7
-Status: Verification is human_needed; automated checks passed, UAT remains
+Plan: 8 of 8
+Status: Plan 8 complete; phase remains verifying for pending user UAT and platform checks
 Last activity: 2026-10-30 - Phase 04 verifier found all roadmap truths; UAT, physical audio, native OS focus, macOS and MP3 remain unverified
 
 Progress: ░░░░░░░░░░ [█░░░░░░░░░] 14%
@@ -78,6 +78,7 @@ Progress: ░░░░░░░░░░ [█░░░░░░░░░] 14%
 | Phase 04 P05 | 18min | 2 tasks | 11 files |
 | Phase 04 P06 | 10min | 1 tasks | 5 files |
 | Phase 04 P07 | 10m | 1 tasks | 4 files |
+| Phase 04 P08 | 31m | 3 tasks | 14 files |
 
 ## Accumulated Context
 
@@ -128,6 +129,7 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase 04]: Reconcile only generated opaque audio files and reclaim cleared assets only after successful settings persistence.
 - [Phase 04]: Keep quota calculation, bounded copy, and reservation update inside one serialized audio-lock operation
 - [Phase 04]: Preserve actual-byte limits by counting chunks in a Transform piped into the destination.
+- [Phase 04]: Bundle three CC0 PCM defaults for pristine soundboards with a separate durable no-reseed marker.
 
 ### Pending Todos
 
@@ -148,6 +150,6 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 
 ## Session Continuity
 
-Last session: 2026-10-30T10:54:54.753Z
-Stopped at: Phase 04 verification passed; user review is next
+Last session: 2026-10-30T19:45:21.721Z
+Stopped at: Completed 04-08-PLAN.md
 Resume file: None
