@@ -39,7 +39,7 @@ Phase 3 verifier report: 4/4 truths passed after the shared map publication gate
 | CONTEXT | D-07: Gesture-started private Web Audio, tracked gains/stop lifecycle and silent restart | 04-01, 04-02 | COVERED |
 | REVIEW | CR-01: bounded transactional imports, pending cleanup and aggregate quota enforcement | 04-05-01, 04-05-02, 04-06-01 | CLOSED — unit/Electron E2E plus direct concurrent-helper behavior evidence |
 | VERIFICATION | Concurrent aggregate reservations and failed staged promotion/config rollback | 04-06-01, 04-06-02 | CLOSED — direct behavior tests exercise production helpers invoked by main |
-| REVIEW | CR-02: asynchronous destination write-stream errors during bounded copy | 04-07-01 | PLANNED — direct async Writable failure test and cleanup assertions |
+| REVIEW | CR-02: asynchronous destination write-stream errors during bounded copy | 04-07-01 | CLOSED - direct async Writable failure test and cleanup assertions |
 | REVIEW | WR-01: reclaim unassigned imported files and quota after successful settings write | 04-05-02 | CLOSED — verified clear/reimport and restart E2E |
 | REVIEW | WR-02: prevent cue dispatch while the DM window is unfocused/hidden | 04-03-03 | CLOSED — visible+focused guard and E2E focused/unfocused checks |
 

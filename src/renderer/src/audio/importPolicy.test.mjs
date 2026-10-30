@@ -11,6 +11,25 @@ test('bounded stream copy allows exact budget and removes temp when actual bytes
   assert.equal(removed,1);
 });
 
+test('bounded copy observes asynchronous destination errors and cleans up both streams', async () => {
+  const failure = new Error('destination write failed');
+  let input;
+  let output;
+  const removed = [];
+  const promise = copyBounded('source', 'target', 10, {
+    createReadStreamFn: () => (input = Readable.from([Buffer.from('partial'), Buffer.from('!')])),
+    createWriteStreamFn: () => (output = new Writable({
+      write(_chunk, _encoding, callback) { setTimeout(() => callback(failure), 0); },
+    })),
+    remove: async (path, options) => removed.push([path, options]),
+  });
+
+  await assert.rejects(promise, error => error === failure);
+  assert.deepEqual(removed, [['target', { force: true }]]);
+  assert.equal(input.destroyed, true);
+  assert.equal(output.destroyed, true);
+});
+
 test('serialized audio store lock holds through staging and reservations count against later work', async () => {
   const lock=createSerialLock(); const events=[];
   await Promise.all([1,2].map(id=>lock(async()=>{events.push(`start${id}`);await new Promise(r=>setTimeout(r,5));events.push(`end${id}`);} )));
