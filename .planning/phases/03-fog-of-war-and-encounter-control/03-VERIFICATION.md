@@ -1,6 +1,6 @@
 ---
 phase: 03-fog-of-war-and-encounter-control
-verified: 2026-10-29T23:36:00Z
+verified: 2026-10-29T23:37:56Z
 status: passed
 score: 4/4 must-haves verified
 covered_files:
@@ -39,7 +39,7 @@ re_verification:
 # Phase 3: Fog of War and Encounter Control Verification Report
 
 **Phase Goal:** The DM can run a basic combat encounter from the dashboard while controlling exactly which map information players can see.
-**Verified:** 2026-10-29T23:36:00Z
+**Verified:** 2026-10-29T23:37:56Z
 **Status:** passed
 **Re-verification:** Yes — after gap closure
 
@@ -50,7 +50,7 @@ re_verification:
 | # | Truth | Status | Evidence |
 |---|---|---|---|
 | 1 | DM fog reveal/hide and token visibility are independent; the public receives sanitized PNG imageData and only allowlisted visible-token visuals, with no source terrain, raw strokes, hidden tokens, or combat values. | ✓ VERIFIED | `MapService.cs:13-14,208-209` constructs the public DTO and filters hidden tokens; `contracts.mjs:8-14` enforces exact token keys and returns only the allowlist; `PublicDisplay.tsx:31-33` renders `imageData` only. `MapCanvas.tsx:14-27` rasterizes terrain and opaque unrevealed pixels on the DM side. `public.html` restricts public origin access. `scripts/e2e.mjs` exercises source denial, DTO privacy and black/revealed pixel assertions; current `npm test`, E2E, and package smoke pass. |
-| 2 | DM can persist actor HP/conditions, roll or set initiative, reorder ties, advance turns, and roll standard dice privately from the existing dashboard. | ✓ VERIFIED | `EncounterService.cs:20-36,88-113,134-165` defines bounded private state, conditions, sorting, validation, persistence and dice/turn transitions; `Program.cs:90-105` wires authenticated routes. `MapEditor.tsx:329-345` places controls in the existing inspector with DM-only labels. Named backend/API and renderer tests exercise these transitions and privacy; current `npm test` passes 40 Node and 20 xUnit tests. |
+| 2 | DM can persist actor HP/conditions, roll or set initiative, reorder ties, advance turns, and roll standard dice privately from the existing dashboard. | ✓ VERIFIED | `EncounterService.cs:20-36,88-113,134-165` defines bounded private state, conditions, sorting, validation, persistence and dice/turn transitions; `Program.cs:90-105` wires authenticated routes. `MapEditor.tsx:329-345` places controls in the existing inspector with DM-only labels. Named backend/API and renderer tests exercise these transitions and privacy; current phase verification records 40 Node and 21 xUnit tests. |
 | 3 | Cold start remains black until explicit Show; afterward committed visual updates use the existing poll, and the same dashboard/player windows remain in use with keyboard and responsive controls. | ✓ VERIFIED | `PresentationState.cs:25-26,49-52` initializes black and gates refresh to active map mode; `PublicDisplay.tsx:15-23` polls each second and fails closed. E2E current run `artifacts/e2e/2026-10-29T23-24-17.522Z-d429557a` passed, including keyboard brush, Select/pan, responsive checks, same-window assertions and public-image digest checks. `MapCanvas.lifecycle.test.mjs` and `MapEditor.test.mjs` cover keyboard and control behavior. |
 | 4 | Concurrent fog/token mutations cannot leave active public presentation behind the latest committed persisted map. | ✓ VERIFIED | `MapVisualMutationGate.Run` holds one monitor for the whole synchronous operation; singleton registration at `Program.cs:18` supplies one gate to every request. `/api/map/show`, fog enable, strokes, token visibility, and show-encounter at `Program.cs:58-89` wrap commit/save, projection, and presentation update together. The named concurrency test passed and asserts at most one concurrent critical section across 12 callers. Thus each mutation's DB commit and corresponding presentation refresh complete before another visual mutation can commit. |
 
@@ -94,7 +94,7 @@ re_verification:
 | Integrated Electron user flow, privacy, keyboard and responsive checks | `npm run test:e2e` | Exit 0 per current phase run; evidence `artifacts/e2e/2026-10-29T23-30-46.101Z-d7076d68/` | ✓ PASS |
 | Packaged Windows backend/publication smoke | `npm run package:smoke` | Exit 0; win-x64 authenticated persistence, allowlist and black-until-Show passed | ✓ PASS |
 
-| Shared visual-mutation critical section is exclusive under concurrent callers | `dotnet test src/backend.tests/DungeonDeputy.Api.Tests.csproj -c Release --filter FullyQualifiedName~VisualMutationGateSerializesCommitAndPresentationRefreshSections --no-restore` | Exit 0; Passed 1, Failed 0, Skipped 0 | ✓ PASS |
+| Shared visual-mutation critical section is exclusive under concurrent callers | `dotnet test src/backend.tests/DungeonDeputy.Api.Tests.csproj -c Release --filter FullyQualifiedName~VisualMutationGateSerializesCommitAndPresentationRefreshSections --no-restore` | Independently rerun now: exit 0; Passed 1, Failed 0, Skipped 0 (197 ms) | ✓ PASS |
 
 ### Probe Execution
 
@@ -126,5 +126,5 @@ The prior stale-projection gap is closed: all visual mutation/publication routes
 
 ---
 
-_Verified: 2026-10-29T23:36:00Z_
+_Verified: 2026-10-29T23:37:56Z_
 _Verifier: the agent (gsd-verifier)_
