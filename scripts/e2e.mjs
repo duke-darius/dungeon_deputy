@@ -58,8 +58,11 @@ try {
   const wav = Buffer.alloc(44 + 800);
   wav.write('RIFF', 0); wav.writeUInt32LE(836, 4); wav.write('WAVEfmt ', 8); wav.writeUInt32LE(16, 16); wav.writeUInt16LE(1, 20); wav.writeUInt16LE(1, 22); wav.writeUInt32LE(8000, 24); wav.writeUInt32LE(16000, 28); wav.writeUInt16LE(2, 32); wav.writeUInt16LE(16, 34); wav.write('data', 36); wav.writeUInt32LE(800, 40);
   const audioFixture = join(process.cwd(), 'artifacts', 'e2e-audio-fixture.wav');
-  await mkdir(join(process.cwd(), 'artifacts'), { recursive: true }); await writeFile(audioFixture, wav);
+  const invalidAudioFixture = join(process.cwd(), 'artifacts', 'e2e-audio-invalid.wav');
+  await mkdir(join(process.cwd(), 'artifacts'), { recursive: true }); await writeFile(audioFixture, wav); await writeFile(invalidAudioFixture, Buffer.from('not a decodable WAV'));
   process.env.DUNGEON_DEPUTY_E2E_AUDIO_FIXTURE = audioFixture;
+  process.env.DUNGEON_DEPUTY_E2E_AUDIO_INVALID_FIXTURE = invalidAudioFixture;
+  process.env.DUNGEON_DEPUTY_E2E_AUDIO_FAIL_IMPORT_FIRST = '1';
   await setup();
   await mkdir(join(evidence, 'screenshots'), { recursive: true });
 
@@ -98,6 +101,10 @@ try {
   assert.equal(await manager.getByRole('button',{name:'Import sound'}).first().isEnabled(),true,'pad controls recover after rejection');
   assert.equal(await manager.getByRole('button',{name:'Add cue'}).isEnabled(),true,'cue controls recover after rejection');
   assert.equal(await masterVolume.inputValue(),'100','failed save rolls back to persisted 100%');
+  await manager.getByRole('button', { name: 'Import sound' }).first().click();
+  await manager.getByText(/Couldn’t decode this audio\./).waitFor();
+  assert.equal(await manager.locator('.audio-pads article').first().getByText('Empty').count(),1,'invalid first WAV leaves its destination assignment empty');
+  assert.equal(await manager.evaluate(()=>window.dungeonDeputy.audioConfig().then(value=>value.assets.length)),0,'decode failure leaves persisted config assets unchanged');
   await manager.getByRole('button', { name: 'Import sound' }).first().click();
   await manager.getByText('e2e-audio-fixture', { exact: true }).waitFor();
   const importedPad=manager.locator('.audio-pads article').first();
@@ -556,6 +563,7 @@ try {
   process.exitCode = 1;
 } finally {
   await rm(join(process.cwd(), 'artifacts', 'e2e-audio-fixture.wav'), { force: true });
+  await rm(join(process.cwd(), 'artifacts', 'e2e-audio-invalid.wav'), { force: true });
   await cleanup({ success });
   console.log(`${success ? 'PASS' : 'FAIL'} E2E evidence: ${evidence}`);
 }

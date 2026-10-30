@@ -1,11 +1,13 @@
 import { app, BrowserWindow, ipcMain, screen, dialog, type Display } from 'electron';
 import { spawn, type ChildProcess } from 'node:child_process';
 import { createHash, randomBytes } from 'node:crypto';
-import { readFile, writeFile, mkdir, stat, copyFile } from 'node:fs/promises';
+import { readFile, writeFile, mkdir, stat, rename, rm, readdir } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { chooseExternalDisplay } from './display-policy.mjs';
 // @ts-ignore JS policy is exercised by Node TAP tests.
 import { saveTestPolicy, createFailOnce } from './renderer/src/audio/saveTestPolicy.mjs';
+// @ts-ignore Shared JS policy is covered by Node TAP tests.
+import { copyBounded, createSerialLock, reconcileManagedFiles, AUDIO_ID_PATTERN } from './renderer/src/audio/importPolicy.mjs';
 // @ts-ignore JS model is exercised by Node TAP tests.
 import { defaultAudioConfig, validateAudioConfig, MAX_FILE_BYTES, MAX_TOTAL_BYTES } from './renderer/src/audio/model.mjs';
 
@@ -22,7 +24,9 @@ let quitting = false;
 let activeDisplayId: number | null = null;
 let displayStateInitialized = false;
 let audioConfig: any = defaultAudioConfig();
-const pendingAudioIds = new Map<string, string>();
+const pendingAudioIds = new Map<string, {format: string; size: number}>();
+const withAudioLock = createSerialLock();
+let invalidFixtureConsumed = false;
 const e2e = process.env.DUNGEON_DEPUTY_E2E === '1';
 const { DUNGEON_DEPUTY_E2E_AUDIO_SAVE_DELAY_MS: _audioDelaySetting, DUNGEON_DEPUTY_E2E_AUDIO_SAVE_FAIL_FIRST: _audioFailSetting, ...backendEnvironment } = process.env;
 const audioSaveTestPolicy = saveTestPolicy({
@@ -60,17 +64,45 @@ const audioConfigPath = () => join(app.getPath('userData'), 'audio-config.json')
 async function loadAudioConfig() {
   try { audioConfig = validateAudioConfig(JSON.parse(await readFile(audioConfigPath(), 'utf8'))); }
   catch { audioConfig = defaultAudioConfig(); }
+  await mkdir(audioRoot(), { recursive: true });
+  await reconcileManagedFiles(audioRoot(), audioConfig.assets.map((a: {id:string}) => a.id), {
+    readdir: async (directory: string) => readdir(directory),
+    remove: async (name: string) => rm(join(audioRoot(), name), { force: true }),
+  });
 }
 async function saveAudioConfig(value: unknown) {
   if (audioSaveTestPolicy.delayMs > 0) await new Promise(resolve => setTimeout(resolve, audioSaveTestPolicy.delayMs));
   if (failFirstAudioSave()) throw new Error('Soundboard save failed. Your previous settings were restored; try again.');
-  const next = validateAudioConfig(value);
-  if (JSON.stringify(next) !== JSON.stringify(value)) throw new Error('Invalid soundboard configuration.');
-  await mkdir(app.getPath('userData'), { recursive: true });
-  const temp = `${audioConfigPath()}.tmp`;
-  await writeFile(temp, JSON.stringify(next), { mode: 0o600 });
-  const { rename } = await import('node:fs/promises');
-  await rename(temp, audioConfigPath()); audioConfig = next;
+  await withAudioLock(async () => {
+    const validated = validateAudioConfig(value);
+    if (JSON.stringify(validated) !== JSON.stringify(value)) throw new Error('Invalid soundboard configuration.');
+    const references = new Set(validated.banks.flatMap((b: any) => b.slots.map((s: any) => s.asset).filter(Boolean)));
+    const next = { ...validated, assets: validated.assets.filter((a: {id:string}) => references.has(a.id)) };
+    const previousIds = new Set(audioConfig.assets.map((a: {id:string}) => a.id));
+    const additions = next.assets.filter((a: {id:string}) => !previousIds.has(a.id));
+    for (const asset of additions) {
+      const pending = pendingAudioIds.get(asset.id);
+      if (!pending || pending.size !== asset.size || pending.format !== asset.format) throw new Error('Audio import metadata does not match the staged file.');
+    }
+    await mkdir(app.getPath('userData'), { recursive: true });
+    const temp = `${audioConfigPath()}.${randomBytes(8).toString('hex')}.tmp`;
+    const promoted: string[] = [];
+    try {
+      await writeFile(temp, JSON.stringify(next), { mode: 0o600, flag: 'wx' });
+      for (const asset of additions) {
+        await rename(join(audioRoot(), `${asset.id}.pending`), join(audioRoot(), `${asset.id}.${asset.format}`));
+        promoted.push(asset.id);
+      }
+      await rename(temp, audioConfigPath());
+    } catch (error) {
+      await rm(temp, { force: true }).catch(() => {});
+      for (const asset of additions) if (promoted.includes(asset.id)) await rename(join(audioRoot(), `${asset.id}.${asset.format}`), join(audioRoot(), `${asset.id}.pending`)).catch(() => {});
+      throw error;
+    }
+    audioConfig = next;
+    for (const asset of additions) pendingAudioIds.delete(asset.id);
+    for (const asset of audioConfig.assets) if (!next.assets.some((a: {id:string}) => a.id === asset.id)) await rm(join(audioRoot(), `${asset.id}.${asset.format}`), { force: true }).catch(() => {});
+  });
 }
 function api(path: string, method = 'GET', body?: unknown) {
   return fetch(`${backendUrl}${path}`, { method, headers: { 'X-Dungeon-Token': backendToken, Accept: 'application/json', ...(body === undefined ? {} : { 'Content-Type': 'application/json' }) }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
@@ -103,7 +135,7 @@ function allowedSender(role: Role, event: Electron.IpcMainInvokeEvent) {
   return !!win && event.sender === win.webContents && event.senderFrame?.url === win.webContents.getURL();
 }
 function installIpc() {
-  for (const channel of ['dm:command', 'dm:preferences', 'display:list', 'public:presentation', 'audio:config', 'audio:import', 'audio:bytes']) {
+  for (const channel of ['dm:command', 'dm:preferences', 'display:list', 'public:presentation', 'audio:config', 'audio:import', 'audio:bytes', 'audio:discard']) {
     ipcMain.removeHandler(channel);
   }
   ipcMain.handle('audio:config', async (event, value?: unknown) => {
@@ -113,30 +145,53 @@ function installIpc() {
   });
   ipcMain.handle('audio:import', async event => {
     if (!allowedSender('dm', event)) throw new Error('Denied');
-    const selected = e2e && process.env.DUNGEON_DEPUTY_E2E_AUDIO_FIXTURE
-      ? { canceled: false, filePaths: [resolve(process.env.DUNGEON_DEPUTY_E2E_AUDIO_FIXTURE)] }
+    const failInvalid = e2e && !app.isPackaged && process.env.DUNGEON_DEPUTY_E2E_AUDIO_INVALID_FIXTURE && process.env.DUNGEON_DEPUTY_E2E_AUDIO_FAIL_IMPORT_FIRST === '1' && !invalidFixtureConsumed;
+    const selected = e2e && !app.isPackaged && (failInvalid || process.env.DUNGEON_DEPUTY_E2E_AUDIO_FIXTURE)
+      ? { canceled: false, filePaths: [resolve(failInvalid ? process.env.DUNGEON_DEPUTY_E2E_AUDIO_INVALID_FIXTURE! : process.env.DUNGEON_DEPUTY_E2E_AUDIO_FIXTURE!)] }
       : await dialog.showOpenDialog(windows.get('dm')!, { properties: ['openFile'], filters: [{ name: 'Audio', extensions: ['wav', 'mp3', 'ogg', 'oga', 'opus'] }] });
     if (selected.canceled || selected.filePaths.length !== 1) return null;
     const source = selected.filePaths[0];
     const ext = source.split('.').pop()?.toLowerCase();
     if (!['wav', 'mp3', 'ogg', 'oga', 'opus'].includes(ext ?? '')) throw new Error('Unsupported audio file type.');
-    const info = await stat(source);
-    if (!info.isFile() || info.size <= 0 || info.size > MAX_FILE_BYTES) throw new Error('Audio file must be 25 MiB or smaller.');
-    if (audioConfig.assets.reduce((n: number, a: {size: number}) => n + a.size, 0) + info.size > MAX_TOTAL_BYTES) throw new Error('Imported audio total exceeds 256 MiB.');
-    const id = `a_${randomBytes(16).toString('hex')}`;
     const format = ['oga', 'opus'].includes(ext!) ? 'ogg' : ext!;
-    await mkdir(audioRoot(), { recursive: true });
-    await copyFile(source, join(audioRoot(), `${id}.${format}`));
-    pendingAudioIds.set(id, format);
-    return { id, name: source.split(/[\\/]/).pop()!.replace(/\.[^.]+$/, '').slice(0, 80), format, size: info.size, duration: 0 };
+    const result = await withAudioLock(async () => {
+      const info = await stat(source);
+      if (!info.isFile() || info.size <= 0) throw new Error('Choose a non-empty audio file.');
+      const committed = audioConfig.assets.reduce((n: number, a: {size: number}) => n + a.size, 0);
+      const reserved = [...pendingAudioIds.values()].reduce((n, p) => n + p.size, 0);
+      const budget = Math.min(MAX_FILE_BYTES, MAX_TOTAL_BYTES - committed - reserved);
+      if (budget <= 0) throw new Error('Imported audio total exceeds 256 MiB.');
+      const id = `a_${randomBytes(16).toString('hex')}`;
+      await mkdir(audioRoot(), { recursive: true });
+      const size = await copyBounded(source, join(audioRoot(), `${id}.pending`), budget);
+      if (size > MAX_FILE_BYTES) throw new Error('Audio file must be 25 MiB or smaller.');
+      pendingAudioIds.set(id, { format, size });
+      return { id, name: source.split(/[\\/]/).pop()!.replace(/\.[^.]+$/, '').slice(0, 80), format, size, duration: 0 };
+    });
+    if (failInvalid) invalidFixtureConsumed = true;
+    return result;
   });
   ipcMain.handle('audio:bytes', async (event, id: unknown) => {
     if (!allowedSender('dm', event) || typeof id !== 'string' || !/^a_[a-f0-9]{32}$/.test(id)) throw new Error('Denied');
-    const asset = audioConfig.assets.find((a: {id: string; format: string}) => a.id === id);
-    if (!asset && !pendingAudioIds.has(id)) throw new Error('Unknown audio asset.');
-    const format = asset?.format ?? pendingAudioIds.get(id)!;
-    const bytes = await readFile(join(audioRoot(), `${id}.${format}`)).catch(() => { throw new Error('Audio file is missing.'); });
-    return Uint8Array.from(bytes);
+    return withAudioLock(async () => {
+      const asset = audioConfig.assets.find((a: {id: string; format: string; size: number}) => a.id === id);
+      const pending = pendingAudioIds.get(id);
+      if (!asset && !pending) throw new Error('Unknown audio asset.');
+      const bytes = await readFile(join(audioRoot(), `${id}.${asset?.format ?? 'pending'}`)).catch(() => { throw new Error('Audio file is missing.'); });
+      const expected = asset?.size ?? pending!.size;
+      if (bytes.length !== expected || bytes.length > MAX_FILE_BYTES) throw new Error('Audio file failed size validation.');
+      return Uint8Array.from(bytes);
+    });
+  });
+  ipcMain.handle('audio:discard', async (event, id: unknown) => {
+    if (!allowedSender('dm', event) || typeof id !== 'string' || !AUDIO_ID_PATTERN.test(id)) throw new Error('Denied');
+    return withAudioLock(async () => {
+      const pending = pendingAudioIds.get(id);
+      if (!pending) return false;
+      pendingAudioIds.delete(id);
+      await rm(join(audioRoot(), `${id}.pending`), { force: true });
+      return true;
+    });
   });
   ipcMain.handle('dm:command', async (event, path: unknown, method: unknown, body?: unknown) => {
     if (!allowedSender('dm', event) || typeof path !== 'string' || !/^\/api\/(scenes|presentation|selection\/[a-z-]+|show\/[a-z-]+|blackout|map|map\/draft|map\/blank|map\/show|map\/show-encounter|map\/fog\/(?:enable|strokes)|map\/token(?:\/[a-zA-Z0-9-]+(?:\/(?:visibility|hp|conditions|initiative(?:\/roll)?|tie-break))?)?|encounter(?:\/actors\/[a-zA-Z0-9-]+\/(?:hp|conditions|initiative(?:\/roll)?|tie-break)|\/turn\/end|\/dice)?)\/?(?:\?.*)?$/.test(path) || !['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].includes(String(method))) throw new Error('Denied');

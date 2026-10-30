@@ -17,7 +17,7 @@ const dataRoots = new Set([dataRoot]);
 const logs = [];
 const rendererErrors = [];
 let ownedVite = false;
-const { DUNGEON_DEPUTY_E2E_AUDIO_SAVE_DELAY_MS: _ignoredDelay, DUNGEON_DEPUTY_E2E_AUDIO_SAVE_FAIL_FIRST: _ignoredFailure, ...childEnvironment } = process.env;
+  const { DUNGEON_DEPUTY_E2E_AUDIO_SAVE_DELAY_MS: _ignoredDelay, DUNGEON_DEPUTY_E2E_AUDIO_SAVE_FAIL_FIRST: _ignoredFailure, DUNGEON_DEPUTY_E2E_AUDIO_INVALID_FIXTURE: _invalidFixture, DUNGEON_DEPUTY_E2E_AUDIO_FAIL_IMPORT_FIRST: _failImport, ...childEnvironment } = process.env;
 
 function note(text) { const line=`${new Date().toISOString()} ${text}`;logs.push(line);try{appendFileSync(join(evidence,'run.log'),line+'\n');}catch{} }
 function treeKill(child) {
@@ -57,7 +57,7 @@ export async function launch(testDataRoot = dataRoot, injectFirstFailure = true)
   await mkdir(testDataRoot, { recursive: true });
   const require=createRequire(import.meta.url);const { _electron: electron }=require('playwright-core');
   const executable=join(root,'node_modules/electron/dist/electron.exe');
-  const app=await electron.launch({executablePath:executable,args:[`--user-data-dir=${join(testDataRoot,'chromium-profile')}`,root],cwd:root,env:{...childEnvironment,DUNGEON_DEPUTY_E2E:'1',DUNGEON_DEPUTY_DATA_DIR:testDataRoot,DUNGEON_DEPUTY_BACKEND_ROOT:backendRoot,DUNGEON_DEPUTY_DEV_URL:'http://127.0.0.1:5173',...(process.env.DUNGEON_DEPUTY_E2E_AUDIO_FIXTURE?{DUNGEON_DEPUTY_E2E_AUDIO_FIXTURE:process.env.DUNGEON_DEPUTY_E2E_AUDIO_FIXTURE}:{}),DUNGEON_DEPUTY_E2E_AUDIO_SAVE_DELAY_MS:'700',...(injectFirstFailure?{DUNGEON_DEPUTY_E2E_AUDIO_SAVE_FAIL_FIRST:'1'}:{})},timeout:30000,dumpio:true});
+  const app=await electron.launch({executablePath:executable,args:[`--user-data-dir=${join(testDataRoot,'chromium-profile')}`,root],cwd:root,env:{...childEnvironment,DUNGEON_DEPUTY_E2E:'1',DUNGEON_DEPUTY_DATA_DIR:testDataRoot,DUNGEON_DEPUTY_BACKEND_ROOT:backendRoot,DUNGEON_DEPUTY_DEV_URL:'http://127.0.0.1:5173',...(process.env.DUNGEON_DEPUTY_E2E_AUDIO_FIXTURE?{DUNGEON_DEPUTY_E2E_AUDIO_FIXTURE:process.env.DUNGEON_DEPUTY_E2E_AUDIO_FIXTURE}:{}),...(injectFirstFailure&&process.env.DUNGEON_DEPUTY_E2E_AUDIO_INVALID_FIXTURE?{DUNGEON_DEPUTY_E2E_AUDIO_INVALID_FIXTURE:process.env.DUNGEON_DEPUTY_E2E_AUDIO_INVALID_FIXTURE,DUNGEON_DEPUTY_E2E_AUDIO_FAIL_IMPORT_FIRST:'1'}:{}),DUNGEON_DEPUTY_E2E_AUDIO_SAVE_DELAY_MS:'700',...(injectFirstFailure?{DUNGEON_DEPUTY_E2E_AUDIO_SAVE_FAIL_FIRST:'1'}:{})},timeout:30000,dumpio:true});
   app.on('console',msg=>{const line=`ELECTRON CONSOLE ${msg.type()}: ${msg.text()}`;note(line);if(msg.type()==='error'&&!msg.text().includes('Soundboard save failed. Your previous settings were restored; try again.'))rendererErrors.push(line);});
   app.on('window',page=>{page.on('console',m=>{const line=`${page.url()} CONSOLE ${m.type()}: ${m.text()}`;note(line);if(m.type()==='error')rendererErrors.push(line);});page.on('pageerror',e=>{const line=`${page.url()} PAGE ERROR ${e.stack??e}`;note(line);rendererErrors.push(line);});page.on('requestfailed',r=>{const line=`${page.url()} REQUEST FAILED ${r.url()} ${r.failure()?.errorText}`;note(line);rendererErrors.push(line);});page.on('response',r=>{if(r.url().includes('/api/'))note(`API ${r.status()} ${r.url()}`);});});
   children.push(app.process());

@@ -26,7 +26,8 @@ export default function AudioWorkspace({ cueActions }: { cueActions: { showScene
   const saveVersion = useRef(0);
   const pendingSaves = useRef(0);
   const persistedConfig = useRef<AudioConfig>(defaultAudioConfig());
-  useEffect(() => { void window.dungeonDeputy.audioConfig?.().then(value => { const restored=validateAudioConfig(value); persistedConfig.current=restored; setConfig(restored); setMessage(''); }).catch(() => setMessage('Soundboard settings could not be loaded.')).finally(() => setLoaded(true)); return () => { void player.current?.close(); }; }, []);
+  const pendingImports = useRef(new Set<string>());
+  useEffect(() => { void window.dungeonDeputy.audioConfig?.().then(value => { const restored=validateAudioConfig(value); persistedConfig.current=restored; setConfig(restored); setMessage(''); }).catch(() => setMessage('Soundboard settings could not be loaded.')).finally(() => setLoaded(true)); return () => { void player.current?.close(); for(const id of pendingImports.current) void window.dungeonDeputy.audioDiscard?.(id); pendingImports.current.clear(); }; }, []);
   const bank = config.banks.find((b: AudioBank) => b.id === config.selectedBankId) ?? config.banks[0];
   const persist = async (next: AudioConfig, kind: 'settings'|'shortcut' = 'settings'): Promise<boolean> => {
     const version=++saveVersion.current;
@@ -53,6 +54,7 @@ export default function AudioWorkspace({ cueActions }: { cueActions: { showScene
     setBusy(true); setMessage('Importing sound…');
     try {
       const asset = await window.dungeonDeputy.audioImport?.(); if (!asset) { setMessage('Import cancelled.'); return; }
+      pendingImports.current.add(asset.id);
       const Audio = window.AudioContext; const ctx = new Audio();
       try {
         const raw = await window.dungeonDeputy.audioBytes!(asset.id);
@@ -61,10 +63,11 @@ export default function AudioWorkspace({ cueActions }: { cueActions: { showScene
         if (decoded.duration <= 0 || decoded.duration > 600) throw new Error('Duration limit.');
         const accepted = { ...asset, duration: decoded.duration };
         if(!await persist(assignAsset(config, bank.id, slot, accepted)))return;
+        pendingImports.current.delete(asset.id);
         setMissing(ids => ids.filter(id => id !== slot)); setMessage(`${accepted.name} imported to ${slot.replace('pad-', 'Pad ')}.`);
       } finally { await ctx.close(); }
-    } catch { setMessage('Couldn’t import this sound. Check the file and limits, then choose another file or try again.'); }
-    finally { setBusy(false); }
+    } catch (error) { setMessage(error instanceof Error && /decode|audio|format|duration|limit/i.test(error.message) ? 'Couldn’t decode this audio. Choose a valid WAV, MP3 or Ogg file under 10 minutes, then try again.' : 'Couldn’t import this sound. Check the file and limits, then choose another file or try again.'); }
+    finally { for(const id of pendingImports.current) { await window.dungeonDeputy.audioDiscard?.(id).catch(()=>{}); pendingImports.current.delete(id); } setBusy(false); }
   };
   const play = async (slot: AudioSlot): Promise<boolean> => {
     const asset = config.assets.find(a => a.id === slot.asset); if (!asset) return false;
@@ -97,7 +100,7 @@ export default function AudioWorkspace({ cueActions }: { cueActions: { showScene
       {bank.slots.every(s=>!s.asset) && <div className="audio-empty"><strong>No sounds in this bank</strong><p>Choose an empty pad, then import a sound to start your soundboard.</p></div>}
       <div className="audio-pads">{bank.slots.map((slot: AudioSlot, i: number) => { const asset=config.assets.find(a=>a.id===slot.asset); const isMissing=missing.includes(slot.id); return <article key={slot.id} className={slot.loop?'is-looping':''}>
         <h3>Pad {i+1}</h3><p className="audio-name" title={asset?.name}>{isMissing?'File missing':asset?.name??'Empty'}</p><p className="audio-mode">{asset?(slot.loop?'Looping':'One-shot'):'—'}{asset&&<span> · {isMissing?'File missing':'Ready'}</span>}</p>
-          <div className="audio-actions">{asset&&!isMissing&&<><button onClick={()=>void play(slot)}>Play</button><button onClick={()=>player.current?.stopAll()}>Stop</button></>}{(!asset||isMissing)&&<button disabled={busy||saving} onClick={()=>void importSound(slot.id)}>{isMissing?'Relink sound':'Import sound'}</button>}{asset&&<button disabled={saving} onClick={()=>{if(window.confirm(`Clear the sound from pad ${i+1}? This does not delete the imported file.`)){changeSlot(slot,{asset:null,loop:false});setMissing(ids=>ids.filter(id=>id!==slot.id));}}}>Clear pad</button>}</div>
+           <div className="audio-actions">{asset&&!isMissing&&<><button onClick={()=>void play(slot)}>Play</button><button onClick={()=>player.current?.stopAll()}>Stop</button></>}{(!asset||isMissing)&&<button disabled={busy||saving} onClick={()=>void importSound(slot.id)}>{isMissing?'Relink sound':'Import sound'}</button>}{asset&&<button disabled={saving} onClick={()=>{if(window.confirm(`Clear the assignment from pad ${i+1}? The imported file is deleted only if no other slot uses it.`)){changeSlot(slot,{asset:null,loop:false});setMissing(ids=>ids.filter(id=>id!==slot.id));}}}>Clear pad</button>}</div>
          {asset&&<><label className="audio-volume">Pad volume <input disabled={saving} aria-label={`Pad ${i+1} volume`} type="range" min="0" max="100" value={slot.volume} onChange={e=>changeSlot(slot,{volume:Number(e.target.value)})}/><span>{slot.volume}%</span></label><label className="audio-loop"><input disabled={saving} type="checkbox" checked={slot.loop} onChange={e=>changeSlot(slot,{loop:e.target.checked})}/>Loop ambience</label></>}
       </article>; })}</div>
       <CueEditor banks={config.banks} assets={config.assets} bindings={config.cues} saving={saving} onStatus={setMessage} onChange={cues=>void persist({...config,cues},'shortcut')}/>

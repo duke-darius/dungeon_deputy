@@ -10,6 +10,7 @@ const api = publicWindow
       audioConfig: (value?: unknown) => ipcRenderer.invoke('audio:config', value),
       audioImport: () => ipcRenderer.invoke('audio:import'),
       audioBytes: (id: string) => ipcRenderer.invoke('audio:bytes', id),
+      audioDiscard: (id: string) => ipcRenderer.invoke('audio:discard', id),
       getPresentation: () => ipcRenderer.invoke('dm:command', '/api/presentation', 'GET'),
     });
 contextBridge.exposeInMainWorld('dungeonDeputy', api);
