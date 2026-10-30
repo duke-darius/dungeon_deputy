@@ -76,11 +76,38 @@ try {
 
   let { manager, player } = await launchPair(join(evidence, 'data'));
   await manager.getByRole('button', { name: 'Audio · DM only' }).click();
+  await manager.locator('.audio-pads article').first().waitFor();
+  assert.equal(await manager.locator('.audio-pads article').count(),12,'soundboard must always render exactly twelve pads');
+  assert.equal(await manager.locator('.audio-pads').evaluate(el=>getComputedStyle(el).gridTemplateColumns.split(' ').length),3,'desktop pads must use three columns');
   await manager.getByRole('button', { name: 'Import sound' }).first().click();
   await manager.getByText('e2e-audio-fixture', { exact: true }).waitFor();
   const importedPad=manager.locator('.audio-pads article').first();
   await importedPad.getByRole('button', { name: 'Play' }).click();
   await manager.getByRole('status').filter({ hasText: 'Playing e2e-audio-fixture' }).waitFor();
+  await importedPad.getByLabel('Loop ambience').check();
+  await importedPad.getByRole('button', { name: 'Play' }).click();
+  await manager.getByRole('status').filter({ hasText: 'Looping e2e-audio-fixture' }).waitFor();
+  await manager.getByRole('button', { name: 'Stop all' }).click();
+  await manager.getByRole('status').filter({ hasText: 'All sounds stopped' }).waitFor();
+  await importedPad.getByLabel('Loop ambience').uncheck();
+  await importedPad.getByRole('button', { name: 'Play' }).click();
+  await importedPad.getByRole('button', { name: 'Play' }).click();
+  await manager.getByRole('status').filter({ hasText: 'Playing e2e-audio-fixture' }).waitFor();
+  await manager.getByRole('button', { name: 'Stop all' }).click();
+  await manager.getByRole('button', { name: 'New bank' }).click();
+  assert.equal(await manager.locator('.audio-pads article').count(),12,'new bank must have twelve empty pads');
+  await manager.getByRole('button', { name: 'Rename bank' }).click();
+  await manager.getByLabel('Bank name').fill('E2E bank');
+  await manager.getByRole('button', { name: 'Save bank name' }).click();
+  assert.equal(await manager.locator('select[aria-label="Sound bank"] option').allTextContents().then(names=>names.includes('E2E bank')),true,'renaming a bank must persist its new name');
+  manager.once('dialog', dialog=>void dialog.accept());
+  await manager.getByRole('button', { name: 'Delete bank' }).click();
+  assert.equal(await manager.locator('.audio-pads article').count(),12);
+  assert.equal(await manager.getByRole('button', { name: 'Delete bank' }).isDisabled(),true,'the final bank cannot be deleted');
+  await manager.setViewportSize({width:390,height:844});
+  assert.equal(await manager.locator('.audio-pads').evaluate(el=>getComputedStyle(el).gridTemplateColumns.split(' ').length),2,'phone pads must use two columns');
+  assert.equal(await manager.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth),true,'audio workspace must not clip horizontally');
+  await manager.setViewportSize({width:1280,height:900});
   assert.equal(await player.evaluate(() => 'audioImport' in window.dungeonDeputy || 'audioConfig' in window.dungeonDeputy), false, 'public preload must not expose soundboard APIs');
   assert.equal(await player.locator('.public-stage .public-art, .public-stage .public-map').count(), 0, 'audio import/play must not change black public output');
 
