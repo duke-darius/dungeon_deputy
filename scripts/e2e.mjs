@@ -78,9 +78,24 @@ try {
   await manager.getByRole('button', { name: 'Audio · DM only' }).click();
   await manager.getByRole('button', { name: 'Import sound' }).first().click();
   await manager.getByText('e2e-audio-fixture', { exact: true }).waitFor();
-  await manager.getByRole('button', { name: 'Battle map' }).click();
-  await manager.locator('.audio-pads article').first().getByRole('button', { name: 'Play' }).click();
+  const importedPad=manager.locator('.audio-pads article').first();
+  await importedPad.getByRole('button', { name: 'Play' }).click();
+  await manager.getByRole('status').filter({ hasText: 'Playing e2e-audio-fixture' }).waitFor();
   assert.equal(await player.evaluate(() => 'audioImport' in window.dungeonDeputy || 'audioConfig' in window.dungeonDeputy), false, 'public preload must not expose soundboard APIs');
+  assert.equal(await player.locator('.public-stage .public-art, .public-stage .public-map').count(), 0, 'audio import/play must not change black public output');
+
+  await app.close();
+  ({ manager, player } = await launchPair(join(evidence, 'data')));
+  await manager.getByRole('button', { name: 'Audio · DM only' }).click();
+  await manager.getByText('e2e-audio-fixture', { exact: true }).waitFor();
+  const restoredPad=manager.locator('.audio-pads article').first();
+  await restoredPad.getByRole('button', { name: 'Play' }).waitFor();
+  assert.equal(await manager.getByRole('status').innerText(), '', 'audio playback must not auto-resume after restart');
+  await restoredPad.getByRole('button', { name: 'Play' }).click();
+  await manager.getByRole('status').filter({ hasText: 'Playing e2e-audio-fixture' }).waitFor();
+  assert.equal(await player.locator('.public-stage .public-art, .public-stage .public-map').count(), 0, 'persisted audio must not auto-publish a map after restart');
+  assert.equal(await player.evaluate(() => 'audioImport' in window.dungeonDeputy || 'audioConfig' in window.dungeonDeputy), false, 'public preload must remain audio-free after restart');
+  await manager.getByRole('button', { name: 'Battle map' }).click();
 
   const capture = async (name, role, route, expectedVisual = false) => {
     const captured = await app.evaluate(async ({ BrowserWindow }, suffix) => {
