@@ -84,12 +84,12 @@ Plans:
   1. The DM can load user-provided sounds into a 12-pad board, organize named banks, adjust volume, loop ambience, play one-shots, and stop all audio.
   2. The DM can bind persistent shortcuts to sound and scene/show/reveal/blackout cues, and ordinary typing is not unnecessarily disrupted.
   3. During a live map, the DM can trigger a honk, start rain ambience, change to a battle scene, and stop audio using a 12-key controller or ordinary keyboard; Mac/Windows results are reported only for platforms actually tested.
-**Plans:** 3/4 plans executed
+**Plans:** 4/4 plans executed
 Plans:
 - [x] 04-01-PLAN.md — Secure audio import and persisted 12-slot bank tracer
 - [x] 04-02-PLAN.md — Bounded WebAudio soundboard and private workspace
 - [x] 04-03-PLAN.md — Persistent safe cues, keyboard controls, and verification docs
-- [ ] 04-04-PLAN.md — Close pending-save and failed-save UI E2E verification gap
+- [x] 04-04-PLAN.md — Close pending-save and failed-save UI E2E verification gap
 **UI hint**: yes
 
 ### Phase 5: Offline 2024 SRD Compendium
@@ -139,7 +139,7 @@ Phases execute in the specified stage order: 1 → 2 → 3 → 4 → 5 → 6 →
 | 1. Safe Two-Screen Scene Presentation | 5/5 | Complete (user approved) | 2026-10-28 |
 | 2. Playable Digital Battle Map | 4/6 | In Progress | - |
 | 3. Fog of War and Encounter Control | 7/7 | In Progress | - |
-| 4. Soundboard, Scenes, and 12-Key Control | 3/3 | In Progress | - |
+| 4. Soundboard, Scenes, and 12-Key Control | 4/4 | In Progress | - |
 | 5. Offline 2024 SRD Compendium | 0/TBD | Not started | - |
 | 6. SRD Characters and Local Player Sheets | 0/TBD | Not started | - |
 | 7. Optional AI Preparation and Map Proposals | 0/TBD | Not started | - |
