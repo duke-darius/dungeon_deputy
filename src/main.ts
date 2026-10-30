@@ -1,7 +1,7 @@
 import { app, BrowserWindow, ipcMain, screen, dialog, type Display } from 'electron';
 import { spawn, type ChildProcess } from 'node:child_process';
 import { createHash, randomBytes } from 'node:crypto';
-import { readFile, writeFile, mkdir, stat, rename, rm, readdir } from 'node:fs/promises';
+import { readFile, writeFile, mkdir, stat, rename, rm, readdir, access } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { chooseExternalDisplay } from './display-policy.mjs';
 // @ts-ignore JS policy is exercised by Node TAP tests.
@@ -9,7 +9,7 @@ import { saveTestPolicy, createFailOnce } from './renderer/src/audio/saveTestPol
 // @ts-ignore Shared JS policy is covered by Node TAP tests.
 import { copyBounded, createSerialLock, reconcileManagedFiles, stageWithinAudioQuota, commitStagedAudioConfig, AUDIO_ID_PATTERN } from './renderer/src/audio/importPolicy.mjs';
 // @ts-ignore JS model is exercised by Node TAP tests.
-import { defaultAudioConfig, validateAudioConfig, MAX_FILE_BYTES, MAX_TOTAL_BYTES } from './renderer/src/audio/model.mjs';
+import { defaultAudioConfig, validateAudioConfig, MAX_FILE_BYTES, MAX_TOTAL_BYTES, DEFAULT_AUDIO_SAMPLES, isPristineAudioConfig, seedDefaultAudioConfig } from './renderer/src/audio/model.mjs';
 
 type Role = 'dm' | 'public';
 type Preferences = { sceneId: string; displayId: number | null };
@@ -71,14 +71,84 @@ async function savePreferences() {
 }
 const audioRoot = () => join(app.getPath('userData'), 'audio');
 const audioConfigPath = () => join(app.getPath('userData'), 'audio-config.json');
+const audioSeedMarkerPath = () => join(app.getPath('userData'), 'audio-defaults-seeded.json');
+const defaultAudioSource = (filename: string) => app.isPackaged
+  ? join(process.resourcesPath, 'audio-defaults', filename)
+  : join(app.getAppPath(), 'assets/audio-defaults', filename);
+function pcmWavDuration(bytes: Buffer) {
+  if (bytes.toString('ascii', 0, 4) !== 'RIFF' || bytes.toString('ascii', 8, 12) !== 'WAVE') return null;
+  let format: Buffer | undefined;
+  let dataLength = 0;
+  for (let offset = 12; offset + 8 <= bytes.length;) {
+    const size = bytes.readUInt32LE(offset + 4);
+    const start = offset + 8;
+    if (start + size > bytes.length) return null;
+    const id = bytes.toString('ascii', offset, offset + 4);
+    if (id === 'fmt ') format = bytes.subarray(start, start + size);
+    if (id === 'data') dataLength += size;
+    offset = start + size + (size & 1);
+  }
+  if (!format || format.length < 16 || format.readUInt16LE(0) !== 1 || format.readUInt16LE(14) !== 16 || dataLength < 1) return null;
+  const byteRate = format.readUInt32LE(8);
+  const duration = byteRate ? dataLength / byteRate : 0;
+  return Number.isFinite(duration) && duration > 0 && duration <= 600 ? duration : null;
+}
 async function loadAudioConfig() {
-  try { audioConfig = validateAudioConfig(JSON.parse(await readFile(audioConfigPath(), 'utf8'))); }
-  catch { audioConfig = defaultAudioConfig(); }
+  let configExists = true;
+  let legacyPristine = false;
+  try {
+    const stored = JSON.parse(await readFile(audioConfigPath(), 'utf8'));
+    audioConfig = validateAudioConfig(stored);
+    legacyPristine = isPristineAudioConfig(stored);
+  }
+  catch (error: any) { if (error?.code !== 'ENOENT') configExists = true; else configExists = false; audioConfig = defaultAudioConfig(); }
   await mkdir(audioRoot(), { recursive: true });
+  let seedMarked = true;
+  try { await access(audioSeedMarkerPath()); } catch { seedMarked = false; }
+  if (!seedMarked && (!configExists || legacyPristine)) {
+    try { await seedBundledAudioDefaults(); }
+    catch (error) { console.error('Bundled audio defaults could not be installed; startup will continue without them.', error); }
+  }
   await reconcileManagedFiles(audioRoot(), audioConfig.assets.map((a: {id:string}) => a.id), {
     readdir: async (directory: string) => readdir(directory),
     remove: async (name: string) => rm(join(audioRoot(), name), { force: true }),
   });
+}
+async function seedBundledAudioDefaults() {
+  const candidate = audioConfig;
+  const copied: string[] = [];
+  const staged: string[] = [];
+  const temporaryConfig = `${audioConfigPath()}.${randomBytes(8).toString('hex')}.tmp`;
+  const temporaryMarker = `${audioSeedMarkerPath()}.${randomBytes(8).toString('hex')}.tmp`;
+  try {
+    const metadata: any[] = [];
+    for (const sample of DEFAULT_AUDIO_SAMPLES) {
+      const source = defaultAudioSource(sample.filename);
+      const sourceInfo = await stat(source);
+      if (!sourceInfo.isFile() || sourceInfo.size <= 44 || sourceInfo.size > MAX_FILE_BYTES) throw new Error('Bundled audio sample is missing or outside the audio size limit.');
+      const bytes = await readFile(source);
+      const duration = pcmWavDuration(bytes);
+      if (duration === null) throw new Error('Bundled audio sample is not valid bounded PCM WAV.');
+      const temp = join(audioRoot(), `${sample.id}.${sample.format}.${randomBytes(8).toString('hex')}.tmp`);
+      staged.push(temp);
+      const size = await copyBounded(source, temp, MAX_FILE_BYTES);
+      if (size !== sourceInfo.size) throw new Error('Bundled audio sample changed during copy.');
+      const finalPath = join(audioRoot(), `${sample.id}.${sample.format}`);
+      await rename(temp, finalPath);
+      staged.splice(staged.indexOf(temp), 1);
+      copied.push(finalPath);
+      metadata.push({ ...sample, size, duration });
+    }
+    const seeded = seedDefaultAudioConfig(candidate, metadata);
+    await writeFile(temporaryConfig, JSON.stringify(seeded), { mode: 0o600, flag: 'wx' });
+    await rename(temporaryConfig, audioConfigPath());
+    audioConfig = seeded;
+    await writeFile(temporaryMarker, JSON.stringify({ version: 1, seeded: true }), { mode: 0o600, flag: 'wx' });
+    await rename(temporaryMarker, audioSeedMarkerPath());
+  } catch (error) {
+    await Promise.all([...staged, temporaryConfig, temporaryMarker, ...copied].map(path => rm(path, { force: true }).catch(() => {})));
+    throw error;
+  }
 }
 async function saveAudioConfig(value: unknown) {
   if (audioSaveTestPolicy.delayMs > 0) await new Promise(resolve => setTimeout(resolve, audioSaveTestPolicy.delayMs));

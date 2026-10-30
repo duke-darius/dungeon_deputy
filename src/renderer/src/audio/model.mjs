@@ -8,6 +8,29 @@ import { validateCueBindings } from './cues.mjs';
 const defaultBank = () => ({ id: 'bank-default', name: 'Soundboard', slots: Array.from({ length: SLOT_COUNT }, (_, i) => ({ id: `pad-${i + 1}`, asset: null, volume: 100, loop: false })) });
 export const defaultAudioConfig = () => ({ version: 1, masterVolume: 100, banks: [defaultBank()], selectedBankId: 'bank-default', assets: [], cues: [] });
 
+export const DEFAULT_AUDIO_SAMPLES = Object.freeze([
+  Object.freeze({ id: 'a_00000000000000000000000000000001', name: 'Book open', format: 'wav', filename: 'book-open.wav', slotId: 'pad-1' }),
+  Object.freeze({ id: 'a_00000000000000000000000000000002', name: 'Door opens', format: 'wav', filename: 'door-opens.wav', slotId: 'pad-2' }),
+  Object.freeze({ id: 'a_00000000000000000000000000000003', name: 'Coins handled', format: 'wav', filename: 'coins-handled.wav', slotId: 'pad-3' }),
+]);
+
+export function isPristineAudioConfig(config) {
+  if (!config || typeof config !== 'object' || config.version !== 1 || !Array.isArray(config.banks) || !config.banks.length || !Array.isArray(config.assets) || config.assets.length !== 0) return false;
+  return config.banks.every(bank => Array.isArray(bank.slots) && bank.slots.length === SLOT_COUNT && bank.slots.every(slot => slot && slot.asset === null));
+}
+
+export function seedDefaultAudioConfig(config, samples = DEFAULT_AUDIO_SAMPLES) {
+  const validated = validateAudioConfig(config);
+  if (!isPristineAudioConfig(validated) || !Array.isArray(samples) || samples.length !== 3 || samples.some(sample => !sample || !assetValid({ id: sample.id, name: sample.name, format: sample.format, size: sample.size, duration: sample.duration }))) return validated;
+  const assets = samples.map(({ id, name, format, size, duration }) => ({ id, name, format, size, duration }));
+  const first = validated.banks[0];
+  const slots = first.slots.map(slot => {
+    const sample = samples.find(item => item.slotId === slot.id);
+    return sample ? { ...slot, asset: sample.id } : slot;
+  });
+  return validateAudioConfig({ ...validated, assets, banks: validated.banks.map((bank, index) => index ? bank : { ...bank, slots }) });
+}
+
 const safeName = value => typeof value === 'string' && value.length <= 80 && value.trim().length > 0 && !/[\\/\0]/.test(value);
 const assetValid = a => a && typeof a === 'object' && /^a_[a-f0-9]{32}$/.test(a.id) && safeName(a.name) && ['wav', 'mp3', 'ogg'].includes(a.format) && Number.isSafeInteger(a.size) && a.size > 0 && a.size <= MAX_FILE_BYTES && Number.isFinite(a.duration) && a.duration > 0 && a.duration <= MAX_DURATION_SECONDS && Object.keys(a).every(k => ['id','name','format','size','duration'].includes(k));
 export function validateAudioConfig(value) {

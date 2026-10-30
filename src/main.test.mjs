@@ -66,6 +66,16 @@ test('audio import, bytes, and discard remain DM-only with bounded opaque pendin
   assert.match(preload, /audioDiscard/);
   assert.doesNotMatch(preload.slice(preload.indexOf('? Object.freeze'), preload.indexOf(': Object.freeze')), /audioDiscard/);
 });
+test('bundled defaults resolve to packaged resources or the development app tree and seed outside the save-test seam', () => {
+  assert.match(main, /join\(process\.resourcesPath, 'audio-defaults', filename\)/);
+  assert.match(main, /join\(app\.getAppPath\(\), 'assets\/audio-defaults', filename\)/);
+  assert.match(main, /audioSeedMarkerPath/);
+  assert.match(main, /if \(!seedMarked && \(!configExists \|\| legacyPristine\)\)/);
+  assert.match(main, /copyBounded\(source, temp, MAX_FILE_BYTES\)/);
+  assert.match(main, /rename\(temporaryConfig, audioConfigPath\(\)\)[\s\S]*rename\(temporaryMarker, audioSeedMarkerPath\(\)\)/);
+  const startupSeeder = main.slice(main.indexOf('async function seedBundledAudioDefaults'), main.indexOf('async function saveAudioConfig'));
+  assert.doesNotMatch(startupSeeder, /failFirstAudioSave|audioSaveTestPolicy/);
+});
 test('sandboxed preload uses CommonJS output rather than unsupported ESM imports', async () => {
   const tsconfig = await readFile(new URL('../tsconfig.electron.json', import.meta.url), 'utf8');
   const buildCheck = await readFile(new URL('../scripts/verify-electron-output.mjs', import.meta.url), 'utf8');

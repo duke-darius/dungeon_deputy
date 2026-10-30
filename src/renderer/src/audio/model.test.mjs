@@ -1,6 +1,18 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { assignAsset, defaultAudioConfig, validateAudioConfig, SLOT_COUNT, MAX_BANKS } from './model.mjs';
+import { assignAsset, defaultAudioConfig, validateAudioConfig, SLOT_COUNT, MAX_BANKS, DEFAULT_AUDIO_SAMPLES, isPristineAudioConfig, seedDefaultAudioConfig } from './model.mjs';
+
+test('default audio seed is only for pristine empty banks and assigns the three stable samples to pads 1–3', () => {
+  const empty = defaultAudioConfig();
+  assert.equal(isPristineAudioConfig(empty), true);
+  const seeded = seedDefaultAudioConfig(empty, DEFAULT_AUDIO_SAMPLES.map(sample => ({ ...sample, size: 128, duration: 0.5 })));
+  assert.deepEqual(seeded.banks[0].slots.slice(0, 3).map(slot => slot.asset), DEFAULT_AUDIO_SAMPLES.map(sample => sample.id));
+  assert.ok(seeded.banks[0].slots.slice(3).every(slot => slot.asset === null));
+  assert.equal(seeded.assets.length, 3);
+  assert.deepEqual(seedDefaultAudioConfig(seeded), seeded);
+  assert.equal(isPristineAudioConfig({ ...empty, assets: [{ id: 'custom' }] }), false);
+  assert.equal(isPristineAudioConfig({ ...empty, banks: [{ ...empty.banks[0], slots: empty.banks[0].slots.map((slot, i) => i ? slot : { ...slot, asset: 'custom' }) }] }), false);
+});
 
 test('default and persisted banks contain exactly twelve stable numbered slots', () => {
   const config = defaultAudioConfig();
