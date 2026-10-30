@@ -17,7 +17,7 @@ tech-stack:
 key-files:
   created: [src/renderer/src/audio/model.mjs, src/renderer/src/audio/model.test.mjs, src/renderer/src/audio/playback.mjs, src/renderer/src/audio/AudioWorkspace.tsx]
   modified: [src/main.ts, src/preload.cts, src/renderer/src/api.ts, src/main.test.mjs, src/renderer/src/map/MapEditor.tsx, scripts/e2e.mjs]
-decisions:
+key-decisions:
   - Keep audio imports, metadata, controls and playback in the DM-only window; public preload remains presentation-only.
   - Reject persisted malformed audio models to a safe one-bank/twelve-slot default.
 metrics:
