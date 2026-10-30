@@ -2,7 +2,7 @@
 
 ## Private soundboard
 
-The Audio workspace and its names, banks, local files, assignments, and cue shortcuts are DM-only. Import from the native file picker; paths are not entered into the app. Current limits are 25 MiB per file, 256 MiB total imported audio, and 10 minutes per sound. Decoded buffers are capped at 192 MiB; playback allows one ambience loop and up to eight one-shots. Playback starts only after an explicit Play or cue action and is silent after restart. Missing files keep their assignment and can be relinked.
+The Audio workspace and its names, banks, local files, assignments, and cue shortcuts are DM-only. Import from the native file picker; paths are not entered into the app. Current limits are 25 MiB per file, 256 MiB total retained audio, and 10 minutes per sound. Staged imports are bounded and discarded on decode/save failure; assignments are committed atomically. Clearing the last slot reference deletes the imported file after the settings save succeeds. Decoded buffers are capped at 192 MiB; playback allows one ambience loop and up to eight one-shots. Playback starts only after an explicit Play or cue action and is silent after restart. Missing files keep their assignment and can be relinked.
 
 WAV, MP3 and Ogg-family extensions are candidates, not a support guarantee. The current automated runtime smoke decodes a generated WAV; other formats and packaged-runtime codec availability have not been verified. Automated playback state does not prove audible speaker output.
 

@@ -56,6 +56,15 @@ test('audio-save test seam is gated by immutable packaged state and only wraps c
   assert.match(main, /async function saveAudioConfig\(value: unknown\) \{[\s\S]*audioSaveTestPolicy\.delayMs[\s\S]*failFirstAudioSave\(\)/);
   assert.match(main, /ipcMain\.handle\('audio:config',[\s\S]*if \(value !== undefined\) await saveAudioConfig\(value\)/);
 });
+test('audio import, bytes, and discard remain DM-only with bounded opaque pending lifecycle', () => {
+  assert.match(main, /withAudioLock\(async \(\) => \{[\s\S]*const budget = Math\.min\(MAX_FILE_BYTES, MAX_TOTAL_BYTES - committed - reserved\)/);
+  assert.match(main, /copyBounded\(source, join\(audioRoot\(\), `\$\{id\}\.pending`\), budget\)/);
+  assert.match(main, /ipcMain\.handle\('audio:discard',[\s\S]*allowedSender\('dm', event\)[\s\S]*pendingAudioIds\.delete\(id\)/);
+  assert.match(main, /pending\.size !== asset\.size \|\| pending\.format !== asset\.format/);
+  assert.match(main, /await rename\(temp, audioConfigPath\(\)\)/);
+  assert.match(preload, /audioDiscard/);
+  assert.doesNotMatch(preload.slice(preload.indexOf('? Object.freeze'), preload.indexOf(': Object.freeze')), /audioDiscard/);
+});
 test('sandboxed preload uses CommonJS output rather than unsupported ESM imports', async () => {
   const tsconfig = await readFile(new URL('../tsconfig.electron.json', import.meta.url), 'utf8');
   const buildCheck = await readFile(new URL('../scripts/verify-electron-output.mjs', import.meta.url), 'utf8');

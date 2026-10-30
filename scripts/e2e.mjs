@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdir, writeFile, rm } from 'node:fs/promises';
+import { mkdir, writeFile, rm, readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { setup, launch, cleanup, evidence, log, getRendererErrors, getLogLines } from './e2e/fixtures.mjs';
 import { createHash } from 'node:crypto';
@@ -192,6 +192,13 @@ try {
   await manager.getByRole('status').filter({ hasText: 'Playing e2e-audio-fixture' }).waitFor();
   assert.equal(await player.locator('.public-stage .public-art, .public-stage .public-map').count(), 0, 'persisted audio must not auto-publish a map after restart');
   assert.equal(await player.evaluate(() => 'audioImport' in window.dungeonDeputy || 'audioConfig' in window.dungeonDeputy), false, 'public preload must remain audio-free after restart');
+  manager.once('dialog', dialog=>void dialog.accept());
+  await restoredPad.getByRole('button', { name: 'Clear pad' }).click();
+  await manager.getByText('Soundboard changes saved.',{exact:true}).waitFor();
+  assert.equal(await manager.evaluate(()=>window.dungeonDeputy.audioConfig().then(value=>value.assets.length)),0,'clearing the last reference removes persisted asset metadata');
+  assert.equal((await readdir(join(evidence,'data','audio'))).some(name=>/^a_[a-f0-9]{32}\.(wav|mp3|ogg)$/.test(name)),false,'clearing the last reference reclaims the committed file');
+  await manager.getByRole('button', { name: 'Import sound' }).first().click();
+  await manager.getByText('e2e-audio-fixture', { exact: true }).waitFor();
   await manager.getByRole('button', { name: 'Add cue' }).click();
   await manager.getByLabel('Cue target 4').selectOption('current');
   await manager.evaluate(()=>window.dispatchEvent(new KeyboardEvent('keydown',{key:'4',code:'Digit4',ctrlKey:true,shiftKey:true,bubbles:true})));
@@ -520,10 +527,18 @@ try {
   await screenshot('08-map-blackout');
   await assertWindowsStable();
 
+  const audioDir=join(evidence,'data','audio');
+  await writeFile(join(audioDir,`a_${'f'.repeat(32)}.ogg`),'orphan');
+  await writeFile(join(audioDir,`a_${'e'.repeat(32)}.pending`),'pending');
+  await writeFile(join(audioDir,'user-notes.wav'),'preserve');
   await app.close();
   ({ manager, player } = await launchPair(join(evidence, 'data')));
   await manager.getByRole('button', { name: 'Audio · DM only' }).click();
   await manager.getByText('e2e-audio-fixture', { exact: true }).waitFor();
+  const recoveredFiles=await readdir(audioDir);
+  assert.equal(recoveredFiles.includes(`a_${'f'.repeat(32)}.ogg`),false,'startup removes generated unreferenced audio');
+  assert.equal(recoveredFiles.includes(`a_${'e'.repeat(32)}.pending`),false,'startup removes stale pending audio');
+  assert.equal(recoveredFiles.includes('user-notes.wav'),true,'startup preserves unknown audio-directory entries');
   await manager.getByRole('button', { name: 'Battle map' }).click();
   const restored = await waitForMap(manager, state => state.draft?.tokens?.some(token => token.name === 'E2E ranger'), 'draft restore after app restart');
   assert.equal(restored.draft.scale, 72);

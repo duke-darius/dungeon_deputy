@@ -74,6 +74,7 @@ async function saveAudioConfig(value: unknown) {
   if (audioSaveTestPolicy.delayMs > 0) await new Promise(resolve => setTimeout(resolve, audioSaveTestPolicy.delayMs));
   if (failFirstAudioSave()) throw new Error('Soundboard save failed. Your previous settings were restored; try again.');
   await withAudioLock(async () => {
+    const previousConfig = audioConfig;
     const validated = validateAudioConfig(value);
     if (JSON.stringify(validated) !== JSON.stringify(value)) throw new Error('Invalid soundboard configuration.');
     const references = new Set(validated.banks.flatMap((b: any) => b.slots.map((s: any) => s.asset).filter(Boolean)));
@@ -101,7 +102,7 @@ async function saveAudioConfig(value: unknown) {
     }
     audioConfig = next;
     for (const asset of additions) pendingAudioIds.delete(asset.id);
-    for (const asset of audioConfig.assets) if (!next.assets.some((a: {id:string}) => a.id === asset.id)) await rm(join(audioRoot(), `${asset.id}.${asset.format}`), { force: true }).catch(() => {});
+    for (const asset of previousConfig.assets) if (!next.assets.some((a: {id:string}) => a.id === asset.id)) await rm(join(audioRoot(), `${asset.id}.${asset.format}`), { force: true }).catch(() => {});
   });
 }
 function api(path: string, method = 'GET', body?: unknown) {
