@@ -17,8 +17,9 @@ actuals:
   tokens: 8161
   tasks: 3
   commits: 3
-  plan_head_before: b1a738db670ac26f1dfd65caac382fbf37805dd9
-  plan_head_after: 30c917d054b45cc3965f621f9219a4fd8f29b7fe
+commits: 3
+plan_head_before: b1a738db670ac26f1dfd65caac382fbf37805dd9
+plan_head_after: 30c917d054b45cc3965f621f9219a4fd8f29b7fe
 tech-stack:
   added: []
   patterns: [strict cue-target union, app-window-only keydown routing, saved-state-only explicit publication]
