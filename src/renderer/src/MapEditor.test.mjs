@@ -31,7 +31,8 @@ test('visual mutations rasterize anticipated map and send one image-bearing requ
   assert.match(editor, /const imageData = await rasterizePublicMap\(draft\.image, true,/);
   assert.match(editor, /imageData: visibilityImage/);
   assert.match(editor, /const payload = path\.endsWith\('\/strokes'\).*imageData/s);
-  assert.doesNotMatch(editor, /publishMapRaster\([^\n]*true/);
+  assert.match(editor, /publishMapRaster\(\{ imageData \}, true\)/, 'current encounter cue must use the existing filtered saved-map publication route');
+  assert.match(editor, /if \(dirty\).*Current encounter cue refused/s, 'current encounter cue must refuse unsaved drafts');
   assert.doesNotMatch(editor, /visibility\?visible=/);
 });
 

@@ -235,7 +235,19 @@ export default function MapEditor() {
       <button aria-pressed={mode === 'map'} onClick={() => setMode('map')}>Battle map</button>
       <button aria-pressed={mode === 'audio'} onClick={() => setMode('audio')}>Audio · DM only</button>
     </nav>
-    {mode === 'audio' && <AudioWorkspace />}
+    <div hidden={mode !== 'audio'}><AudioWorkspace cueActions={{
+      showScene: async id => { try { setPublicPresentation(await command(`/api/show/${id}`, 'POST') as Presentation); notify('Scene shown on table.'); } catch { notify(RETRY_MESSAGE, 6000); throw new Error('Scene cue failed.'); } },
+      showCurrent: async () => {
+        if (dirty) { notify('Current encounter cue refused: save the map first; unsaved changes were not published.', 6000); throw new Error('Map has unsaved changes.'); }
+        if (!state?.draft) { notify('Current encounter cue refused: no saved map is available.', 6000); throw new Error('No saved map.'); }
+        try {
+          const imageData = await rasterizePublicMap(state.draft.image, state.draft.fogEnabled ?? false, state.draft.fogStrokes ?? []);
+          const shown = await publishMapRaster({ imageData }, true) as Presentation;
+          setPublicPresentation(shown); notify('Saved encounter shown on table.');
+        } catch { notify(RETRY_MESSAGE, 6000); throw new Error('Could not show saved encounter.'); }
+      },
+      blackout: async () => { try { await command('/api/blackout', 'POST'); setPublicPresentation({ mode: 'black', sceneId: null }); notify('Table display blacked out.'); } catch { notify(RETRY_MESSAGE, 6000); throw new Error('Blackout failed.'); } },
+    }} /></div>
     <div className="map-status-region" aria-live="polite">{message && <p className="map-toast" role="status">{message}</p>}</div>
 
     {mode === 'scenes' && <section className="scene-mode" aria-label="Scene presentation">
