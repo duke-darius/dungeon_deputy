@@ -3,16 +3,16 @@ gsd_state_version: "1.0"
 current_phase: 04
 current_phase_name: Soundboard, Scenes, and 12-Key Control
 status: verifying
-stopped_at: Completed 04-06-PLAN.md
-last_updated: "2026-10-30T10:35:46.433Z"
+stopped_at: Completed 04-07-PLAN.md
+last_updated: "2026-10-30T10:53:45.401Z"
 last_activity: 2026-10-30
 last_activity_desc: Phase 04 Plan 01 completed; private audio import/playback E2E verified
-state_head: 36dee8d9cc78d901ca3f8ac49cb220096205ec13
+state_head: e2c1f496ee922578a0bbc4c751a9b1bfbf8c74cf
 progress:
   total_phases: 7
   completed_phases: 1
-  total_plans: 24
-  completed_plans: 22
+  total_plans: 25
+  completed_plans: 23
   percent: 14
 ---
 
@@ -77,6 +77,7 @@ Progress: ░░░░░░░░░░ [█░░░░░░░░░] 14%
 | Phase 04 P04 | 13min | 2 tasks | 8 files |
 | Phase 04 P05 | 18min | 2 tasks | 11 files |
 | Phase 04 P06 | 10min | 1 tasks | 5 files |
+| Phase 04 P07 | 10m | 1 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -126,6 +127,7 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase 04]: Serialize bounded import staging, reservations, config promotion, and discard under one audio-store lock.
 - [Phase 04]: Reconcile only generated opaque audio files and reclaim cleared assets only after successful settings persistence.
 - [Phase 04]: Keep quota calculation, bounded copy, and reservation update inside one serialized audio-lock operation
+- [Phase 04]: Preserve actual-byte limits by counting chunks in a Transform piped into the destination.
 
 ### Pending Todos
 
@@ -146,6 +148,6 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 
 ## Session Continuity
 
-Last session: 2026-10-30T10:35:46.098Z
-Stopped at: Completed 04-06-PLAN.md
+Last session: 2026-10-30T10:53:45.067Z
+Stopped at: Completed 04-07-PLAN.md
 Resume file: None
