@@ -23,19 +23,40 @@ decisions:
 metrics:
   duration: 22min
   completed: 2026-10-30
-status: incomplete
-commits: 4
+status: complete
+commits: 6
 plan_head_before: d9aa066d44ff35efdbfcf22ddee13c61901abeb8
-plan_head_after: 628832d99bfa8889d8a866845352faf28ad228fe
+plan_head_after: 9f890a9d0daf45deee97e677e9db11191d38eb11
 actuals:
-  tokens: 5340
+  tokens: 8719
   tasks: 2
-  commits: 4
+  commits: 6
+requirements-completed: [AUD-01]
+coverage:
+  - id: D1
+    description: Import and persist a local sound into a stable slot through the DM-only boundary.
+    requirement: AUD-01
+    verification:
+      - kind: unit
+        ref: npm test
+        status: pass
+      - kind: e2e
+        ref: npm run test:e2e
+        status: pass
+    human_judgment: false
+  - id: D2
+    description: Private gesture-started playback, restart persistence without auto-resume, and public-window isolation.
+    requirement: AUD-01
+    verification:
+      - kind: e2e
+        ref: scripts/e2e.mjs; artifacts/e2e/2026-10-30T00-25-25.451Z-780f58da/
+        status: pass
+    human_judgment: false
 ---
 
 # Phase 04 Plan 01: Private Audio Import Tracer Summary
 
-**Added the DM-only native-picker import boundary and persistent 12-pad model, plus a private one-shot audio workspace; integrated playback E2E remains blocked by an absent Play control after import.**
+**DM-only audio import now persists in a validated 12-slot bank, plays only on explicit gestures, and passes restart and public-privacy Electron E2E checks.**
 
 ## Accomplishments
 
@@ -45,7 +66,15 @@ actuals:
 - Added a private Audio workspace with import and one-shot Play controls, user-gesture Web Audio context startup, duration/cache bounds and stop-all.
 - Added E2E-gated fixture injection and a deterministic generated WAV fixture.
 
+## Verification
+
+- **`npm test`: PASS** - 44 Node tests and 21 xUnit tests; zero failed, zero skipped.
+- **`npm run build`: PASS** - TypeScript, Electron preload verification, Vite production build and .NET Release build (0 warnings, 0 errors).
+- **`npm run test:e2e`: PASS** - imported WAV plays and status is asserted before navigating away; public output remains black and audio-free. After restarting with the same isolated `userData`, assignment and Play control persist, playback is not resumed automatically, explicit replay succeeds, then navigation returns to Battle map. Evidence: `artifacts/e2e/2026-10-30T00-25-25.451Z-780f58da/`.
+
 ## Task Commits
+
+Each task was committed atomically (with related verification/fix commits):
 
 | Task | Commit | Details |
 |---|---|---|
@@ -53,32 +82,43 @@ actuals:
 | 04-01-01 follow-up | 4af323c | Target assigned audio pad playback in E2E |
 | 04-01-01 follow-up | 8faf448 | Type shared audio modules and await persisted config load |
 | 04-01-02 | 628832d | Cover persistent twelve-slot invariants |
+| 04-01-01 verification correction | 9f890a9 | Play/assert before navigation; verify restart persistence and no auto-resume |
 
-## Verification
-
-- **RED evidence (Node TAP):** `node --test src/main.test.mjs` initially reported 11 pass / 1 fail; the new secure-import boundary assertion failed before implementation as intended.
-- **`npm test`: PASS** — 44 Node tests and 21 xUnit tests; zero failed, zero skipped.
-- **`npm run build`: PASS** — TypeScript, Electron preload verification, Vite production build and .NET Release build (0 warnings, 0 errors).
-- **`npm run test:e2e`: FAIL** — integration reaches import and persists the assigned WAV config, but Playwright cannot find the Play button in the first pad. Repeated run confirms this is not a one-off; the tracer's required one-shot and restart path is not accepted as proven.
+The blocked-run documentation commit `0948457` is also in the measured plan range; total range count is 6 commits.
 
 ## Deviations from Plan
 
 ### Auto-fixed Issues
 
-1. **[Rule 1 - Test assumption]** Updated E2E locator and returned to Battle map after restart because workspace navigation persists only in renderer memory. **Verification:** suite reaches the audio Play assertion; E2E still fails at that assertion.
+1. **[Rule 1 - Test ordering]** Corrected E2E sequence to play and assert status while still in Audio workspace, then restart and verify persisted assignment/control without auto-resume. **Found during:** Task 04-01-01 reconciliation. **Files:** `scripts/e2e.mjs`. **Verification:** `npm run test:e2e` passes. **Commit:** `9f890a9`.
 2. **[Rule 3 - Blocking build]** Added inline TS types/ignored JS module declaration diagnostics and waited for configuration load before enabling import. **Verification:** `npm run build` passes.
+
+**Total deviations:** 2 auto-fixed. Both were directly required for accurate verification and successful build; no scope expansion.
+
+## Issues Encountered
+
+- The prior E2E flow navigated away from Audio before clicking Play. The sequence was corrected; no runtime code defect remained.
 
 ## Deferred Issues
 
-- **Blocking:** Investigate why the audio pad displays its imported name and persists the assigned asset in `audio-config.json`, but its Play button is absent during the Electron E2E run. Required automated gesture-started playback and post-restart E2E verification remain incomplete.
-- The E2E generated fixture and imported asset show the audio import boundary works, but no claim is made that hardware output is audible or that MP3/Ogg decode is exercised.
+- Physical speaker output and MP3/Ogg runtime decode remain unverified; no audible-output or untested codec support claims are made.
+- TDD RED evidence was captured for the main IPC security assertion; separate failing RED commits for every model case were not preserved.
 
-## TDD Gate Compliance
+## User Setup Required
 
-- Both plan tasks are marked TDD. RED evidence was captured for the main IPC security assertion; model tests were added and pass, but this run did not preserve separate failing RED commits for all model cases. No canonical plan-level TDD compliance claim is made.
+None - no external service configuration required.
+
+## Next Phase Readiness
+
+- Plan 04-01 complete; audio import, private playback, persistence, and privacy assertions are proven on this Windows automated path.
+- Plan 04-02 has not been started. Hardware speaker output and other platform/codec checks remain unverified.
 
 ## Self-Check: PASSED
 
-- All ten created/modified implementation and test paths exist.
-- The four listed commits are ancestors of the plan head; measured range from `d9aa066d44ff35efdbfcf22ddee13c61901abeb8` to `628832d99bfa8889d8a866845352faf28ad228fe` contains 4 commits.
-- Plan remains `incomplete` because required E2E playback and restart proof failed.
+- `04-01-PLAN.md` and all implementation paths exist.
+- Task commits `154399d`, `4af323c`, `8faf448`, `628832d`, and `9f890a9` are in the plan history; `0948457` records the earlier blocked verification.
+- Measured plan range from `d9aa066d44ff35efdbfcf22ddee13c61901abeb8` through `9f890a9d0daf45deee97e677e9db11191d38eb11` contains 6 commits.
+
+---
+*Phase: 04-soundboard-scenes-and-12-key-control*
+*Completed: 2026-10-30*

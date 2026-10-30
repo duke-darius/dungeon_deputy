@@ -27,7 +27,7 @@
 
 ### Audio and cues
 
-- [ ] **AUD-01**: The DM can load user-provided sounds into a 12-pad soundboard with named banks, volume controls, looping ambience, one-shots, and stop-all.
+- [x] **AUD-01**: The DM can load user-provided sounds into a 12-pad soundboard with named banks, volume controls, looping ambience, one-shots, and stop-all.
 - [ ] **AUD-02**: The DM can map standard keyboard shortcuts to cues that play sounds, show/reveal/swap a scene, or blackout the display; mappings persist and do not disrupt ordinary typing unnecessarily.
 
 ### Offline SRD reference
@@ -81,7 +81,7 @@ None currently identified beyond the staged roadmap. Additional licensed rule co
 | ENCT-01 | Phase 3 | Complete |
 | ENCT-02 | Phase 3 | Complete |
 | ENCT-03 | Phase 3 | Complete |
-| AUD-01 | Phase 4 | Pending |
+| AUD-01 | Phase 4 | Complete |
 | AUD-02 | Phase 4 | Pending |
 | SRD-01 | Phase 5 | Pending |
 | SRD-02 | Phase 5 | Pending |
