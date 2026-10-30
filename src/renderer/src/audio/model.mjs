@@ -3,9 +3,10 @@ export const MAX_BANKS = 12;
 export const MAX_FILE_BYTES = 25 * 1024 * 1024;
 export const MAX_TOTAL_BYTES = 256 * 1024 * 1024;
 export const MAX_DURATION_SECONDS = 600;
+import { validateCueBindings } from './cues.mjs';
 
 const defaultBank = () => ({ id: 'bank-default', name: 'Soundboard', slots: Array.from({ length: SLOT_COUNT }, (_, i) => ({ id: `pad-${i + 1}`, asset: null, volume: 100, loop: false })) });
-export const defaultAudioConfig = () => ({ version: 1, masterVolume: 100, banks: [defaultBank()], selectedBankId: 'bank-default', assets: [] });
+export const defaultAudioConfig = () => ({ version: 1, masterVolume: 100, banks: [defaultBank()], selectedBankId: 'bank-default', assets: [], cues: [] });
 
 const safeName = value => typeof value === 'string' && value.length <= 80 && value.trim().length > 0 && !/[\\/\0]/.test(value);
 const assetValid = a => a && typeof a === 'object' && /^a_[a-f0-9]{32}$/.test(a.id) && safeName(a.name) && ['wav', 'mp3', 'ogg'].includes(a.format) && Number.isSafeInteger(a.size) && a.size > 0 && a.size <= MAX_FILE_BYTES && Number.isFinite(a.duration) && a.duration > 0 && a.duration <= MAX_DURATION_SECONDS && Object.keys(a).every(k => ['id','name','format','size','duration'].includes(k));
@@ -25,7 +26,7 @@ export function validateAudioConfig(value) {
   if (banks.some(b => !b) || !Number.isInteger(value.masterVolume) || value.masterVolume < 0 || value.masterVolume > 100 || !ids.has(value.selectedBankId)) return defaultAudioConfig();
   const total = value.assets.reduce((n, a) => n + a.size, 0);
   if (total > MAX_TOTAL_BYTES) return defaultAudioConfig();
-  return { version: 1, masterVolume: value.masterVolume, banks, selectedBankId: value.selectedBankId, assets: value.assets.map(a => ({ id: a.id, name: a.name, format: a.format, size: a.size, duration: a.duration })) };
+  return { version: 1, masterVolume: value.masterVolume, banks, selectedBankId: value.selectedBankId, assets: value.assets.map(a => ({ id: a.id, name: a.name, format: a.format, size: a.size, duration: a.duration })), cues: validateCueBindings(value.cues ?? [], banks.map(b => b.id)) };
 }
 
 export function assignAsset(config, bankId, slotId, asset) {

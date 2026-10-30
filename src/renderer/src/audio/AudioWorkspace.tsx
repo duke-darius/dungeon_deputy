@@ -3,13 +3,17 @@ import { useEffect, useRef, useState } from 'react';
 import { assignAsset, defaultAudioConfig, MAX_BANKS, validateAudioConfig } from './model.mjs';
 // @ts-ignore Shared JS playback helper has no declaration file by design.
 import { createAudioPlayer } from './playback.mjs';
+// @ts-ignore Shared cue module provides normalized private key handling.
+import { dispatchCue, normalizeChord, shouldIgnoreCueEvent } from './cues.mjs';
+import CueEditor from './CueEditor';
 type AudioAsset = { id: string; name: string; format: 'wav'|'mp3'|'ogg'; size: number; duration: number };
 type AudioSlot = { id: string; asset: string|null; volume: number; loop: boolean };
 type AudioBank = { id: string; name: string; slots: AudioSlot[] };
-type AudioConfig = { version: 1; masterVolume: number; banks: AudioBank[]; selectedBankId: string; assets: AudioAsset[] };
+type CueBinding = { chord: string; target: any };
+type AudioConfig = { version: 1; masterVolume: number; banks: AudioBank[]; selectedBankId: string; assets: AudioAsset[]; cues: CueBinding[] };
 const newBank = (name: string, id: string): AudioBank => ({ id, name, slots: Array.from({length:12}, (_,i)=>({id:`pad-${i+1}`,asset:null,volume:100,loop:false})) });
 
-export default function AudioWorkspace() {
+export default function AudioWorkspace({ cueActions }: { cueActions: { showScene: (id:string)=>Promise<void>; showCurrent: ()=>Promise<void>; blackout: ()=>Promise<void> } }) {
   const [config, setConfig] = useState<AudioConfig>(defaultAudioConfig());
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
@@ -42,6 +46,20 @@ export default function AudioWorkspace() {
     try { player.current ??= createAudioPlayer(window.dungeonDeputy); await player.current.play(asset, slot.volume, config.masterVolume, slot.loop); setMessage(slot.loop ? `Looping ${asset.name}.` : `Playing ${asset.name}.`); }
     catch (error) { if (/missing|not found|ENOENT/i.test(String(error))) setMissing(ids=>ids.includes(slot.id)?ids:[...ids,slot.id]); setMessage(error instanceof Error && /limit/i.test(error.message) ? 'Playback limit reached. Stop a sound or use Stop all.' : 'Playback unavailable. Relink the sound and try again.'); }
   };
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (document.querySelector('.cue-capture') || shouldIgnoreCueEvent(event)) return;
+      const chord = normalizeChord(event); if (!chord) return;
+      const binding = config.cues.find(item => item.chord === chord); if (!binding) return;
+      event.preventDefault(); event.stopPropagation();
+      void dispatchCue(binding.target, {
+        playPad: (bankId: string, slotId: string) => { const targetBank=config.banks.find((item:AudioBank)=>item.id===bankId);const targetSlot=targetBank?.slots.find((item:AudioSlot)=>item.id===slotId);if(!targetSlot?.asset) {setMessage('Cue pad is empty or unavailable.');return;} void play(targetSlot); },
+        ...cueActions,
+      }).then(()=>setMessage(binding.target.kind==='pad'?'Cue played.':'Cue completed.')).catch(()=>setMessage('Cue failed. Your last saved state is unchanged; retry the action.'));
+    };
+    window.addEventListener('keydown',onKeyDown);
+    return()=>window.removeEventListener('keydown',onKeyDown);
+  },[config, cueActions]);
   const changeSlot = (slot: AudioSlot, patch: Partial<AudioSlot>) => void persist({...config,banks:config.banks.map(b=>b.id===bank.id?{...b,slots:b.slots.map(s=>s.id===slot.id?{...s,...patch}:s)}:b)});
   const create = () => { if(config.banks.length>=MAX_BANKS)return; const id=`bank-${crypto.randomUUID().replaceAll('-','').slice(0,20)}`; void persist({...config,banks:[...config.banks,newBank(`Bank ${config.banks.length+1}`,id)],selectedBankId:id}); };
   const rename = () => { if(editingName?.trim() && editingName.trim().length<=80) { void persist({...config,banks:config.banks.map(b=>b.id===bank.id?{...b,name:editingName.trim()}:b)}); setEditingName(null); } };
@@ -58,7 +76,8 @@ export default function AudioWorkspace() {
         {asset&&<><label className="audio-volume">Pad volume <input aria-label={`Pad ${i+1} volume`} type="range" min="0" max="100" value={slot.volume} onChange={e=>changeSlot(slot,{volume:Number(e.target.value)})}/><span>{slot.volume}%</span></label><label className="audio-loop"><input type="checkbox" checked={slot.loop} onChange={e=>changeSlot(slot,{loop:e.target.checked})}/>Loop ambience</label></>}
         {!asset&&<button disabled={busy} onClick={()=>void importSound(slot.id)}>Import sound</button>}
       </article>; })}</div>
-      <p className="audio-limits">25 MiB per file · 256 MiB total · 10 minutes per sound</p><button className="audio-stop-all" onClick={()=>{player.current?.stopAll();setMessage('All sounds stopped.');}}>Stop all</button>
+     <CueEditor banks={config.banks} assets={config.assets} bindings={config.cues} onChange={cues=>void persist({...config,cues})}/>
+     <p className="audio-limits">25 MiB per file · 256 MiB total · 10 minutes per sound</p><button className="audio-stop-all" onClick={()=>{player.current?.stopAll();setMessage('All sounds stopped.');}}>Stop all</button>
     </>}
     <p className="audio-status" role="status" aria-live="polite">{message}</p>
   </section>;
