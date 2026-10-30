@@ -27,7 +27,7 @@ DungeonDeputy grows through seven independently runnable, user-visible stages, f
   3. The DM can privately preview one of the bundled demo scenes, explicitly publish it, and change the public scene without exposing private controls or content.
   4. The DM can immediately blackout the player display, and disconnect/reconnect/reassignment leaves public output in a safe recoverable state.
   5. The app works offline, remembers appropriate preferences, and has reproducible run instructions; Windows/macOS verification is reported only for platforms physically tested.
-**Plans:** 5/5 plans executed
+**Plans:** 5/6 plans executed
 Plans:
 - [x] 01-01-PLAN.md — Verify audited npm package identities before installation
 - [x] 01-02-PLAN.md — Establish verified stack, runnable scripts, and backend contract
@@ -91,6 +91,7 @@ Plans:
 - [x] 04-03-PLAN.md — Persistent safe cues, keyboard controls, and verification docs
 - [x] 04-04-PLAN.md — Close pending-save and failed-save UI E2E verification gap
 - [x] 04-05-PLAN.md — Close transactional audio import and managed-asset reclamation review gaps
+- [ ] 04-06-PLAN.md — Close behavioral evidence gaps for concurrent quota staging and promotion rollback
 **UI hint**: yes
 
 ### Phase 5: Offline 2024 SRD Compendium
