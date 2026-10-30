@@ -75,6 +75,7 @@ test('bundled defaults resolve to packaged resources or the development app tree
   assert.match(main, /rename\(temporaryConfig, audioConfigPath\(\)\)[\s\S]*rename\(temporaryMarker, audioSeedMarkerPath\(\)\)/);
   const startupSeeder = main.slice(main.indexOf('async function seedBundledAudioDefaults'), main.indexOf('async function saveAudioConfig'));
   assert.doesNotMatch(startupSeeder, /failFirstAudioSave|audioSaveTestPolicy/);
+  assert.match(startupSeeder, /if \(configCommitted\)[\s\S]*JSON\.stringify\(candidate\)[\s\S]*audioConfig = candidate/);
 });
 test('sandboxed preload uses CommonJS output rather than unsupported ESM imports', async () => {
   const tsconfig = await readFile(new URL('../tsconfig.electron.json', import.meta.url), 'utf8');

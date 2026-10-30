@@ -120,6 +120,7 @@ async function seedBundledAudioDefaults() {
   const staged: string[] = [];
   const temporaryConfig = `${audioConfigPath()}.${randomBytes(8).toString('hex')}.tmp`;
   const temporaryMarker = `${audioSeedMarkerPath()}.${randomBytes(8).toString('hex')}.tmp`;
+  let configCommitted = false;
   try {
     const metadata: any[] = [];
     for (const sample of DEFAULT_AUDIO_SAMPLES) {
@@ -141,11 +142,16 @@ async function seedBundledAudioDefaults() {
     }
     const seeded = seedDefaultAudioConfig(candidate, metadata);
     await writeFile(temporaryConfig, JSON.stringify(seeded), { mode: 0o600, flag: 'wx' });
-    await rename(temporaryConfig, audioConfigPath());
-    audioConfig = seeded;
     await writeFile(temporaryMarker, JSON.stringify({ version: 1, seeded: true }), { mode: 0o600, flag: 'wx' });
+    await rename(temporaryConfig, audioConfigPath());
+    configCommitted = true;
+    audioConfig = seeded;
     await rename(temporaryMarker, audioSeedMarkerPath());
   } catch (error) {
+    if (configCommitted) {
+      await writeFile(temporaryConfig, JSON.stringify(candidate), { mode: 0o600, flag: 'wx' }).then(() => rename(temporaryConfig, audioConfigPath())).catch(() => {});
+      audioConfig = candidate;
+    }
     await Promise.all([...staged, temporaryConfig, temporaryMarker, ...copied].map(path => rm(path, { force: true }).catch(() => {})));
     throw error;
   }
