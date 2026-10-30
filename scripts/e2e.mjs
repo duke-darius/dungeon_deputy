@@ -79,7 +79,7 @@ try {
   await manager.getByRole('button', { name: 'Import sound' }).first().click();
   await manager.getByText('e2e-audio-fixture', { exact: true }).waitFor();
   await manager.getByRole('button', { name: 'Battle map' }).click();
-  await manager.getByRole('button', { name: 'Play', exact: true }).click();
+  await manager.locator('.audio-pads article').first().getByRole('button', { name: 'Play' }).click();
   assert.equal(await player.evaluate(() => 'audioImport' in window.dungeonDeputy || 'audioConfig' in window.dungeonDeputy), false, 'public preload must not expose soundboard APIs');
 
   const capture = async (name, role, route, expectedVisual = false) => {
