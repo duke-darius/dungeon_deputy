@@ -19,7 +19,7 @@ Phase 3 verifier report: 4/4 truths passed after the shared map publication gate
 | 04-06-02 | AUD-01 | Production `commitStagedAudioConfig` fake-collaborator tests prove post-promotion replacement failure preserves prior config and retryable pending/reservation while removing final/config temps, and success replaces settings before reservation release | `node --test src/renderer/src/audio/importPolicy.test.mjs src/main.test.mjs` PASS; threat T-04-14 |
 | 04-07-01 | AUD-01 | Injected destination Writable emits an asynchronous write error after accepting a write; bounded copy rejects without an unhandled error, removes partial output, tears down streams, and retains actual-byte budget enforcement including exact-byte cases | `node --test src/renderer/src/audio/importPolicy.test.mjs`; threat T-04-15 |
 | 04-08-01 | AUD-01 | Kenney RPG Audio CC0 source Oggs yield exact `assets/audio-defaults/{book-open,door-opens,coins-handled}.wav` PCM files with original license/provenance/conversion/hash README; `extraResource` is exactly `assets/audio-defaults`, and actual Forge package smoke asserts exact `resources/audio-defaults/*.wav` files; original Ogg import fixtures remain | `npm run package:smoke`; threat T-04-16 |
-| 04-08-02 | AUD-01 | Pure model tests cover stable default sample IDs/metadata, populated seed helper, first-run and legacy-pristine eligibility, Pads 1–3 assignment/Pads 4–12 empty, untouched custom config; main tests cover packaged `process.resourcesPath/audio-defaults` vs development `app.getAppPath()/assets/audio-defaults` selection, bounded atomic copy, missing-resource rollback/retry, durable clear marker, no save-failure seam use, and private path boundary | `node --test src/renderer/src/audio/model.test.mjs src/main.test.mjs`; threats T-04-16, T-04-17, T-04-18 |
+| 04-08-02 | AUD-01 | Pure model tests cover stable sample IDs, pristine eligibility and exact assignments; main-process contract tests cover packaged/development source paths, bounded copy, config-before-marker ordering, cleanup and isolation from save-failure injection. Startup catches unavailable/corrupt resources and retries on a later eligible launch; persisted marker is separate from slots. | `node --test src/renderer/src/audio/model.test.mjs src/main.test.mjs`; threats T-04-16, T-04-17, T-04-18 |
 | 04-08-03 | AUD-01 | Isolated Electron E2E shows and explicitly plays defaults without autoplay, restart persistence, Ogg imports into empty pads, clear/reclaim then relaunch with no reseed; docs distinguish defaults from import fixtures and avoid platform/hardware claims | `npm run test:e2e`; threat T-04-18 |
 | Review closure WR-02 | AUD-02 | Cue dispatch requires visible/focused DM document; unfocused chord does not dispatch, then focused chord dispatches; input/IME/canvas guards remain intact | `npm test` PASS; `npm run test:e2e` PASS at `artifacts/e2e/2026-10-30T17-35-28.837Z-373c71c2` |
 
@@ -44,7 +44,7 @@ Phase 3 verifier report: 4/4 truths passed after the shared map publication gate
 | REVIEW | CR-01: bounded transactional imports, pending cleanup and aggregate quota enforcement | 04-05-01, 04-05-02, 04-06-01 | CLOSED — unit/Electron E2E plus direct concurrent-helper behavior evidence |
 | VERIFICATION | Concurrent aggregate reservations and failed staged promotion/config rollback | 04-06-01, 04-06-02 | CLOSED — direct behavior tests exercise production helpers invoked by main |
 | REVIEW | CR-02: asynchronous destination write-stream errors during bounded copy | 04-07-01 | CLOSED - direct async Writable failure test and cleanup assertions |
-| VERIFICATION | First-run soundboard lacks bundled editable sample defaults and clear/no-reseed lifecycle evidence | 04-08-01, 04-08-02, 04-08-03 | PLANNED — execute Wave 8; do not claim closure before tests pass |
+| VERIFICATION | First-run soundboard lacks bundled editable sample defaults and clear/no-reseed lifecycle evidence | 04-08-01, 04-08-02, 04-08-03 | CLOSED — Windows package smoke, model/main tests and isolated Electron E2E; physical audio remains unverified |
 | REVIEW | WR-01: reclaim unassigned imported files and quota after successful settings write | 04-05-02 | CLOSED — verified clear/reimport and restart E2E |
 | REVIEW | WR-02: prevent cue dispatch while the DM window is unfocused/hidden | 04-03-03 | CLOSED — visible+focused guard and E2E focused/unfocused checks |
 
@@ -60,8 +60,8 @@ The test workflow also imports and plays three CC0 Ogg Vorbis fixtures from Kenn
 
 ## Final verification record (Windows x64, 2026-10-30)
 
-- `npm test`: passed, 69 Node tests and 21 .NET tests, no failures/skips.
+- `npm test`: passed, 72 Node tests and 21 .NET tests, no failures/skips.
 - `npm run build`: passed; Release backend 0 warnings/errors.
-- `npm run test:e2e`: passed; `artifacts/e2e/2026-10-30T17-35-28.837Z-373c71c2/`. Imported and decoded generated WAV plus Kenney CC0 Ogg Vorbis samples through the DM picker path; public display remained audio-free.
-- `npm run package:smoke`: passed; win-x64 package resources and backend smoke passed (Electron Forge emitted a non-fatal Node shell-argument deprecation warning).
+- `npm run test:e2e`: passed; `artifacts/e2e/2026-10-30T19-41-31.612Z-df48b3e0/`. Fresh profile showed and explicitly played the three defaults, remained silent on restart, preserved the invalid-WAV failure/discard then generated-WAV success sequence, imported Ogg fixtures into Pads 5–7, and verified clear/no-reseed after relaunch. Public display remained audio-free.
+- `npm run package:smoke`: passed on Windows x64; actual packaged `resources/audio-defaults` WAV files, PCM format, hashes, provenance and license were asserted alongside backend smoke (Electron Forge emitted a non-fatal Node shell-argument deprecation warning).
 - Human-only: physical speaker audibility/routing, native OS focus transitions, macOS, and formats beyond tested generated WAV/Kenney Ogg fixtures remain unverified. No user UAT is claimed.

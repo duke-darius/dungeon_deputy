@@ -85,7 +85,17 @@ try {
   await manager.getByRole('button', { name: 'Audio · DM only' }).click();
   await manager.locator('.audio-pads article').first().waitFor();
   assert.equal(await manager.locator('.audio-pads article').count(),12,'soundboard must always render exactly twelve pads');
-  for (const pad of await manager.locator('.audio-pads article').all()) assert.equal(await pad.getByRole('button', { name: 'Import sound' }).count(), 1, 'each empty pad should show one Import sound action');
+  assert.equal(await manager.locator('.audio-status').innerText(), '', 'bundled defaults must not autoplay on startup');
+  for (let index = 0; index < 3; index++) {
+    const pad = manager.locator('.audio-pads article').nth(index);
+    const name = ['Book open', 'Door opens', 'Coins handled'][index];
+    await pad.getByText(name, { exact: true }).waitFor();
+    await pad.getByRole('button', { name: 'Play' }).click();
+    await manager.locator('.audio-status').filter({ hasText: `Playing ${name}.` }).waitFor();
+  }
+  await manager.getByRole('button', { name: 'Stop all' }).click();
+  assert.equal(await manager.locator('.audio-pads article').nth(3).getByText('Empty').count(),1,'Pad 4 is empty after bundled defaults seed Pads 1–3');
+  for (const pad of await manager.locator('.audio-pads article').all()) if (await pad.getByText('Empty').count()) assert.equal(await pad.getByRole('button', { name: 'Import sound' }).count(), 1, 'each empty pad should show one Import sound action');
   assert.equal(await manager.locator('.audio-pads').evaluate(el=>getComputedStyle(el).gridTemplateColumns.split(' ').length),3,'desktop pads must use three columns');
   const masterVolume=manager.getByLabel('Master volume');
   assert.equal(await masterVolume.inputValue(),'100','new soundboard starts at persisted master volume 100%');
@@ -104,17 +114,17 @@ try {
   assert.equal(await manager.getByRole('button',{name:'Import sound'}).first().isEnabled(),true,'pad controls recover after rejection');
   assert.equal(await manager.getByRole('button',{name:'Add cue'}).isEnabled(),true,'cue controls recover after rejection');
   assert.equal(await masterVolume.inputValue(),'100','failed save rolls back to persisted 100%');
-  await manager.getByRole('button', { name: 'Import sound' }).first().click();
+  await manager.locator('.audio-pads article').nth(3).getByRole('button', { name: 'Import sound' }).click();
   await manager.getByText(/Couldn’t decode this audio\./).waitFor();
-  assert.equal(await manager.locator('.audio-pads article').first().getByText('Empty').count(),1,'invalid first WAV leaves its destination assignment empty');
-  assert.equal(await manager.evaluate(()=>window.dungeonDeputy.audioConfig().then(value=>value.assets.length)),0,'decode failure leaves persisted config assets unchanged');
-  await manager.getByRole('button', { name: 'Import sound' }).first().click();
-  await manager.getByText('e2e-audio-fixture', { exact: true }).waitFor();
-  const importedPad=manager.locator('.audio-pads article').first();
+  assert.equal(await manager.locator('.audio-pads article').nth(3).getByText('Empty').count(),1,'invalid first WAV leaves its destination assignment empty');
+  assert.equal(await manager.evaluate(()=>window.dungeonDeputy.audioConfig().then(value=>value.assets.length)),3,'decode failure leaves persisted defaults unchanged');
+  await manager.locator('.audio-pads article').nth(3).getByRole('button', { name: 'Import sound' }).click();
+  await manager.locator('.audio-pads article').nth(3).getByText('e2e-audio-fixture', { exact: true }).waitFor();
+  const importedPad=manager.locator('.audio-pads article').nth(3);
   const openSourceSamples=[['bookOpen','bookOpen.ogg'],['doorOpen_1','doorOpen_1.ogg'],['handleCoins','handleCoins.ogg']];
   for(let index=0;index<openSourceSamples.length;index++){
     const [label]=openSourceSamples[index];
-    const samplePad=manager.locator('.audio-pads article').nth(index+1);
+    const samplePad=manager.locator('.audio-pads article').nth(index+4);
     await samplePad.getByRole('button',{name:'Import sound'}).click();
     await samplePad.getByText(label,{exact:true}).waitFor();
     await samplePad.getByRole('button',{name:'Play'}).click();
@@ -194,7 +204,8 @@ try {
   assert.equal(await manager.locator('.audio-status').innerText(), '', 'audio playback must not auto-resume after restart');
   await manager.getByLabel('Sound bank').selectOption('bank-default');
   await manager.locator('.audio-status').filter({hasText:'Soundboard changes saved.'}).waitFor();
-  const restoredPad=manager.locator('.audio-pads article').first();
+  for (let index = 0; index < 3; index++) await manager.locator('.audio-pads article').nth(index).getByText(['Book open', 'Door opens', 'Coins handled'][index], { exact: true }).waitFor();
+  const restoredPad=manager.locator('.audio-pads article').nth(3);
   await restoredPad.getByRole('button', { name: 'Play' }).waitFor();
   await manager.evaluate(()=>window.dispatchEvent(new KeyboardEvent('keydown',{key:'1',code:'Digit1',ctrlKey:true,shiftKey:true,bubbles:true})));
   await manager.locator('.audio-status').filter({ hasText: 'Cue played' }).waitFor();
@@ -220,8 +231,13 @@ try {
     await manager.getByText('Saving soundboard changes…',{exact:true}).waitFor();
     await manager.getByText('Soundboard changes saved.',{exact:true}).waitFor();
   }
-  assert.equal(await manager.evaluate(()=>window.dungeonDeputy.audioConfig().then(value=>value.assets.length)),0,'clearing the last reference removes persisted asset metadata');
-  assert.equal((await readdir(join(evidence,'data','audio'))).some(name=>/^a_[a-f0-9]{32}\.(wav|mp3|ogg)$/.test(name)),false,'clearing the last reference reclaims the committed file');
+  assert.equal(await manager.evaluate(()=>window.dungeonDeputy.audioConfig().then(value=>value.banks[0].slots.slice(0,3).every(slot=>slot.asset===null))),true,'clearing defaults removes all three assignments');
+  assert.equal((await readdir(join(evidence,'data','audio'))).some(name=>/^a_0000000000000000000000000000000[1-3]\.wav$/.test(name)),false,'clearing defaults reclaims their unreferenced files');
+  await app.close();
+  ({ manager, player } = await launchPair(join(evidence, 'data')));
+  await manager.getByRole('button', { name: 'Audio · DM only' }).click();
+  for (let index = 0; index < 3; index++) assert.equal(await manager.locator('.audio-pads article').nth(index).getByText('Empty').count(),1,'cleared defaults stay absent after relaunch');
+  assert.equal(await manager.locator('.audio-status').innerText(), '', 'cleared defaults do not autoplay or reseed on relaunch');
   await manager.getByRole('button', { name: 'Import sound' }).first().click();
   await manager.getByText('e2e-audio-fixture', { exact: true }).waitFor();
   await manager.getByRole('button', { name: 'Add cue' }).click();
