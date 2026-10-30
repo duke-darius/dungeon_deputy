@@ -3,16 +3,16 @@ gsd_state_version: "1.0"
 current_phase: 04
 current_phase_name: Soundboard, Scenes, and 12-Key Control
 status: verifying
-stopped_at: Completed 04-05-PLAN.md
-last_updated: "2026-10-30T02:49:35.646Z"
+stopped_at: Completed 04-06-PLAN.md
+last_updated: "2026-10-30T10:35:46.433Z"
 last_activity: 2026-10-30
 last_activity_desc: Phase 04 Plan 01 completed; private audio import/playback E2E verified
-state_head: 2e7771ec309128e82c0da98495e897233408f07c
+state_head: 36dee8d9cc78d901ca3f8ac49cb220096205ec13
 progress:
   total_phases: 7
   completed_phases: 1
-  total_plans: 23
-  completed_plans: 21
+  total_plans: 24
+  completed_plans: 22
   percent: 14
 ---
 
@@ -76,6 +76,7 @@ Progress: ░░░░░░░░░░ [█░░░░░░░░░] 14%
 | Phase 04 P03 | 18min | 3 tasks | 10 files |
 | Phase 04 P04 | 13min | 2 tasks | 8 files |
 | Phase 04 P05 | 18min | 2 tasks | 11 files |
+| Phase 04 P06 | 10min | 1 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -124,6 +125,7 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase 04]: Strip test audio-save settings from backend and other child-process environments.
 - [Phase 04]: Serialize bounded import staging, reservations, config promotion, and discard under one audio-store lock.
 - [Phase 04]: Reconcile only generated opaque audio files and reclaim cleared assets only after successful settings persistence.
+- [Phase 04]: Keep quota calculation, bounded copy, and reservation update inside one serialized audio-lock operation
 
 ### Pending Todos
 
@@ -144,6 +146,6 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 
 ## Session Continuity
 
-Last session: 2026-10-30T02:49:35.446Z
-Stopped at: Completed 04-05-PLAN.md
+Last session: 2026-10-30T10:35:46.098Z
+Stopped at: Completed 04-06-PLAN.md
 Resume file: None
