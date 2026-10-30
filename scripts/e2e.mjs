@@ -78,6 +78,7 @@ try {
   await manager.getByRole('button', { name: 'Audio · DM only' }).click();
   await manager.locator('.audio-pads article').first().waitFor();
   assert.equal(await manager.locator('.audio-pads article').count(),12,'soundboard must always render exactly twelve pads');
+  for (const pad of await manager.locator('.audio-pads article').all()) assert.equal(await pad.getByRole('button', { name: 'Import sound' }).count(), 1, 'each empty pad should show one Import sound action');
   assert.equal(await manager.locator('.audio-pads').evaluate(el=>getComputedStyle(el).gridTemplateColumns.split(' ').length),3,'desktop pads must use three columns');
   await manager.getByRole('button', { name: 'Import sound' }).first().click();
   await manager.getByText('e2e-audio-fixture', { exact: true }).waitFor();
@@ -86,9 +87,20 @@ try {
   await manager.getByLabel('Cue target 1').selectOption('pad');
   await manager.getByLabel('Cue bank 1').selectOption('bank-default');
   await manager.getByLabel('Cue pad 1').selectOption('pad-1');
-  await manager.getByRole('button', { name: 'Record shortcut' }).click();
   await manager.evaluate(()=>window.dispatchEvent(new KeyboardEvent('keydown',{key:'1',code:'Digit1',ctrlKey:true,shiftKey:true,bubbles:true})));
   await manager.getByText('Ctrl+Shift+1', { exact: true }).waitFor();
+  await manager.locator('.audio-status').filter({ hasText: 'Shortcut saved.' }).waitFor();
+  await manager.getByRole('button', { name: 'Record shortcut' }).click();
+  await manager.getByRole('button', { name: 'Recording… · Cancel' }).waitFor();
+  await manager.keyboard.press('Escape');
+  await manager.locator('.audio-status').filter({ hasText: 'Shortcut recording cancelled.' }).waitFor();
+  await manager.getByText('Ctrl+Shift+1', { exact: true }).waitFor();
+  await manager.getByRole('button', { name: 'Add cue' }).click();
+  await manager.evaluate(()=>window.dispatchEvent(new KeyboardEvent('keydown',{key:'1',code:'Digit1',ctrlKey:true,shiftKey:true,bubbles:true})));
+  await manager.locator('.cue-capture').filter({hasText:'Ctrl+Shift+1 is already assigned to Soundboard, Pad 1. Existing cue unchanged.'}).waitFor();
+  await manager.getByRole('button', { name: 'Recording… · Cancel' }).click();
+  await manager.getByRole('button', { name: 'Remove cue 2' }).click();
+  await manager.locator('.audio-status').filter({ hasText: 'Shortcut saved.' }).waitFor();
   await manager.evaluate(()=>window.dispatchEvent(new KeyboardEvent('keydown',{key:'1',code:'Digit1',ctrlKey:true,shiftKey:true,bubbles:true})));
   await manager.getByRole('status').filter({ hasText: 'Cue played' }).waitFor();
   await manager.locator('.audio-pads article').first().getByRole('button', { name: 'Play' }).click();
@@ -133,12 +145,10 @@ try {
   await manager.getByRole('button', { name: 'Add cue' }).click();
   await manager.getByLabel('Cue target 2').selectOption('scene');
   await manager.getByLabel('Cue scene 2').selectOption('moonlit-fen');
-  await manager.getByRole('button', { name: 'Record shortcut' }).nth(1).click();
   await manager.evaluate(()=>window.dispatchEvent(new KeyboardEvent('keydown',{key:'2',code:'Digit2',ctrlKey:true,shiftKey:true,bubbles:true})));
   await manager.evaluate(()=>window.dispatchEvent(new KeyboardEvent('keydown',{key:'2',code:'Digit2',ctrlKey:true,shiftKey:true,bubbles:true})));
   await player.waitForFunction(()=>document.querySelector('.public-stage .public-art')?.getAttribute('src')?.includes('Moonlit%20Fen'));
   await manager.getByRole('button', { name: 'Add cue' }).click();
-  await manager.getByRole('button', { name: 'Record shortcut' }).nth(2).click();
   await manager.evaluate(()=>window.dispatchEvent(new KeyboardEvent('keydown',{key:'3',code:'Digit3',ctrlKey:true,shiftKey:true,bubbles:true})));
   await manager.evaluate(()=>window.dispatchEvent(new KeyboardEvent('keydown',{key:'3',code:'Digit3',ctrlKey:true,shiftKey:true,bubbles:true})));
   await player.waitForFunction(()=>!document.querySelector('.public-stage .public-art, .public-stage .public-map'));
@@ -148,7 +158,6 @@ try {
   assert.equal(await player.evaluate(() => 'audioImport' in window.dungeonDeputy || 'audioConfig' in window.dungeonDeputy), false, 'public preload must remain audio-free after restart');
   await manager.getByRole('button', { name: 'Add cue' }).click();
   await manager.getByLabel('Cue target 4').selectOption('current');
-  await manager.getByRole('button', { name: 'Record shortcut' }).nth(3).click();
   await manager.evaluate(()=>window.dispatchEvent(new KeyboardEvent('keydown',{key:'4',code:'Digit4',ctrlKey:true,shiftKey:true,bubbles:true})));
   await manager.getByRole('button', { name: 'Battle map' }).click();
   await waitForMap(manager, state => !!state.draft, 'saved map before current encounter cue');
@@ -187,6 +196,28 @@ try {
     capture(name, 'player', 'public.html', publicVisual),
   ]);
   captureFailure = () => screenshot('failure');
+  await manager.getByRole('button', { name: 'Audio · DM only' }).click();
+  await screenshot('15-audio-soundboard-top', false);
+  await manager.locator('.cue-editor').scrollIntoViewIfNeeded();
+  await screenshot('16-audio-shortcuts', false);
+  const audioManagerSize=await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows().find(win=>new URL(win.webContents.getURL()).pathname.endsWith('/index.html')).getSize());
+  const audioPlayerSize=await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows().find(win=>new URL(win.webContents.getURL()).pathname.endsWith('/public.html')).getSize());
+  try {
+    await app.evaluate(({BrowserWindow},size)=>BrowserWindow.getAllWindows().find(win=>new URL(win.webContents.getURL()).pathname.endsWith('/index.html')).setSize(size.width,size.height),{width:390,height:844});
+    await manager.waitForTimeout(150);
+    const audioPhone=await manager.evaluate(()=>({width:document.documentElement.clientWidth,scrollWidth:document.documentElement.scrollWidth,columns:getComputedStyle(document.querySelector('.audio-pads')).gridTemplateColumns.split(' ').length,pads:document.querySelectorAll('.audio-pads article').length}));
+    assert.equal(audioPhone.columns,2,'phone soundboard grid uses two columns');
+    assert.equal(audioPhone.pads,12,'phone soundboard retains all twelve pads');
+    assert.ok(audioPhone.scrollWidth<=audioPhone.width,'phone soundboard has no horizontal overflow');
+    assert.deepEqual(await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows().find(win=>new URL(win.webContents.getURL()).pathname.endsWith('/public.html')).getSize()),audioPlayerSize,'responsive audio pane does not resize player window');
+    await screenshot('17-audio-phone-pads',false);
+    await manager.locator('.cue-editor').scrollIntoViewIfNeeded();
+    assert.equal(await manager.getByRole('button',{name:'Record shortcut'}).count()>0,true,'phone shortcut controls remain reachable by scroll');
+    await screenshot('18-audio-phone-shortcuts',false);
+  } finally {
+    await app.evaluate(({BrowserWindow},size)=>BrowserWindow.getAllWindows().find(win=>new URL(win.webContents.getURL()).pathname.endsWith('/index.html')).setSize(size[0],size[1]),audioManagerSize);
+  }
+  await manager.getByRole('button', { name: 'Battle map' }).click();
   const captureResponsiveLayouts = async () => {
     const managerWindowSize = await app.evaluate(({BrowserWindow}) => {
       const win = BrowserWindow.getAllWindows().find(candidate => new URL(candidate.webContents.getURL()).pathname.endsWith('/index.html'));
