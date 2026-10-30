@@ -63,3 +63,16 @@ One Electron Forge Node deprecation warning about child-process shell arguments 
 | macOS x64 / arm64 | **Unverified** | No macOS host was used. |
 
 Phase 3 implementation and automated verification cover ENCT-01/02/03 within the local-first desktop scope. Follow [Phase 3 demo](phase-3-demo.md) for the visible workflow and manual display caveats. The Almanac, player clients, SignalR, line-of-sight, and complex spell automation remain deferred as planned.
+
+## Phase 4 verification status (Windows x64 host)
+
+| Check | Result | Scope / caveat |
+|---|---|---|
+| `npm test` | **Passed: 64 Node tests and 21 .NET tests** | Covers picker-only audio IPC and storage policy, 12-slot bank model, byte/quota serialization, Web Audio lifecycle, shortcut normalization/focus/IME guards, safe cue dispatch, Phase 3 regressions and E2E harness fixtures. |
+| `npm run build` | **Passed** | Renderer TypeScript, Electron, Vite and .NET Release backend; 0 .NET warnings/errors. |
+| `npm run test:e2e` | **Passed** | Actual Electron manager/player windows. Covers invalid-first decode cleanup then valid import, pad/bank/volume/loop/one-shot/stop-all, persistence/no auto-resume, cue save pending/failure rollback/recovery/restart, scene/current-map/blackout cues, unfocused shortcut suppression, typing/canvas behavior, 12-pad responsive phone view and public privacy. Evidence: latest successful `artifacts/e2e/2026-10-30T03-15-06.765Z-f69ddeda/`. |
+| `npm run package:smoke` | **Passed on Windows x64** | Packaged backend authentication, SQLite persistence/restart, public allowlist and blackout behavior. Forge emitted a non-fatal Node shell-argument deprecation warning. |
+| Windows audio decode | **Verified for generated WAV in Electron E2E** | Browser state confirms decode/start/loop/stop behavior; it does not prove physical speakers emitted audible output. |
+| MP3/Ogg, physical speaker/audio-device routing, macOS | **Unverified** | Candidate formats are accepted only when the installed runtime decodes them; no macOS or hardware output test was run. |
+
+Phase 4 implements AUD-01 and AUD-02 without new dependencies or global OS shortcuts. Audio assets, banks, shortcuts and controls remain DM-private. Follow [Phase 4 audio guide](phase-4-audio.md); physical audio output and unsupported codecs remain explicit manual limits.

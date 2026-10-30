@@ -75,6 +75,7 @@ try {
     const manager = pages.find(page => new URL(page.url()).pathname.endsWith('/index.html'));
     const player = pages.find(page => new URL(page.url()).pathname.endsWith('/public.html'));
     if (!manager || !player) throw new Error(`Expected manager and public page, got ${pages.map(page => page.url()).join(', ')}`);
+    await manager.evaluate(()=>{window.__e2eCueFocus=true;Object.defineProperty(document,'visibilityState',{configurable:true,value:'visible'});Object.defineProperty(document,'hasFocus',{configurable:true,value:()=>window.__e2eCueFocus});});
     return { manager, player };
   };
 
@@ -123,6 +124,12 @@ try {
   await manager.evaluate(()=>window.dispatchEvent(new KeyboardEvent('keydown',{key:'1',code:'Digit1',ctrlKey:true,shiftKey:true,bubbles:true})));
   await manager.getByText('Ctrl+Shift+1', { exact: true }).waitFor();
   await manager.locator('.audio-status').filter({ hasText: 'Shortcut saved.' }).waitFor();
+  const statusBeforeUnfocusedCue=await manager.locator('.audio-status').innerText();
+  await manager.evaluate(()=>window.__e2eCueFocus=false);
+  await manager.evaluate(()=>window.dispatchEvent(new KeyboardEvent('keydown',{key:'1',code:'Digit1',ctrlKey:true,shiftKey:true,bubbles:true})));
+  await manager.waitForTimeout(80);
+  assert.equal(await manager.locator('.audio-status').innerText(),statusBeforeUnfocusedCue,'cue chords are ignored when the DM window is not focused');
+  await manager.evaluate(()=>window.__e2eCueFocus=true);
   await manager.getByRole('button', { name: 'Record shortcut' }).click();
   await manager.getByRole('button', { name: 'Recording… · Cancel' }).waitFor();
   await manager.keyboard.press('Escape');
@@ -569,7 +576,7 @@ try {
   const rendererErrors = getRendererErrors().filter(error=>!error.includes('/maps/tavern.svg'));
   assert.deepEqual(rendererErrors, [], `unexpected Electron renderer errors: ${rendererErrors.join('\n')}`);
   success = true;
-  log('PASS: Stage1 scene/display and Stage2 map/token persistence remain intact; Phase3 fog masks, authenticated encounter actions, restart blackout, explicit Show, polling, public privacy, and same-window E2E passed; paired screenshots/logs retained; physical hardware remains unverified.');
+  log('PASS: Phase1 scene/display and Phase2 map/token persistence remain intact; Phase3 fog/privacy/encounter and Phase4 private soundboard/import/restart, bounded playback, cue persistence, focus/input guards, safe scene/map/blackout cues, and responsive UI passed; paired screenshots/logs retained; physical audio output and macOS remain unverified.');
   await app.close();
 } catch (error) {
   log(`FAIL ${error?.stack ?? error}`);

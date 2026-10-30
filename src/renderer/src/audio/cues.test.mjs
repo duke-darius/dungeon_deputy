@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { normalizeChord, validateCueBindings, shouldIgnoreCueEvent, dispatchCue } from './cues.mjs';
+import { normalizeChord, validateCueBindings, shouldIgnoreCueEvent, isCueWindowActive, dispatchCue } from './cues.mjs';
 import { defaultAudioConfig, validateAudioConfig } from './model.mjs';
 
 test('requires Ctrl/Cmd plus another modifier and normalizes matching chords', () => {
@@ -30,6 +30,13 @@ test('filters editable/composing/repeated/consumed events but allows canvas chor
   assert.equal(shouldIgnoreCueEvent({ repeat: true }), true);
   assert.equal(shouldIgnoreCueEvent({ defaultPrevented: true }), true);
   assert.equal(shouldIgnoreCueEvent({ target: { tagName: 'CANVAS' } }), false);
+});
+
+test('cue window must be visible and focused before dispatch', () => {
+  assert.equal(isCueWindowActive({ visibilityState: 'visible', hasFocus: () => true }), true);
+  assert.equal(isCueWindowActive({ visibilityState: 'visible', hasFocus: () => false }), false);
+  assert.equal(isCueWindowActive({ visibilityState: 'hidden', hasFocus: () => true }), false);
+  assert.equal(isCueWindowActive(null), false);
 });
 
 test('dispatcher routes only explicit target actions and propagates command failure', async () => {

@@ -46,6 +46,10 @@ export function shouldIgnoreCueEvent(event) {
     || target?.isContentEditable === true || target?.getAttribute?.('contenteditable') === 'true' || target?.role === 'textbox' || target?.getAttribute?.('role') === 'textbox';
 }
 
+export function isCueWindowActive(documentLike) {
+  return !!documentLike && documentLike.visibilityState === 'visible' && documentLike.hasFocus?.() === true;
+}
+
 export async function dispatchCue(target, actions) {
   switch (target?.kind) {
     case 'pad': return actions.playPad(target.bankId, target.slotId);

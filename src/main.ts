@@ -189,8 +189,9 @@ function installIpc() {
     return withAudioLock(async () => {
       const pending = pendingAudioIds.get(id);
       if (!pending) return false;
-      pendingAudioIds.delete(id);
       await rm(join(audioRoot(), `${id}.pending`), { force: true });
+      await rm(join(audioRoot(), `${id}.${pending.format}`), { force: true });
+      pendingAudioIds.delete(id);
       return true;
     });
   });

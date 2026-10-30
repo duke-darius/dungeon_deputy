@@ -4,7 +4,7 @@ import { assignAsset, defaultAudioConfig, MAX_BANKS, validateAudioConfig } from 
 // @ts-ignore Shared JS playback helper has no declaration file by design.
 import { createAudioPlayer } from './playback.mjs';
 // @ts-ignore Shared cue module provides normalized private key handling.
-import { dispatchCue, normalizeChord, shouldIgnoreCueEvent } from './cues.mjs';
+import { dispatchCue, isCueWindowActive, normalizeChord, shouldIgnoreCueEvent } from './cues.mjs';
 import CueEditor from './CueEditor';
 type AudioAsset = { id: string; name: string; format: 'wav'|'mp3'|'ogg'; size: number; duration: number };
 type AudioSlot = { id: string; asset: string|null; volume: number; loop: boolean };
@@ -76,7 +76,7 @@ export default function AudioWorkspace({ cueActions }: { cueActions: { showScene
   };
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (document.querySelector('.cue-capture') || shouldIgnoreCueEvent(event)) return;
+      if (!isCueWindowActive(document) || document.querySelector('.cue-capture') || shouldIgnoreCueEvent(event)) return;
       const chord = normalizeChord(event); if (!chord) return;
       const binding = config.cues.find(item => item.chord === chord); if (!binding) return;
       event.preventDefault(); event.stopPropagation();

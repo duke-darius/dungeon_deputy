@@ -53,4 +53,4 @@ For an installed package, launch it using the installer/application produced und
 
 ## Phase review
 
-Phase 2 was approved by the user before Phase 3 work began. Run the [Phase 3 demo checklist](docs/phase-3-demo.md) and read [verification status](docs/verification-status.md) and [known limitations](docs/known-limitations.md). Automated verification is complete; physical HDMI readability/hot-plug and macOS runtime remain unverified and are not claimed.
+Phase 2 was approved before Phase 3 work began. Phase 3 automated verification passed after its concurrency fix, and Phase 4's automated audio/cue flow passes on Windows x64. Run the [Phase 3 demo](docs/phase-3-demo.md), [Phase 4 audio guide](docs/phase-4-audio.md), and read [verification status](docs/verification-status.md) plus [known limitations](docs/known-limitations.md). Physical HDMI/readability, native focus behavior, audible speaker output, untested codecs, and macOS runtime remain unverified.
