@@ -24,6 +24,7 @@ let displayStateInitialized = false;
 let audioConfig: any = defaultAudioConfig();
 const pendingAudioIds = new Map<string, string>();
 const e2e = process.env.DUNGEON_DEPUTY_E2E === '1';
+const { DUNGEON_DEPUTY_E2E_AUDIO_SAVE_DELAY_MS: _audioDelaySetting, DUNGEON_DEPUTY_E2E_AUDIO_SAVE_FAIL_FIRST: _audioFailSetting, ...backendEnvironment } = process.env;
 const audioSaveTestPolicy = saveTestPolicy({
   e2e,
   isPackaged: app.isPackaged,
@@ -93,7 +94,7 @@ async function startBackend() {
   const path = e2e ? join(resolve(e2eBackendRoot!), executable) : app.isPackaged ? join(process.resourcesPath, `backend-${backendRid}`, executable) : join(app.getAppPath(), 'artifacts', `backend-${backendRid}`, executable);
   const dataDirectory = e2e ? resolve(e2eDataRoot!, 'backend-data') : resolve(app.getPath('userData'), 'data');
   await mkdir(dataDirectory, { recursive: true });
-  backend = spawn(path, [], { env: { ...process.env, DUNGEON_DEPUTY_PORT: String(port), DUNGEON_DEPUTY_TOKEN: backendToken, DUNGEON_DEPUTY_DATA_DIR: dataDirectory }, stdio: 'ignore', windowsHide: true });
+  backend = spawn(path, [], { env: { ...backendEnvironment, DUNGEON_DEPUTY_PORT: String(port), DUNGEON_DEPUTY_TOKEN: backendToken, DUNGEON_DEPUTY_DATA_DIR: dataDirectory }, stdio: 'ignore', windowsHide: true });
   backend.once('exit', () => { if (!quitting) { for (const win of windows.values()) if (!win.isDestroyed()) void win.webContents.executeJavaScript("document.body.style.background='black'"); app.quit(); } });
   await waitForBackend(backend);
 }

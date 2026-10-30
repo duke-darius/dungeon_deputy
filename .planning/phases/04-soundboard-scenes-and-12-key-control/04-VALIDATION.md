@@ -11,8 +11,8 @@ Phase 3 verifier report: 4/4 truths passed after the shared map publication gate
 | 04-03-01 | AUD-02 | Chord normalization, uniqueness, persisted mappings, capture/reset and input/IME/repeat/defaultPrevented filters | `npm test` |
 | 04-03-02 | AUD-02 | Closed cue union; explicit scene show; saved clean map only; fog-safe projection and blackout error semantics | `npm test` |
 | 04-03-03 | AUD-02 | Isolated shortcut/cue E2E, persistence, typing/canvas behavior, public separation and truthful support docs | `npm run test:e2e` |
-| 04-04-01 | AUD-01 | Pure helper denies packaged and non-E2E runtimes even with all options; clamps 0..5000ms and ignores invalid/non-finite delay; exact-true failFirst; fail-once consumer rejects only its first write; main.ts uses app.isPackaged and injects only E2E audio-config writes | `node --test src/renderer/src/audio/saveTestPolicy.test.mjs`; `npm test` - PENDING |
-| 04-04-02 | AUD-01 | Electron-only E2E environment (no backend/Vite propagation); delayed pending status and disabled master/bank/pad/cue controls; failed save rollback to persisted 100%; later save success and cue persistence after restart | `npm run test:e2e` - PENDING |
+| 04-04-01 | AUD-01 | Pure helper denies packaged and non-E2E runtimes even with all options; clamps 0..5000ms and ignores invalid/non-finite delay; exact-true failFirst; fail-once consumer rejects only its first write; main.ts uses app.isPackaged and injects only E2E audio-config writes | `node --test src/renderer/src/audio/saveTestPolicy.test.mjs`; `npm test` - PASS (59 Node tests; 21 backend tests) |
+| 04-04-02 | AUD-01 | Electron-only E2E environment (no backend/Vite propagation); delayed pending status and disabled master/bank/pad/cue controls; failed save rollback to persisted 100%; later save success and cue persistence after restart | `npm run test:e2e` - PASS (Windows Electron E2E) |
 
 ## Four-source coverage audit
 
