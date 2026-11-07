@@ -1,0 +1,16 @@
+{
+  "release": "5.2.1",
+  "verifiedRecords": { "action": 1, "class": 1, "condition": 1, "equipment": 1, "monster": 1, "species": 1, "spell": 1 },
+  "categories": {
+    "spell": { "available": true, "reviewedSubsetOnly": true },
+    "condition": { "available": true, "reviewedSubsetOnly": true },
+    "action": { "available": true, "reviewedSubsetOnly": true },
+    "monster": { "available": true, "reviewedSubsetOnly": true },
+    "equipment": { "available": true, "reviewedSubsetOnly": true },
+    "class": { "available": true, "reviewedSubsetOnly": true },
+    "species": { "available": true, "reviewedSubsetOnly": true }
+  },
+  "requirements": { "SRD-01": "met", "SRD-02": "met" },
+  "gaps": ["Only the individually listed records are reviewed; all other SRD entries remain unreviewed and are not claimed as complete."],
+  "completenessClaim": false
+}

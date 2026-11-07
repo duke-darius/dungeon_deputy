@@ -10,7 +10,7 @@
     "build:electron": "tsc -p tsconfig.electron.json && node scripts/verify-electron-output.mjs",
     "build": "tsc --noEmit && npm run build:electron && vite build && npm run build:backend",
     "build:backend": "dotnet build src/backend/DungeonDeputy.Api.csproj -c Release",
-    "test": "node --test src/main.test.mjs src/renderer/src/*.test.mjs src/renderer/src/audio/*.test.mjs src/renderer/src/map/*.test.mjs scripts/e2e/*.test.mjs && dotnet test src/backend.tests/DungeonDeputy.Api.Tests.csproj -c Release",
+    "test": "node --test src/main.test.mjs src/renderer/src/*.test.mjs src/renderer/src/audio/*.test.mjs src/renderer/src/map/*.test.mjs src/renderer/src/compendium/*.test.mjs scripts/srd/*.test.mjs scripts/e2e/*.test.mjs && dotnet test src/backend.tests/DungeonDeputy.Api.Tests.csproj -c Release",
     "test:e2e": "npm run build:electron && node scripts/e2e.mjs",
     "package:backend": "node scripts/package-backend.mjs",
     "package:smoke": "npm run build:electron && vite build && node scripts/package-smoke.mjs",
@@ -19,6 +19,7 @@
     "make": "npm run build:electron && vite build && electron-forge make"
   },
   "dependencies": {
+    "@microsoft/signalr": "10.0.11",
     "pixi.js": "8.22.0",
     "react": "19.3.1",
     "react-dom": "19.3.1"

@@ -9,5 +9,5 @@ export default defineConfig({
   root: 'src/renderer',
   publicDir: '../../assets',
   server: { host: '127.0.0.1', port: 5173, strictPort: true },
-  build: { rollupOptions: { input: { index: resolve(rendererRoot, 'index.html'), public: resolve(rendererRoot, 'public.html') } } },
+  build: { rollupOptions: { input: { index: resolve(rendererRoot, 'index.html'), public: resolve(rendererRoot, 'public.html'), player: resolve(rendererRoot, 'player.html') } } },
 });

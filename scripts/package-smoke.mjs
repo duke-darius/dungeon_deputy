@@ -18,6 +18,11 @@ if (made.status !== 0) { rmSync(buildRoot, { recursive: true, force: true }); pr
 const packagedResources = resolve('out', `dungeon-deputy-${process.platform}-${process.arch}`, 'resources');
 const packagedBackend = resolve(packagedResources, `backend-${rid}`);
 if (!existsSync(resolve(packagedBackend, process.platform === 'win32' ? 'DungeonDeputy.Api.exe' : 'DungeonDeputy.Api'))) throw new Error('Packaged backend resource is missing.');
+const srdDir = resolve(packagedBackend, 'assets', 'srd', '2024');
+for (const file of ['records.json', 'manifest.json', 'coverage.json', 'attribution.md']) if (!existsSync(resolve(srdDir, file))) throw new Error(`Packaged SRD catalog resource is missing: ${file}`);
+const manifest = JSON.parse(readFileSync(resolve(srdDir, 'manifest.json'), 'utf8'));
+const packagedRecords = JSON.parse(readFileSync(resolve(srdDir, 'records.json'), 'utf8'));
+if (manifest.release !== '5.2.1' || !packagedRecords.some(record => record.category === 'monster' && record.name === 'Bandit')) throw new Error('Packaged SRD catalog manifest/records are invalid.');
 const bundledDefaults = [
   ['book-open.wav', '6254CBE36FBBEED7A23273634B5EC16FA0C31B0DF112ADCCA477AE896CE7B4EF'],
   ['door-opens.wav', 'A8546AC2AA488EE411C2641E5F860689133BBCDF91E8FB018C6AAEAC1A4329F2'],
@@ -44,7 +49,18 @@ for (const [name, expectedHash] of bundledDefaults) {
 if (!existsSync(resolve(packagedResources, 'audio-defaults', 'README.md')) || !existsSync(resolve(packagedResources, 'audio-defaults', 'License.txt'))) throw new Error('Packaged audio default provenance/license is missing.');
 const publicHtml = readFileSync(resolve('src/renderer/dist/public.html'),'utf8');
 if (!/img-src data:/.test(publicHtml) || /img-src[^;]*'self'/.test(publicHtml) || !/connect-src ws:\/\/127\.0\.0\.1:5173/.test(publicHtml) || !/frame-src 'none'/.test(publicHtml) || !/object-src 'none'/.test(publicHtml)) throw new Error('Public CSP must deny same-origin/network images, same-origin fetch, frames, and objects while allowing only the Vite HMR websocket.');
-for (const asset of ['index.html', 'public.html', 'scenes/ashen-road.svg', 'scenes/moonlit-fen.svg', 'scenes/old-bridge.svg']) if (!existsSync(resolve(packagedResources, 'dist', asset))) throw new Error(`Packaged renderer resource is missing: ${asset}`);
+for (const asset of ['index.html', 'public.html', 'player.html', 'scenes/ashen-road.svg', 'scenes/moonlit-fen.svg', 'scenes/old-bridge.svg']) if (!existsSync(resolve(packagedResources, 'dist', asset))) throw new Error(`Packaged renderer resource is missing: ${asset}`);
+const playerHtml = readFileSync(resolve(packagedResources, 'dist', 'player.html'), 'utf8');
+const playerEntry = playerHtml.match(/src="\/assets\/(player-[A-Za-z0-9_-]+\.js)"/)?.[1];
+if (!playerEntry) throw new Error('Packaged player HTML has no isolated hashed browser entry.');
+const playerBundlePath = resolve(packagedResources, 'dist', 'assets', playerEntry);
+if (!existsSync(playerBundlePath)) throw new Error('Packaged player entry bundle is missing.');
+const playerBundle = readFileSync(playerBundlePath, 'utf8');
+const signalRChunk = playerBundle.match(/HubConnectionBuilder-[A-Za-z0-9_-]+\.js/)?.[0];
+if (signalRChunk ? !existsSync(resolve(packagedResources, 'dist', 'assets', signalRChunk)) : !(playerBundle.includes('HubConnectionBuilder') && playerBundle.includes('WebSocket') && playerBundle.includes('/api/player/hub'))) throw new Error('Packaged player SignalR runtime or Hub connection is missing.');
+if (/DUNGEON_DEPUTY_TOKEN|X-Dungeon-Token|\/api\/(?:characters|encounter|map)/i.test(playerBundle) || /e2e-player-|player-api-test-token|desktop-shared-test-token/.test(playerBundle)) throw new Error('Packaged player entry contains a desktop credential, private DM route, or test secret.');
+const listenerSource = readFileSync(resolve('src/backend/PlayerSessions/PlayerListenerService.cs'), 'utf8');
+if (!/ContentSecurityPolicy = \$"default-src 'none'/.test(listenerSource) || !/connect-src 'self' \{websocketOrigin\}/.test(listenerSource)) throw new Error('Player LAN host must set restrictive CSP with only its bound WebSocket origin.');
 const token = `smoke-${randomBytes(18).toString('hex')}`;
 const port = 29000 + Math.floor(Math.random() * 1000);
 const userData = mkdtempSync(resolve(tmpdir(), 'dungeon-deputy-package-smoke-'));
@@ -86,11 +102,25 @@ try {
   await startBackend();
   const unauthorized = await fetch(`http://127.0.0.1:${port}/api/map`);
   if (unauthorized.status !== 401) throw new Error('Unauthenticated map request did not return 401.');
-  let response = await api('/api/map');
+  let response = await api('/api/srd/search?category=monster');
+  if (!response.ok) throw new Error(`Packaged bundled SRD search failed: HTTP ${response.status}`);
+  const catalog = await response.json();
+  const bandit = catalog.records.find(record => record.name === 'Bandit');
+  if (!bandit || bandit.provenance.sourceHash !== `sha256:${manifest.source.sha256}`) throw new Error('Bundled catalog search failed or source hash differs from manifest.');
+  response = await api('/api/map');
   if (!response.ok) throw new Error(`Could not load the packaged demo map: HTTP ${response.status} ${await response.text()}`);
   let state = await response.json();
   if (!state.draft || state.approved !== null || state.draft.image !== 'tavern.svg' || state.draft.tokens.length !== 7) throw new Error('Packaged backend did not seed the expected camelCase tavern draft.');
   if (state.draft.tokens.filter(token => token.kind === 'hero').length !== 4 || state.draft.tokens.filter(token => token.kind === 'monster').length !== 3) throw new Error('Tavern seed must contain four heroes and three goblins.');
+  const mapBeforeMonster = JSON.stringify(state.draft);
+  const publicBeforeMonster = await (await api('/api/presentation')).text();
+  response = await api('/api/encounter/monsters', 'POST', { monsterId: bandit.id });
+  if (!response.ok) throw new Error(`Explicit packaged monster Add failed: HTTP ${response.status}`);
+  const encounter = await response.json();
+  const actor = encounter.actors.find(item => item.sourceMonsterId === bandit.id);
+  if (!actor || actor.maximumHp !== bandit.stats.hitPoints || actor.sourceRulesetVersion !== manifest.release) throw new Error('Added actor is missing source version or stat snapshot.');
+  if (JSON.stringify((await (await api('/api/map')).json()).draft) !== mapBeforeMonster) throw new Error('Monster Add changed map tokens.');
+  if (await (await api('/api/presentation')).text() !== publicBeforeMonster) throw new Error('Monster Add changed public presentation.');
   const original = state.draft;
   response = await api('/api/map/draft', 'PUT', original);
   if (!response.ok) throw new Error('Authenticated draft save failed.');
@@ -118,6 +148,8 @@ try {
   if (publicPresentation.mode !== 'map' || JSON.stringify(publicPresentation.tokens) !== JSON.stringify(expectedPublicTokens)) throw new Error('Draft edits leaked into the public map before Show.');
   await stopBackend();
   await startBackend();
+  const reopenedEncounter = await (await api('/api/encounter')).json();
+  if (!reopenedEncounter.actors.some(item => item.sourceMonsterId === bandit.id && item.maximumHp === bandit.stats.hitPoints)) throw new Error('Private monster actor did not survive packaged backend restart.');
   publicPresentation = await (await api('/api/presentation')).json();
   if (publicPresentation.mode !== 'black') throw new Error('Packaged backend restart must leave public output black until explicit Show encounter.');
   response = await api('/api/map');
@@ -133,7 +165,7 @@ try {
   const editedPublicTokens = publicTokens(editedDraft.tokens);
   const reShowTokensMatch = JSON.stringify(publicPresentation.tokens) === JSON.stringify(editedPublicTokens);
   if (publicPresentation.mode !== 'map' || !reShowTokensMatch || publicPresentation.imageData !== imageData) throw new Error(`Re-Show did not update the sanitized public projection (mode=${publicPresentation.mode}, tokensMatch=${reShowTokensMatch}).`);
-  console.log(`Packaged ${rid} backend passed authenticated draft/approved restart round-trip, public allowlist, and black-until-Show behavior in per-run temp user data; macOS outputs remain unverified on this host.`);
+  console.log(`Packaged ${rid} backend passed bundled SRD search/Add, actor restart persistence, map/public isolation, authenticated draft/approved restart round-trip, and black-until-Show behavior; macOS outputs remain unverified on this host.`);
 } finally {
   await stopBackend();
   rmSync(userData, { recursive: true, force: true });

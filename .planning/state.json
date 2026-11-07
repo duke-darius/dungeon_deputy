@@ -16,17 +16,17 @@
     {
       "number": "3",
       "name": "Fog of War and Encounter Control",
-      "status": "pending"
+      "status": "in_progress"
     },
     {
       "number": "4",
       "name": "Soundboard, Scenes, and 12-Key Control",
-      "status": "pending"
+      "status": "complete"
     },
     {
       "number": "5",
       "name": "Offline 2024 SRD Compendium",
-      "status": "pending"
+      "status": "complete"
     },
     {
       "number": "6",
@@ -40,9 +40,9 @@
     }
   ],
   "next": {
-    "command": "/gsd-progress --next",
-    "label": "Advance to the next step",
-    "reason": "Phase 2 of 7 · 14% · executing"
+    "command": "/gsd-discuss-phase",
+    "label": "Discuss the first phase",
+    "reason": "Project initialized — plan your first phase"
   },
-  "updated_at": "2026-10-28T16:09:19.285Z"
+  "updated_at": "2026-11-04T16:49:42.563Z"
 }

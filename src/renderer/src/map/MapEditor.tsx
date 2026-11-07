@@ -4,8 +4,10 @@ import { MapCanvas, rasterizePublicMap } from './MapCanvas';
 import type { MapState } from './types';
 import { SCENES, sceneById } from '../contracts.mjs';
 import AudioWorkspace from '../audio/AudioWorkspace';
+import Compendium from '../compendium/Compendium';
+import CharacterWorkspace from '../characters/CharacterWorkspace';
 
-type Workspace = 'scenes' | 'map' | 'audio';
+type Workspace = 'scenes' | 'map' | 'audio' | 'compendium' | 'characters';
 type Presentation = { mode: string; sceneId: string | null };
 const RETRY_MESSAGE = 'Couldn’t save this change. Your last saved state is unchanged; retry the action.';
 
@@ -234,7 +236,11 @@ export default function MapEditor() {
       <button aria-pressed={mode === 'scenes'} onClick={() => setMode('scenes')}>Scenes</button>
       <button aria-pressed={mode === 'map'} onClick={() => setMode('map')}>Battle map</button>
       <button aria-pressed={mode === 'audio'} onClick={() => setMode('audio')}>Audio · DM only</button>
+      <button aria-pressed={mode === 'compendium'} onClick={() => setMode('compendium')}>Compendium · DM only</button>
+      <button aria-pressed={mode === 'characters'} onClick={() => setMode('characters')}>Characters · DM only</button>
     </nav>
+    {mode === 'compendium' && <Compendium />}
+    {mode === 'characters' && <CharacterWorkspace />}
     <div hidden={mode !== 'audio'}><AudioWorkspace cueActions={{
       showScene: async id => { try { setPublicPresentation(await command(`/api/show/${id}`, 'POST') as Presentation); notify('Scene shown on table.'); } catch { notify(RETRY_MESSAGE, 6000); throw new Error('Scene cue failed.'); } },
       showCurrent: async () => {

@@ -7,4 +7,10 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.14" />
   </ItemGroup>
+  <ItemGroup>
+    <Content Include="../../assets/srd/2024/records.json" Link="assets/srd/2024/records.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../assets/srd/2024/manifest.json" Link="assets/srd/2024/manifest.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../assets/srd/2024/coverage.json" Link="assets/srd/2024/coverage.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../assets/srd/2024/attribution.md" Link="assets/srd/2024/attribution.md" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

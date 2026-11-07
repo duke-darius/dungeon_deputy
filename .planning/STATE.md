@@ -1,19 +1,20 @@
 ---
 gsd_state_version: "1.0"
-current_phase: 04
-current_phase_name: Soundboard, Scenes, and 12-Key Control
-status: verifying
-stopped_at: Completed 04-08-PLAN.md
-last_updated: "2026-10-30T19:51:35.191Z"
-last_activity: 2026-10-30
-last_activity_desc: Phase 04 bundled CC0 defaults passed first-run, restart, clear/no-reseed and packaging verification
-state_head: 05658af66b54ca946ce4671e3a9262d35c6dc665
+current_phase: 6
+current_phase_name: SRD Characters and Local Player Sheets
+current_plan: 5
+status: planning
+stopped_at: Halted 06-05 before SignalR install; registry SHA-512 does not match pinned metadata
+last_updated: "2026-11-04T16:54:00Z"
+last_activity: 2026-11-04
+last_activity_desc: Halted Phase 6 Plan 05 at pre-install integrity mismatch; no package installed
+state_head: e3de3a7eb15474cbfc3a092a5f2255c169e3da72
 progress:
   total_phases: 7
-  completed_phases: 1
-  total_plans: 26
-  completed_plans: 24
-  percent: 14
+  completed_phases: 2
+   total_plans: 32
+   completed_plans: 28
+   percent: 88
 ---
 
 # Project State
@@ -23,21 +24,22 @@ progress:
 See: .planning/PROJECT.md (updated 2026-10-28)
 
 **Core value:** The DM can privately control the session while showing only approved visuals on the table display.
-**Current focus:** Phase 04 — Soundboard, Scenes, and 12-Key Control
+**Current focus:** Phase 06 — SRD Characters and Local Player Sheets
 
 ## Current Position
 
-Phase: 04 (Soundboard, Scenes, and 12-Key Control) — VERIFYING
-Plan: 8 of 8
-Status: Plan 8 complete; phase remains verifying for pending user UAT and platform checks
-Last activity: 2026-10-30 - Phase 04 defaults integration passed; UAT, physical audio, native OS focus, macOS and MP3 remain unverified
+Phase: 6 — SRD Characters and Local Player Sheets
+Current Plan: 5
+Total Plans in Phase: 7
+Status: Planning/executing; revised seven-plan set ready for execution
+Last activity: 2026-11-04 — Halted Phase 6 Plan 05 at pre-install integrity mismatch; no package installed
 
-Progress: ░░░░░░░░░░ [█░░░░░░░░░] 14%
+Progress: ░░░░░░░░░░ [████░░░░░░] 43%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 0
+- Total plans completed: 12
 - Average duration: N/A
 - Total execution time: 0 hours
 
@@ -45,7 +47,8 @@ Progress: ░░░░░░░░░░ [█░░░░░░░░░] 14%
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| - | - | - | - |
+| 4 | 8 | - | - |
+| 5 | 4 | - | - |
 
 **Recent Trend:**
 - Last 5 plans: None
@@ -79,6 +82,11 @@ Progress: ░░░░░░░░░░ [█░░░░░░░░░] 14%
 | Phase 04 P06 | 10min | 1 tasks | 5 files |
 | Phase 04 P07 | 10m | 1 tasks | 4 files |
 | Phase 04 P08 | 31m | 3 tasks | 14 files |
+| Phase 05-offline-2024-srd-compendium P01 | 30min | 2 tasks | 17 files |
+| Phase 06 P01 | 31min | 2 tasks | 9 files |
+| Phase 06 P02 | 24min | 2 tasks | 8 files |
+| Phase 06 P03 | 48min | 3 tasks | 16 files |
+| Phase 06 P04 | 50min | 2 tasks | 16 files |
 
 ## Accumulated Context
 
@@ -130,10 +138,20 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - [Phase 04]: Keep quota calculation, bounded copy, and reservation update inside one serialized audio-lock operation
 - [Phase 04]: Preserve actual-byte limits by counting chunks in a Transform piped into the destination.
 - [Phase 04]: Bundle three CC0 PCM defaults for pristine soundboards with a separate durable no-reseed marker.
+- [Phase 05-offline-2024-srd-compendium]: Use the official CC-BY-4.0 SRD 5.2.1 PDF as the only data source and ship one directly verified Bandit record.
+- [Phase 05-offline-2024-srd-compendium]: Add monster stats as private encounter actor snapshots, never map tokens; no commits per user instruction.
+- [Phase 06]: Support only the directly cited level-1 Barbarian/Dwarf combination as the Phase 6 tracer.
+- [Phase 06]: Keep all character APIs on the existing token-protected loopback DM path; no player/LAN exposure in 06-01.
+- [Phase 06 Plan 03]: LAN access is opt-in on one selected private interface; the broad desktop token is never exposed to the player origin.
+- [Phase 06 Plan 03]: Pairing uses one-time invites and separate hashed revocable player credentials; LAN HTTP is unencrypted and physical phone UAT remains pending.
+- [Phase 06 Plan 04]: Player sheet reads/writes resolve from the current bearer assignment; inventory is bookkeeping only and unsupported resource mechanics remain unavailable.
+- [Phase 06 Plan 04]: Keep SignalR and current encounter HP synchronization for subsequent plans; no full CHAR-03 or phase completion claim is made.
 
 ### Pending Todos
 
-- Phase 4 automated verification passed; await user review before advancing to Phase 5, per staged roadmap policy.
+- User explicitly authorized progression from Phase 5 to Phase 6 after accepting Phase 5 on 2026-11-04 based on current E2E. Phase 2/3 remaining plan paperwork is preserved and non-blocking because map and encounter authority already exist. Do not update those unfinished phase counters/statuses as part of Phase 6 planning.
+- Phase 6 requirements CHAR-01..04 remain pending until each roadmap criterion is proven; CHAR-02..04 additionally require physical phone/operator transport UAT. Automated local E2E does not count as physical phone/LAN or operator security acceptance. Default LAN HTTP has no confidentiality; make no TLS claim. Stop for human review after automated verification.
+- Phase 5 source confidence is medium: upstream structured API describes SRD 5.2 while official SRD page publishes 5.2.1. Label API data SRD 5.2 only; compare to official 5.2.1 where possible without parity claim. Confirm data redistribution rights and exact attribution before bundling; if unverified, do not distribute. SRD-01 requires genuine authorized records in every requested category, otherwise mark it unmet.
 
 ### Blockers/Concerns
 
@@ -141,6 +159,7 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 - macOS x64 and arm64 packaging/runtime/hardware not tested.
 - Phase 4 automated evidence covers save rollback, import quota/storage cleanup, cue focus filtering, and private/public separation; physical speaker output, native OS focus transition, macOS, and untested codecs remain unverified.
 - Browser screenshot unavailable because no visible desktop tab was available; do not fabricate one.
+- Plan 06-05 pre-install gate blocked: npm registry integrity for @microsoft/signalr@10.0.11 differs from the pinned plan value; human provenance review required. No install performed.
 
 ## Deferred Items
 
@@ -150,6 +169,6 @@ Decisions are logged in PROJECT.md Key Decisions table. Recent decisions affecti
 
 ## Session Continuity
 
-Last session: 2026-10-30T19:45:21.721Z
-Stopped at: Completed 04-08-PLAN.md
+Last session: 2026-11-04T16:54:00Z
+Stopped at: Halted 06-05 before SignalR install; registry SHA-512 does not match pinned metadata
 Resume file: None

@@ -24,6 +24,7 @@ public sealed class PresentationState
     private string? _selectedScene;
     private PublicPresentation _public = new("black", null, null, null);
     private PublicPresentation _active = new("black", null, null, null);
+    public event Action<PublicPresentation>? Changed;
 
     public string? SelectedSceneId => _selectedScene;
     public IReadOnlyCollection<string> SceneIds => Scenes.Keys.ToArray();
@@ -43,11 +44,12 @@ public sealed class PresentationState
         _selectedScene = candidate;
         _public = new PublicPresentation("scene", candidate, scene.Title, scene.Description);
         _active = _public;
+        Changed?.Invoke(_active);
         return true;
     }
 
-    public void ShowMap(PublicMap map) => _active = new PublicPresentation(map.Mode, null, null, null, map.Id, map.ImageData, map.Tokens);
+    public void ShowMap(PublicMap map) { _active = new PublicPresentation(map.Mode, null, null, null, map.Id, map.ImageData, map.Tokens); Changed?.Invoke(_active); }
     public void RefreshMap(PublicMap map) { if (_active.Mode == "map") ShowMap(map); }
 
-    public void Blackout() { _public = new PublicPresentation("black", null, null, null); _active = _public; }
+    public void Blackout() { _public = new PublicPresentation("black", null, null, null); _active = _public; Changed?.Invoke(_active); }
 }

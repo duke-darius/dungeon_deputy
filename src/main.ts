@@ -4,6 +4,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import { readFile, writeFile, mkdir, stat, rename, rm, readdir, access } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { chooseExternalDisplay } from './display-policy.mjs';
+import { HubConnectionBuilder, LogLevel, type HubConnection } from '@microsoft/signalr';
 // @ts-ignore JS policy is exercised by Node TAP tests.
 import { saveTestPolicy, createFailOnce } from './renderer/src/audio/saveTestPolicy.mjs';
 // @ts-ignore Shared JS policy is covered by Node TAP tests.
@@ -19,6 +20,8 @@ const windows = new Map<Role, BrowserWindow>();
 let backend: ChildProcess | undefined;
 let backendUrl = '';
 let backendToken = '';
+let publicHub: HubConnection | null = null;
+let publicHubStarting: Promise<void> | null = null;
 let prefs: Preferences = fallback;
 let quitting = false;
 let activeDisplayId: number | null = null;
@@ -50,6 +53,49 @@ const e2eDataRoot = process.env.DUNGEON_DEPUTY_DATA_DIR;
 const e2eBackendRoot = process.env.DUNGEON_DEPUTY_BACKEND_ROOT;
 const e2eDevUrl = process.env.DUNGEON_DEPUTY_DEV_URL;
 const devServerUrl = e2e ? e2eDevUrl : 'http://127.0.0.1:5173';
+
+function sendPublicPresentation(value: any) {
+  const publicWindow = windows.get('public');
+  if (publicWindow && !publicWindow.isDestroyed()) publicWindow.webContents.send('public:presentation-updated', value);
+}
+
+async function stopPublicRealtime() {
+  const current = publicHub;
+  publicHub = null;
+  if (current) await current.stop().catch(() => {});
+}
+
+async function startPublicRealtime() {
+  if (publicHubStarting) return publicHubStarting;
+  if (publicHub) return;
+  publicHubStarting = (async () => {
+    const response = await api('/api/player-session/display-token', 'POST');
+    if (!response.ok) return;
+    const grant = await response.json();
+    if (typeof grant.token !== 'string' || typeof grant.origin !== 'string') return;
+    const origin = new URL(grant.origin);
+    if (origin.protocol !== 'http:') return;
+    const connection = new HubConnectionBuilder()
+      .withUrl(`${origin.origin}/api/player/hub`, { accessTokenFactory: () => grant.token })
+      .withAutomaticReconnect()
+      .configureLogging(LogLevel.None)
+      .build();
+    publicHub = connection;
+    connection.on('DisplaySnapshot', sendPublicPresentation);
+    connection.on('Presentation', sendPublicPresentation);
+    connection.on('AccessRevoked', () => sendPublicPresentation({ mode: 'black', sceneId: null, title: null, description: null }));
+    connection.onreconnected(async () => {
+      try { sendPublicPresentation(await connection.invoke('GetDisplaySnapshot')); }
+      catch { sendPublicPresentation({ mode: 'black', sceneId: null, title: null, description: null }); }
+    });
+    try {
+      await connection.start();
+      sendPublicPresentation(await connection.invoke('GetDisplaySnapshot'));
+    } catch { if (publicHub === connection) publicHub = null; await connection.stop().catch(() => {}); }
+  })();
+  try { await publicHubStarting; }
+  finally { publicHubStarting = null; }
+}
 if (e2e) {
   if (!e2eDataRoot || !e2eBackendRoot || !e2eDevUrl || new URL(e2eDevUrl).hostname !== '127.0.0.1') throw new Error('E2E mode requires isolated data/backend roots and a loopback renderer URL.');
   app.setPath('userData', resolve(e2eDataRoot));
@@ -216,8 +262,9 @@ async function startBackend() {
   const backendRid = process.platform === 'win32' ? 'win-x64' : process.platform === 'darwin' ? `osx-${process.arch}` : 'linux-x64';
   const path = e2e ? join(resolve(e2eBackendRoot!), executable) : app.isPackaged ? join(process.resourcesPath, `backend-${backendRid}`, executable) : join(app.getAppPath(), 'artifacts', `backend-${backendRid}`, executable);
   const dataDirectory = e2e ? resolve(e2eDataRoot!, 'backend-data') : resolve(app.getPath('userData'), 'data');
+  const rendererDirectory = app.isPackaged ? join(process.resourcesPath, 'src', 'renderer', 'dist') : join(app.getAppPath(), 'src', 'renderer', 'dist');
   await mkdir(dataDirectory, { recursive: true });
-  backend = spawn(path, [], { env: { ...backendEnvironment, DUNGEON_DEPUTY_PORT: String(port), DUNGEON_DEPUTY_TOKEN: backendToken, DUNGEON_DEPUTY_DATA_DIR: dataDirectory }, stdio: 'ignore', windowsHide: true });
+  backend = spawn(path, [], { env: { ...backendEnvironment, DUNGEON_DEPUTY_PORT: String(port), DUNGEON_DEPUTY_TOKEN: backendToken, DUNGEON_DEPUTY_DATA_DIR: dataDirectory, DUNGEON_DEPUTY_RENDERER_DIR: rendererDirectory }, stdio: 'ignore', windowsHide: true });
   backend.once('exit', () => { if (!quitting) { for (const win of windows.values()) if (!win.isDestroyed()) void win.webContents.executeJavaScript("document.body.style.background='black'"); app.quit(); } });
   await waitForBackend(backend);
 }
@@ -226,7 +273,7 @@ function allowedSender(role: Role, event: Electron.IpcMainInvokeEvent) {
   return !!win && event.sender === win.webContents && event.senderFrame?.url === win.webContents.getURL();
 }
 function installIpc() {
-  for (const channel of ['dm:command', 'dm:preferences', 'display:list', 'public:presentation', 'audio:config', 'audio:import', 'audio:bytes', 'audio:discard']) {
+  for (const channel of ['dm:command', 'dm:preferences', 'display:list', 'public:presentation', 'public:realtime', 'audio:config', 'audio:import', 'audio:bytes', 'audio:discard']) {
     ipcMain.removeHandler(channel);
   }
   ipcMain.handle('audio:config', async (event, value?: unknown) => {
@@ -300,11 +347,22 @@ function installIpc() {
     });
   });
   ipcMain.handle('dm:command', async (event, path: unknown, method: unknown, body?: unknown) => {
-    if (!allowedSender('dm', event) || typeof path !== 'string' || !/^\/api\/(scenes|presentation|selection\/[a-z-]+|show\/[a-z-]+|blackout|map|map\/draft|map\/blank|map\/show|map\/show-encounter|map\/fog\/(?:enable|strokes)|map\/token(?:\/[a-zA-Z0-9-]+(?:\/(?:visibility|hp|conditions|initiative(?:\/roll)?|tie-break))?)?|encounter(?:\/actors\/[a-zA-Z0-9-]+\/(?:hp|conditions|initiative(?:\/roll)?|tie-break)|\/turn\/end|\/dice)?)\/?(?:\?.*)?$/.test(path) || !['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].includes(String(method))) throw new Error('Denied');
+    if (!allowedSender('dm', event) || typeof path !== 'string' || !/^\/api\/(scenes|presentation|selection\/[a-z-]+|show\/[a-z-]+|blackout|map|map\/draft|map\/blank|map\/show|map\/show-encounter|map\/fog\/(?:enable|strokes)|map\/token(?:\/[a-zA-Z0-9-]+(?:\/(?:visibility|hp|conditions|initiative(?:\/roll)?|tie-break))?)?|srd\/(?:search|coverage|metadata|records\/[a-z0-9:-]+)|characters(?:\/[a-f0-9]{32})?|player-session(?:\/(?:interfaces|players|start|stop|invites|revoke|display-token)|\/players\/[a-f0-9]{32}\/hp)?|encounter(?:\/actors\/[a-zA-Z0-9-]+\/(?:hp|conditions|initiative(?:\/roll)?|tie-break)|\/turn\/end|\/dice|\/monsters)?)\/?(?:\?.*)?$/.test(path) || !['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].includes(String(method))) throw new Error('Denied');
     const response = await api(path, String(method), body);
     if (e2e) console.info(`[E2E API] ${String(method)} ${path} ${response.status}`);
     if (!response.ok) throw new Error(`Presentation service returned ${response.status}.`);
-    return response.status === 204 ? null : response.json();
+    const result = response.status === 204 ? null : await response.json();
+    if (/^\/api\/(?:show\/|blackout$|map\/show(?:-encounter)?$|map\/fog\/(?:enable|strokes)$|map\/token\/[a-zA-Z0-9-]+\/visibility$)/.test(path)) {
+      const publicResponse = await api('/api/presentation');
+      if (publicResponse.ok) {
+        const publicPresentation = await publicResponse.json();
+        if (e2e) console.info(`[E2E API] PUSH /api/presentation ${publicResponse.status} imageDataSha256=${createHash('sha256').update(publicPresentation.imageData ?? '').digest('hex')}`);
+        sendPublicPresentation(publicPresentation);
+      }
+    }
+    if (path === '/api/player-session/start') await startPublicRealtime().catch(() => {});
+    if (path === '/api/player-session/stop') await stopPublicRealtime();
+    return result;
   });
   ipcMain.handle('dm:preferences', async (event, value?: unknown) => {
     if (!allowedSender('dm', event)) throw new Error('Denied');
@@ -328,6 +386,10 @@ function installIpc() {
     const presentation = await response.json();
     if (e2e) console.info(`[E2E API] GET /api/presentation ${response.status} imageDataSha256=${createHash('sha256').update(presentation.imageData ?? '').digest('hex')}`);
     return presentation;
+  });
+  ipcMain.handle('public:realtime', async event => {
+    if (!allowedSender('public', event)) throw new Error('Denied');
+    await startPublicRealtime();
   });
 }
 function load(win: BrowserWindow, route: string) {

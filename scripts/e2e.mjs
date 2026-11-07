@@ -1,14 +1,17 @@
 import assert from 'node:assert/strict';
 import { mkdir, writeFile, rm, readdir } from 'node:fs/promises';
 import { join } from 'node:path';
-import { setup, launch, cleanup, evidence, log, getRendererErrors, getLogLines } from './e2e/fixtures.mjs';
+import { setup, launch, cleanup, evidence, log, getRendererErrors, getLogLines, getExternalRequests } from './e2e/fixtures.mjs';
 import { createHash } from 'node:crypto';
+import { HubConnectionBuilder } from '@microsoft/signalr';
+import { pairIndependentBrowser, assertAssignedSheetProjection, assertNoPrivateRouteEnumeration } from './e2e/player-lan.test.mjs';
 
 let success = false;
 let app;
 let pages = [];
 let captureFailure;
 let windowBaseline;
+const observedCapabilities = [];
 
   const readMap = page => page.evaluate(() => window.dungeonDeputy.command('/api/map'));
 async function waitForMap(page, predicate, label) {
@@ -20,21 +23,21 @@ async function waitForMap(page, predicate, label) {
   }
   throw new Error(`Timed out waiting for map state: ${label}`);
 }
-async function assertPostCommitRasterPoll(page, startIndex, completionIndex, persistedImageData, label, mutationPath) {
+async function assertPostCommitRasterPush(page, startIndex, completionIndex, persistedImageData, label, mutationPath) {
   const expected = createHash('sha256').update(persistedImageData).digest('hex');
   assert.ok(getLogLines().slice(startIndex, completionIndex).some(line => line.includes(`${mutationPath} 200`)), `${label}: successful UI mutation request was not captured`);
   const deadline = Date.now() + 5000;
   while (Date.now() < deadline) {
-    const hashes = getLogLines().slice(completionIndex).map(line => line.match(/\[E2E API\] GET \/api\/presentation 200 imageDataSha256=([a-f0-9]{64})/)?.[1]).filter(Boolean);
+    const hashes = getLogLines().slice(startIndex, completionIndex).map(line => line.match(/\[E2E API\] PUSH \/api\/presentation 200 imageDataSha256=([a-f0-9]{64})/)?.[1]).filter(Boolean);
     if (hashes.length) {
       await page.waitForFunction(value => document.querySelector('.public-map-art')?.getAttribute('src') === value, persistedImageData, { timeout: 5000 });
-      assert.ok(hashes.every(hash => hash === expected), `${label}: a public poll after mutation completion exposed a stale raster`);
+      assert.ok(hashes.every(hash => hash === expected), `${label}: a public push after mutation completion exposed a stale raster`);
       assert.equal(await page.locator('.public-map-art').getAttribute('src'), persistedImageData, `${label}: latest player raster differs from persisted map imageData`);
       return;
     }
     await page.waitForTimeout(50);
   }
-  throw new Error(`${label}: no post-commit public presentation poll was observed`);
+  throw new Error(`${label}: no post-commit public presentation push was observed`);
 }
 async function trackWindows() {
   const initialPages=[...pages];
@@ -53,7 +56,6 @@ async function assertWindowsStable() {
   const fullscreen=await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows().map(win=>win.isFullScreen()));
   assert.deepEqual(fullscreen,windowBaseline.fullscreen,'a content update changed fullscreen state');
 }
-
 try {
   const wav = Buffer.alloc(44 + 800);
   wav.write('RIFF', 0); wav.writeUInt32LE(836, 4); wav.write('WAVEfmt ', 8); wav.writeUInt32LE(16, 16); wav.writeUInt16LE(1, 20); wav.writeUInt16LE(1, 22); wav.writeUInt32LE(8000, 24); wav.writeUInt32LE(16000, 28); wav.writeUInt16LE(2, 32); wav.writeUInt16LE(16, 34); wav.write('data', 36); wav.writeUInt32LE(800, 40);
@@ -80,8 +82,180 @@ try {
     await manager.evaluate(()=>{window.__e2eCueFocus=true;Object.defineProperty(document,'visibilityState',{configurable:true,value:'visible'});Object.defineProperty(document,'hasFocus',{configurable:true,value:()=>window.__e2eCueFocus});});
     return { manager, player };
   };
-
   let { manager, player } = await launchPair(join(evidence, 'data'));
+  await manager.getByRole('button', { name: 'Characters · DM only' }).click();
+  await manager.getByRole('heading', { name: 'Characters', exact: true }).waitFor();
+  await manager.getByLabel('Character name').fill('Mira Vale');
+  await manager.getByRole('button', { name: 'Save changes' }).click();
+  await manager.getByRole('heading', { name: 'Mira Vale', exact: true }).waitFor();
+  await manager.getByRole('button', { name: /Mira Vale/ }).click();
+  await manager.getByLabel('Constitution').fill('16');
+  await manager.getByRole('button', { name: 'Save changes' }).click();
+  await manager.getByText('Proficiency +2 · HP 16 · AC 15', { exact: true }).waitFor();
+  await manager.getByRole('button', { name: /Mira Vale/ }).click();
+  await manager.getByText('Proficiency +2 · HP 16 · AC 15', { exact: true }).waitFor();
+  const characterSupport = await manager.evaluate(() => window.dungeonDeputy.command('/api/characters'));
+  assert.equal(characterSupport.length, 1, 'the supported character is persisted by the authenticated backend');
+  assert.match(characterSupport[0].support.pdfSha256, /^sha256:[a-f0-9]{64}$/);
+    assert.equal(characterSupport[0].support.citations.class.includes('PDF p. 28'), true, 'calculation support includes the official SRD citation');
+    assert.equal(await manager.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), true, 'character workspace has no horizontal overflow');
+   const playerInterfaces = await manager.evaluate(() => window.dungeonDeputy.command('/api/player-session/interfaces'));
+   if (playerInterfaces.length) {
+      const playerSession = await manager.evaluate(address => window.dungeonDeputy.command('/api/player-session/start', 'POST', { address }), playerInterfaces[0].address);
+      assert.match(playerSession.transportWarning, /HTTP is unencrypted/i, 'session start response truthfully identifies the unencrypted transport');
+     try {
+       const savedCharacter = (await manager.evaluate(() => window.dungeonDeputy.command('/api/characters')))[0];
+        const invite = await manager.evaluate(characterId => window.dungeonDeputy.command('/api/player-session/invites', 'POST', { characterId }), savedCharacter.id);
+        observedCapabilities.push(invite.secret);
+        assert.match(invite.warning, /HTTP invitation is not encrypted/i, 'invitation explicitly warns about HTTP confidentiality');
+        const joinPageResponse = await fetch(`${playerSession.listener.origin}/join`);
+        assert.equal(joinPageResponse.status, 200, 'LAN origin serves the isolated join page');
+        const playerCsp = joinPageResponse.headers.get('content-security-policy') ?? '';
+        assert.match(playerCsp, /default-src 'none'/, 'player page has a restrictive CSP');
+        assert.ok(playerCsp.includes(`connect-src 'self' ws://${new URL(playerSession.listener.origin).host}`), 'player WebSocket CSP is scoped to the selected LAN origin');
+        assert.doesNotMatch(playerCsp, /connect-src[^;]*\b(?:https?:|wss?):\s*(?:\*|[^;]*\s\*)/i, 'player page CSP denies arbitrary external network destinations');
+        const joinPageHtml = await joinPageResponse.text();
+       assert.match(joinPageHtml, /Join Dungeon Deputy/);
+       assert.equal(joinPageHtml.includes(invite.secret), false, 'join HTML never embeds the one-time invite');
+       const playerBundlePath = joinPageHtml.match(/src="(\/assets\/player-[A-Za-z0-9_-]+\.js)"/)?.[1];
+       assert.ok(playerBundlePath, 'join HTML references the isolated player bundle');
+        const playerBundleResponse = await fetch(`${playerSession.listener.origin}${playerBundlePath}`);
+        assert.equal(playerBundleResponse.status, 200, 'LAN origin serves the player-only bundle');
+        const playerBundle = await playerBundleResponse.text();
+        assert.match(playerBundle, /Add item/);
+        const signalRChunk = playerBundle.match(/HubConnectionBuilder-[A-Za-z0-9_-]+\.js/)?.[0];
+        if (signalRChunk) assert.equal((await fetch(`${playerSession.listener.origin}/assets/${signalRChunk}`)).status, 200, 'the LAN host serves the exact hashed SignalR runtime chunk');
+        else assert.ok(playerBundle.includes('HubConnectionBuilder') && playerBundle.includes('WebSocket') && playerBundle.includes('/api/player/hub'), 'player entry bundles the pinned SignalR client and Hub route');
+        const firstPlayer = await pairIndependentBrowser(app, invite.url, 'persist:e2e-player-mira', 'Mira Vale');
+        const miraPage = firstPlayer.page;
+        const grant = firstPlayer.grant;
+        observedCapabilities.push(grant.token);
+        assert.equal(invite.url.includes(grant.token), false, 'the durable player token is absent from invitation URLs');
+        const inviteReplay = await fetch(`${playerSession.listener.origin}/api/player/exchange`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ invite: invite.secret }) });
+        assert.equal(inviteReplay.status, 410, 'a redeemed invitation cannot be replayed');
+        assert.equal((await inviteReplay.json()).error, 'used');
+        const otherCharacter = await manager.evaluate(() => window.dungeonDeputy.command('/api/characters', 'POST', { name: 'Oren Ash', class: 'barbarian', species: 'dwarf', level: 1, strength: 15, dexterity: 12, constitution: 14, intelligence: 10, wisdom: 13, charisma: 8 }));
+        const otherInvite = await manager.evaluate(characterId => window.dungeonDeputy.command('/api/player-session/invites', 'POST', { characterId }), otherCharacter.id);
+        observedCapabilities.push(otherInvite.secret);
+        const secondPlayer = await pairIndependentBrowser(app, otherInvite.url, 'persist:e2e-player-oren', 'Oren Ash');
+        const phonePage = secondPlayer.page;
+        const secondGrant = secondPlayer.grant;
+        observedCapabilities.push(secondGrant.token);
+        const hub = new HubConnectionBuilder().withUrl(`${playerSession.listener.origin}/api/player/hub`, { accessTokenFactory: () => grant.token }).build();
+        let initialSnapshot;
+        let latestSheet;
+        let approvedScene;
+        let blackoutPresentation;
+        let revoked = false;
+       hub.on('Snapshot', value => { initialSnapshot = value; });
+       hub.on('SheetUpdated', value => { latestSheet = value; });
+        hub.on('Presentation', value => { approvedScene = value; if (value.mode === 'black') blackoutPresentation = value; });
+        hub.on('AccessRevoked', () => { revoked = true; });
+        await hub.start();
+        await hub.invoke('GetSnapshot');
+       await assert.rejects(() => hub.invoke('JoinGroup', 'another-player'), 'Hub exposes no client-selected group join method');
+       assert.equal(initialSnapshot.sheet.name, savedCharacter.name, 'authenticated Hub snapshot is scoped to assigned character');
+       assert.deepEqual(Object.keys(initialSnapshot.presentation).sort(), ['description','mode','sceneId','title']);
+        const displayGrant = await manager.evaluate(() => window.dungeonDeputy.command('/api/player-session/display-token', 'POST'));
+        observedCapabilities.push(displayGrant.token);
+       const displayHub = new HubConnectionBuilder().withUrl(`${playerSession.listener.origin}/api/player/hub`, { accessTokenFactory: () => displayGrant.token }).build();
+       let displayScene;
+       displayHub.on('Presentation', value => { displayScene = value; });
+       await displayHub.start();
+       await displayHub.invoke('GetDisplaySnapshot');
+       await manager.evaluate(() => window.dungeonDeputy.command('/api/show/ashen-road', 'POST'));
+        const pushedDeadline = Date.now() + 3000;
+        while ((!approvedScene || !displayScene) && Date.now() < pushedDeadline) await new Promise(resolve => setTimeout(resolve, 20));
+         assert.equal(approvedScene.mode, 'scene', 'approved presentation is pushed to assigned player');
+         assert.equal(displayScene.mode, 'scene', 'narrow read-only display identity receives public presentation push');
+         await miraPage.getByText(/Approved scene: The Ashen Road/).waitFor();
+         await phonePage.getByText(/Approved scene: The Ashen Road/).waitFor();
+         await manager.evaluate(() => window.dungeonDeputy.command('/api/blackout', 'POST'));
+         const blackoutDeadline = Date.now() + 3000;
+         while (!blackoutPresentation && Date.now() < blackoutDeadline) await new Promise(resolve => setTimeout(resolve, 20));
+         assert.equal(blackoutPresentation.mode, 'black', 'blackout is pushed to an authorized player as a neutral state');
+         await miraPage.getByText('Blackout active', { exact: true }).waitFor();
+         await phonePage.getByText('Blackout active', { exact: true }).waitFor();
+         assert.equal(await miraPage.getByText('The Ashen Road').count(), 0, 'blackout hides the underlying scene title from a player');
+         await hub.stop();
+        await hub.start();
+        const playerReconnectSnapshot = await hub.invoke('GetSnapshot');
+        assert.equal(playerReconnectSnapshot.sheet.name, savedCharacter.name, 'player reconnect obtains a fresh assignment-authorized snapshot');
+        await displayHub.stop();
+        await displayHub.start();
+         assert.equal((await displayHub.invoke('GetDisplaySnapshot')).mode, 'black', 'display reconnect obtains fresh blackout public state');
+        const playerHeaders = { Authorization: `Bearer ${grant.token}` };
+       let sheetResponse = await fetch(`${playerSession.listener.origin}/api/player/sheet`, { headers: playerHeaders, cache: 'no-store' });
+       assert.equal(sheetResponse.status, 200);
+       let sheet = await sheetResponse.json();
+        assert.equal(sheet.name, savedCharacter.name);
+         assert.deepEqual(Object.keys(sheet).sort(), ['abilityModifiers','armorClass','class','charisma','constitution','currentHitPoints','dexterity','hitPointMaximum','intelligence','inventory','level','name','proficiencyBonus','resources','rulesetVersion','species','strength','wisdom'].sort(), 'player sheet serializes the explicit assigned-character projection only');
+        assert.doesNotMatch(JSON.stringify(sheet), /initiative|condition|hidden|currentHp|dmNotes|otherPlayer/i, 'assigned DTO omits combat, hidden, and other-player fields');
+        assertAssignedSheetProjection(sheet, savedCharacter.name);
+        const substitutedA = await fetch(`${playerSession.listener.origin}/api/player/sheet?characterId=${otherCharacter.id}`, { headers: playerHeaders, cache: 'no-store' });
+        assert.equal((await substitutedA.json()).name, savedCharacter.name, 'caller-supplied character identity cannot change assignment scope');
+        const substitutedB = await fetch(`${playerSession.listener.origin}/api/player/sheet?characterId=${savedCharacter.id}`, { headers: { Authorization: `Bearer ${secondGrant.token}` }, cache: 'no-store' });
+        assert.equal((await substitutedB.json()).name, otherCharacter.name, 'second principal remains bound to its own character');
+        await assertNoPrivateRouteEnumeration(playerSession.listener.origin, grant.token, otherCharacter.id);
+       const commandResponse = await fetch(`${playerSession.listener.origin}/api/player/commands`, { method: 'POST', headers: { ...playerHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'addInventory', name: 'E2E rope', quantity: 2 }) });
+       assert.equal(commandResponse.status, 200, 'allowlisted inventory command succeeds');
+       const commandResult = await commandResponse.json();
+       assert.equal(commandResult.inventory[0].name, 'E2E rope');
+       const sheetDeadline = Date.now() + 3000;
+       while ((!latestSheet || latestSheet.inventory[0]?.name !== 'E2E rope') && Date.now() < sheetDeadline) await new Promise(resolve => setTimeout(resolve, 20));
+          assert.equal(latestSheet.inventory[0].name, 'E2E rope', 'authorized assignment sheet change is pushed to its connected Hub client');
+        const assignments = await manager.evaluate(() => window.dungeonDeputy.command('/api/player-session/players'));
+        const assignedMira = assignments.find(item => item.characterId === savedCharacter.id);
+        await manager.evaluate(({ playerId }) => window.dungeonDeputy.command(`/api/player-session/players/${playerId}/hp`, 'PUT', { currentHitPoints: 6 }), { playerId: assignedMira.playerId });
+        const hpDeadline = Date.now() + 3000;
+        while (latestSheet?.currentHitPoints !== 6 && Date.now() < hpDeadline) await new Promise(resolve => setTimeout(resolve, 20));
+        assert.equal(latestSheet.currentHitPoints, 6, 'DM current HP update is immediately pushed to the assigned Hub client');
+        const otherSheet = await (await fetch(`${playerSession.listener.origin}/api/player/sheet`, { headers: { Authorization: `Bearer ${secondGrant.token}` } })).json();
+        assert.equal(otherSheet.currentHitPoints, otherSheet.hitPointMaximum, 'DM HP update does not change another assignment sheet');
+         await miraPage.getByText('E2E rope · 2').waitFor();
+         assert.equal(await phonePage.getByText('E2E rope').count(), 0, "another player's private inventory never enters the second sheet");
+        await phonePage.getByLabel('Item name').fill('Oren potion');
+        await phonePage.getByLabel('Quantity').fill('1');
+        await phonePage.getByRole('button', { name: 'Add item' }).click();
+        await phonePage.getByText('Oren potion · 1').waitFor();
+        const dmAssignments = await manager.evaluate(() => window.dungeonDeputy.command('/api/player-session/players'));
+        assert.equal(dmAssignments.find(assignment => assignment.characterId === savedCharacter.id).inventory[0].name, 'E2E rope', "DM's scoped session view observes the permitted inventory edit");
+        const otherAssignment = dmAssignments.find(assignment => assignment.characterId === otherCharacter.id);
+        const crossRemove = await fetch(`${playerSession.listener.origin}/api/player/commands`, { method: 'POST', headers: { ...playerHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'removeInventory', itemId: otherAssignment.inventory[0].id, quantity: 1 }) });
+        assert.equal(crossRemove.status, 400, 'one player cannot mutate another assignment inventory using its item ID');
+        const forbidden = await fetch(`${playerSession.listener.origin}/api/player/commands`, { method: 'POST', headers: { ...playerHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'addInventory', name: 'Forged', quantity: 1, currentHp: 99 }) });
+        assert.equal(forbidden.status, 400, 'closed player command schema rejects forged combat fields');
+        for (const command of [{ type: 'setHp', currentHp: 1 }, { type: 'setInitiative', initiative: 20 }, { type: 'setConditions', conditions: ['hidden'] }, { type: 'useResource', resourceId: 'unsupported-resource' }])
+          assert.equal((await fetch(`${playerSession.listener.origin}/api/player/commands`, { method: 'POST', headers: { ...playerHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify(command) })).status, 400, `unauthorized combat/resource action rejected: ${command.type}`);
+        const firstAssignment = dmAssignments.find(assignment => assignment.characterId === savedCharacter.id);
+         await manager.evaluate(playerId => window.dungeonDeputy.command('/api/player-session/revoke', 'POST', { playerId }), firstAssignment.playerId);
+        assert.equal(revoked, true, 'revocation immediately notifies the affected connection');
+        await miraPage.getByText(/Your access to this character was revoked\. Your private sheet has been cleared\./).waitFor();
+        assert.equal(await miraPage.getByText('E2E rope · 2').count(), 0, 'revocation clears the revoked browser sheet');
+       await assert.rejects(() => hub.invoke('GetSnapshot'), 'revoked credentials cannot request another snapshot');
+       const revokedReconnect = new HubConnectionBuilder().withUrl(`${playerSession.listener.origin}/api/player/hub`, { accessTokenFactory: () => grant.token }).build();
+       await assert.rejects(() => revokedReconnect.start(), 'revoked credentials cannot open a new Hub connection');
+       const anonymousHub = new HubConnectionBuilder().withUrl(`${playerSession.listener.origin}/api/player/hub`).build();
+       await assert.rejects(() => anonymousHub.start(), 'anonymous clients cannot open Hub connections');
+       sheetResponse = await fetch(`${playerSession.listener.origin}/api/player/sheet`, { headers: playerHeaders, cache: 'no-store' });
+        assert.equal(sheetResponse.status, 410, 'revoked assignment is denied on the next request');
+        await manager.evaluate(() => window.dungeonDeputy.command('/api/player-session/stop', 'POST'));
+        await phonePage.getByText(/This session has ended\. Your private sheet has been cleared\./).waitFor();
+        assert.equal(await phonePage.getByText('Oren potion · 1').count(), 0, 'session end removes stale private sheet data from the browser');
+        await hub.stop();
+        await displayHub.stop();
+        await phonePage.close();
+     } finally {
+       await manager.evaluate(() => window.dungeonDeputy.command('/api/player-session/stop', 'POST'));
+     }
+     await manager.evaluate(() => window.dungeonDeputy.command('/api/blackout', 'POST'));
+   } else log('PLAYER SESSION E2E NOT RUN: no active private LAN interface was enumerated.');
+    await manager.setViewportSize({ width: 390, height: 844 });
+   const characterPhoneOverflow = await manager.evaluate(() => ({ width: document.documentElement.clientWidth, scrollWidth: document.documentElement.scrollWidth, elements: [...document.querySelectorAll('body *')].filter(element => element.getBoundingClientRect().right > document.documentElement.clientWidth + 1).slice(0, 8).map(element => ({ tag: element.tagName, className: typeof element.className === 'string' ? element.className : '', right: Math.round(element.getBoundingClientRect().right), width: Math.round(element.getBoundingClientRect().width) })) }));
+   assert.ok(characterPhoneOverflow.scrollWidth <= characterPhoneOverflow.width, `phone character workspace overflow: ${JSON.stringify(characterPhoneOverflow)}`);
+   await manager.getByText(/no equipment options have been enabled/).waitFor();
+   await manager.getByRole('button', { name: /Mira Vale/ }).waitFor();
+   await manager.setViewportSize({ width: 1280, height: 900 });
   await manager.getByRole('button', { name: 'Audio · DM only' }).click();
   await manager.locator('.audio-pads article').first().waitFor();
   assert.equal(await manager.locator('.audio-pads article').count(),12,'soundboard must always render exactly twelve pads');
@@ -489,7 +663,7 @@ try {
   await manager.getByRole('button', { name: 'Enable fog' }).click();
   let mutationState = await waitForMap(manager, state => state.draft.fogEnabled, 'fog enable');
   let completionLogIndex = getLogLines().length;
-  await assertPostCommitRasterPoll(player, mutationLogIndex, completionLogIndex, mutationState.draft.imageData, 'fog enable', 'POST /api/map/fog/enable');
+  await assertPostCommitRasterPush(player, mutationLogIndex, completionLogIndex, mutationState.draft.imageData, 'fog enable', 'POST /api/map/fog/enable');
   const revealTool=manager.locator('.fog-controls').getByRole('button',{name:'Reveal'});
   await revealTool.click();
   await revealTool.click();
@@ -505,7 +679,7 @@ try {
   await manager.getByText('Hidden from players').waitFor();
   mutationState = await waitForMap(manager,state=>state.draft.tokens.find(token=>token.id===hero.id)?.visible===false,'hide token');
   completionLogIndex = getLogLines().length;
-  await assertPostCommitRasterPoll(player, mutationLogIndex, completionLogIndex, mutationState.draft.imageData, 'token visibility', 'PATCH /api/map/token/hero-1/visibility');
+  await assertPostCommitRasterPush(player, mutationLogIndex, completionLogIndex, mutationState.draft.imageData, 'token visibility', 'PATCH /api/map/token/hero-1/visibility');
   const mapCanvas=manager.locator('.map-canvas');
   await manager.locator('.fog-controls').getByRole('button',{name:'Reveal'}).click();
   const strokeCountBefore=(await readMap(manager)).draft.fogStrokes.length;
@@ -517,7 +691,7 @@ try {
   log('KEYBOARD brush focused on canvas; ArrowRight moved the map-space brush; Space committed one reveal dab.');
   const revealedState=await waitForMap(manager,state=>state.draft.fogStrokes.length>strokeCountBefore,'keyboard brush dab');
   completionLogIndex = getLogLines().length;
-  await assertPostCommitRasterPoll(player, mutationLogIndex, completionLogIndex, revealedState.draft.imageData, 'keyboard fog stroke', 'POST /api/map/fog/strokes');
+  await assertPostCommitRasterPush(player, mutationLogIndex, completionLogIndex, revealedState.draft.imageData, 'keyboard fog stroke', 'POST /api/map/fog/strokes');
   const fogStamps=revealedState.draft.fogStrokes.at(-1).stamps;
   assert.equal(fogStamps.length,1,'one keyboard activation must submit exactly one map-space dab');
   const pollStarted=Date.now();
@@ -546,7 +720,7 @@ try {
   const enterState=await waitForMap(manager,state=>state.draft.fogStrokes.length>strokesBeforeEnter,'keyboard Enter brush dab');
   assert.equal(enterState.draft.fogStrokes.length,strokesBeforeEnter+1,'one Enter activation commits exactly one map-space dab');
   completionLogIndex=getLogLines().length;
-  await assertPostCommitRasterPoll(player,mutationLogIndex,completionLogIndex,enterState.draft.imageData,'keyboard Enter fog stroke','POST /api/map/fog/strokes');
+  await assertPostCommitRasterPush(player,mutationLogIndex,completionLogIndex,enterState.draft.imageData,'keyboard Enter fog stroke','POST /api/map/fog/strokes');
   log('KEYBOARD Enter committed exactly one reveal dab through the same stroke route.');
   const filtered=await manager.evaluate(()=>window.dungeonDeputy.command('/api/presentation'));
   assert.equal(filtered.tokens.some(token=>token.id===hero.id),false);
@@ -616,10 +790,35 @@ try {
   await screenshot('10-blank-map-draft');
   await assertWindowsStable();
 
+  await manager.getByRole('button', { name: 'Compendium · DM only' }).click();
+  await manager.getByRole('heading', { name: 'SRD field reference' }).waitFor();
+  await manager.getByRole('button', { name: /Monsters/ }).click();
+  await manager.getByRole('button', { name: 'Open Bandit, monster' }).click();
+  await manager.getByRole('heading', { name: 'Bandit' }).waitFor();
+  await manager.getByText('PDF page 261', { exact: false }).waitFor();
+  await manager.locator('.compendium-detail').scrollIntoViewIfNeeded();
+  await screenshot('11-offline-srd-compendium');
+  const beforeSrdAdd=await manager.evaluate(async()=>({map:await window.dungeonDeputy.command('/api/map'),presentation:await window.dungeonDeputy.command('/api/presentation')}));
+  manager.once('dialog', dialog=>void dialog.accept());
+  await manager.getByRole('button', { name: 'Add to private encounter' }).click();
+  await manager.waitForFunction(async()=>{
+    try { const state=await window.dungeonDeputy.command('/api/encounter'); return state.actors.some(actor=>actor.sourceMonsterId==='srd521:monster:bandit'); }
+    catch { return false; }
+  });
+  const afterSrdAdd=await manager.evaluate(async()=>({map:await window.dungeonDeputy.command('/api/map'),presentation:await window.dungeonDeputy.command('/api/presentation'),encounter:await window.dungeonDeputy.command('/api/encounter')}));
+  assert.equal(afterSrdAdd.encounter.actors.some(actor=>actor.sourceMonsterId==='srd521:monster:bandit'&&actor.maximumHp===11),true,'Compendium Add creates a stat-linked private encounter actor');
+  assert.deepEqual(afterSrdAdd.map,beforeSrdAdd.map,'Compendium Add must not create or alter map tokens');
+  assert.deepEqual(afterSrdAdd.presentation,beforeSrdAdd.presentation,'Compendium Add must not alter public presentation');
+  assert.equal(await player.locator('.public-map').count(),1,'Compendium Add leaves the public display unchanged');
+
   const rendererErrors = getRendererErrors().filter(error=>!error.includes('/maps/tavern.svg'));
   assert.deepEqual(rendererErrors, [], `unexpected Electron renderer errors: ${rendererErrors.join('\n')}`);
+  assert.deepEqual(getExternalRequests(), [], `offline E2E attempted external network access: ${getExternalRequests().join(', ')}`);
+  const diagnosticText = getLogLines().join('\n');
+  for (const secret of observedCapabilities)
+    assert.equal(diagnosticText.includes(secret), false, 'invite, player, and display capabilities never appear in E2E diagnostics');
   success = true;
-  log('PASS: Phase1 scene/display and Phase2 map/token persistence remain intact; Phase3 fog/privacy/encounter and Phase4 private soundboard/import/restart, bounded playback, cue persistence, focus/input guards, safe scene/map/blackout cues, and responsive UI passed; paired screenshots/logs retained; physical audio output and macOS remain unverified.');
+  log('PASS: desktop plus two independent player browser contexts verified pairing/replay, assigned-only state/actions, public scene/blackout, reconnect, revoke/session end, offline catalog, and no external renderer requests; physical phones, Wi-Fi/firewall behavior, operator HTTP risk review, OS-wide outbound blocking, and macOS remain unverified.');
   await app.close();
 } catch (error) {
   log(`FAIL ${error?.stack ?? error}`);

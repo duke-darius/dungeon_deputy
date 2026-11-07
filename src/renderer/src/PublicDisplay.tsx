@@ -14,13 +14,10 @@ export default function PublicDisplay() {
   const [presentation, setPresentation] = useState<PublicPresentation>(black);
   useEffect(() => {
     let alive = true;
-    const refresh = async () => {
-      try { const value = publicView(await getPresentation()); if (alive) setPresentation(value); }
-      catch { if (alive) setPresentation(black); }
-    };
-    void refresh();
-    const timer = window.setInterval(() => void refresh(), 1000);
-    return () => { alive = false; window.clearInterval(timer); };
+    const unsubscribe = window.dungeonDeputy.onPresentationUpdated(value => { if (alive) setPresentation(publicView(value)); });
+    void getPresentation().then(value => { if (alive) setPresentation(publicView(value)); }).catch(() => { if (alive) setPresentation(black); });
+    void window.dungeonDeputy.connectRealtime().catch(() => {});
+    return () => { alive = false; unsubscribe(); };
   }, []);
 
   const scene = presentation.mode === 'scene' ? sceneById(presentation.sceneId) : undefined;

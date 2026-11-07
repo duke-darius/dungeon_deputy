@@ -32,9 +32,9 @@
 
 ### Offline SRD reference
 
-- [ ] **SRD-01**: The app bundles searchable offline 2024 SRD-family data for supported spells, conditions, actions, monsters, equipment, and key class/species definitions.
-- [ ] **SRD-02**: Each imported dataset records version, attribution, license, and provenance; copyrighted non-SRD content is excluded and missing data is explicit rather than fabricated.
-- [ ] **SRD-03**: The DM can open compendium details and add an SRD monster, with its stat information, to the current encounter.
+- [x] **SRD-01**: The app bundles searchable offline 2024 SRD-family data for supported spells, conditions, actions, monsters, equipment, and key class/species definitions.
+- [x] **SRD-02**: Each imported dataset records version, attribution, license, and provenance; copyrighted non-SRD content is excluded and missing data is explicit rather than fabricated.
+- [x] **SRD-03**: The DM can open compendium details and add an SRD monster, with its stat information, to the current encounter.
 
 ### Characters and player companion
 
@@ -83,9 +83,9 @@ None currently identified beyond the staged roadmap. Additional licensed rule co
 | ENCT-03 | Phase 3 | Complete |
 | AUD-01 | Phase 4 | Complete |
 | AUD-02 | Phase 4 | Complete |
-| SRD-01 | Phase 5 | Pending |
-| SRD-02 | Phase 5 | Pending |
-| SRD-03 | Phase 5 | Pending |
+| SRD-01 | Phase 5 | Complete (supported subset; no completeness claim) |
+| SRD-02 | Phase 5 | Complete |
+| SRD-03 | Phase 5 | Complete |
 | CHAR-01 | Phase 6 | Pending |
 | CHAR-02 | Phase 6 | Pending |
 | CHAR-03 | Phase 6 | Pending |

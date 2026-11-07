@@ -40,6 +40,16 @@ test('public preload exposes only public presentation retrieval', () => {
   assert.match(main, /allowedSender\('public', event\)/);
   assert.doesNotMatch(preload.slice(preload.indexOf('? Object.freeze'), preload.indexOf(': Object.freeze')), /command:|preferences:|displays:/);
 });
+test('DM IPC command allowlist permits only the local SRD catalog endpoints needed by the compendium', () => {
+  const allowlist = main.match(/!\/(?:\\\/|[^/])+\/(?:[dgimsuvy]*)\.test\(path\)/)?.[0];
+  assert.ok(allowlist, 'DM command handler must retain an explicit path allowlist');
+  const patternSource = allowlist.slice(2, allowlist.lastIndexOf('/.test'));
+  const policy = new RegExp(patternSource);
+  for (const path of ['/api/srd/search?q=Bandit&category=monster', '/api/srd/coverage', '/api/srd/metadata', '/api/srd/records/srd521:monster:bandit', '/api/encounter/monsters']) {
+    assert.equal(policy.test(path), true, `${path} should be available to the private DM renderer`);
+  }
+  for (const path of ['/api/srd/admin', '/api/srd/records/..%2fsecret', '/api/srd/search/other']) assert.equal(policy.test(path), false, `${path} must remain denied`);
+});
 test('private audio import is picker-only, sender checked, opaque and E2E gated', () => {
   assert.match(main, /audio:import/);
   assert.match(main, /allowedSender\('dm', event\)/);
@@ -109,6 +119,16 @@ test('map publish and blackout update public content without changing window lif
   assert.match(main, /public:presentation[\s\S]*api\('\/api\/presentation'\)/);
   assert.match(main, /api\('\/api\/blackout', 'POST'\)/);
   assert.doesNotMatch(main, /\/api\/map\/show.*safeTopology|\/api\/map\/show.*setFullScreen/);
+});
+test('display SignalR capability remains in main and preload forwards only allowlisted presentation data', () => {
+  assert.match(main, /new HubConnectionBuilder\(\)[\s\S]*accessTokenFactory: \(\) => grant\.token/);
+  assert.match(main, /connection\.on\('Presentation'/);
+  assert.match(main, /connection\.onreconnected/);
+  assert.doesNotMatch(main, /return \{ hubUrl:.*token: grant\.token/);
+  assert.match(preload, /onPresentationUpdated/);
+  assert.match(preload, /connectRealtime: \(\) => ipcRenderer\.invoke\('public:realtime'\)/);
+  assert.doesNotMatch(preload, /accessTokenFactory|token: grant\.token/);
+  assert.doesNotMatch(preload, /getRealtimePresentation|onRealtimeAvailable/);
 });
 test('map camera coordinates invert under pan and zoom', () => {
   const point={x:217,y:103}, camera={x:41,y:-17,zoom:1.75};

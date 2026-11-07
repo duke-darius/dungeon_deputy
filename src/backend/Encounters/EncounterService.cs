@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Data.Sqlite;
 using DungeonDeputy.Api.Maps;
+using DungeonDeputy.Api.Srd;
 
 namespace DungeonDeputy.Api.Encounters;
 
@@ -23,7 +24,13 @@ public sealed record EncounterActor(string TokenId,
     List<string>? ConditionIds = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] int? Initiative = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? InitiativeSource = null,
-    int TieBreakOrder = 0);
+    int TieBreakOrder = 0,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? SourceMonsterId = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? SourceRulesetVersion = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] int? ArmorClassSnapshot = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] int? StrengthSnapshot = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] int? DexteritySnapshot = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] int? ConstitutionSnapshot = null);
 public sealed record DiceRoll(int Sides, int Face, int Modifier, int Total);
 public sealed record EncounterDocument(List<EncounterActor> Actors, string? ActiveTokenId = null, List<DiceRoll>? Rolls = null);
 public sealed record EncounterState(List<EncounterActor> Actors, string? ActiveTokenId, List<DiceRoll> Rolls,
@@ -75,7 +82,7 @@ public sealed class EncounterService
         var existing = state.Actors.ToDictionary(a => a.TokenId, StringComparer.Ordinal);
         var actors = tokens.Select((token, i) => existing.TryGetValue(token.Id, out var actor)
             ? actor with { ConditionIds = actor.ConditionIds ?? [] }
-            : new EncounterActor(token.Id, ConditionIds: [], TieBreakOrder: i)).ToList();
+            : new EncounterActor(token.Id, ConditionIds: [], TieBreakOrder: i)).Concat(state.Actors.Where(a => a.SourceMonsterId is not null)).ToList();
         var active = state.ActiveTokenId is not null && actors.Any(a => a.TokenId == state.ActiveTokenId) ? state.ActiveTokenId : null;
         return state with { Actors = actors, ActiveTokenId = active, Rolls = state.Rolls ?? [] };
     }
@@ -133,6 +140,20 @@ public sealed class EncounterService
     }
     public bool SetHp(string id, HpCommand command) => command is not null && (command.Current is null || command.Current is >= 0 and <= MaxHitPoints) && (command.Maximum is null || command.Maximum is >= 0 and <= MaxHitPoints) && (command.Current is null || command.Maximum is null || command.Current <= command.Maximum) &&
         Change(s => UpdateActor(s, id, a => a with { CurrentHp = command.Current, MaximumHp = command.Maximum }));
+    public bool AddMonster(SrdRecord record)
+    {
+        if (record is null || record.Category != "monster" || record.Stats is not { } stats ||
+            stats.HitPoints is < 1 or > MaxHitPoints || stats.ArmorClass is < 1 or > 50 ||
+            stats.Strength is < 1 or > 30 || stats.Dexterity is < 1 or > 30 || stats.Constitution is < 1 or > 30 ||
+            string.IsNullOrWhiteSpace(record.Id) || record.Id.Length > 100 || record.Provenance.Dataset != "SRD 5.2.1") return false;
+        var id = "srd-" + Guid.NewGuid().ToString("N");
+        // A retry for the same curated source record is idempotent: never create a second actor.
+        return Change(s => s.Actors.Any(actor => actor.SourceMonsterId == record.Id) ? s : s.Actors.Count >= 100 ? null : s with
+        {
+            Actors = [.. s.Actors, new EncounterActor(id, stats.HitPoints, stats.HitPoints, [], null, null,
+                s.Actors.Count, record.Id, "5.2.1", stats.ArmorClass, stats.Strength, stats.Dexterity, stats.Constitution)]
+        });
+    }
     public bool SetConditions(string id, ConditionsCommand command) => command?.ConditionIds is { Count: <= 20 } ids && ids.Distinct(StringComparer.Ordinal).Count() == ids.Count && ids.All(id => _conditions.All.Any(c => c.Id == id)) &&
         Change(s => UpdateActor(s, id, a => a with { ConditionIds = ids.ToList() }));
     public bool SetInitiative(string id, InitiativeCommand command) => command is not null && command.Value is >= -MaxInitiative and <= MaxInitiative &&

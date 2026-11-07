@@ -1,0 +1,189 @@
+[
+  {
+    "id": "srd521:action:dash",
+    "category": "action",
+    "name": "Dash",
+    "summary": "Gain extra movement for the current turn equal to your Speed after modifiers.",
+    "details": {
+      "summary": "When you take the Dash action, you gain extra movement for the current turn. The increase equals your Speed after applying any modifiers."
+    },
+    "provenance": {
+      "dataset": "SRD 5.2.1",
+      "license": "CC-BY-4.0",
+      "sourceHash": "sha256:8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "page": 177,
+      "section": "Rules Glossary — Dash [Action]",
+      "modifications": "Transcribed one rule definition into normalized JSON; wording retained as source text.",
+      "recordHash": "sha256:0521e07e58a93dec7a6fe571f7dacc5693c83815a3d1096d8a02ecf9e8ebc647"
+    },
+    "recordHash": "sha256:0521e07e58a93dec7a6fe571f7dacc5693c83815a3d1096d8a02ecf9e8ebc647"
+  },
+  {
+    "id": "srd521:class:barbarian",
+    "category": "class",
+    "name": "Barbarian",
+    "summary": "Primary ability Strength; Hit Point Die D12 per Barbarian level.",
+    "details": {
+      "primaryAbility": "Strength",
+      "hitPointDie": "D12 per Barbarian level",
+      "savingThrowProficiencies": [
+        "Strength",
+        "Constitution"
+      ],
+      "weaponProficiencies": "Simple and Martial weapons",
+      "armorTraining": "Light and Medium armor and Shields"
+    },
+    "provenance": {
+      "dataset": "SRD 5.2.1",
+      "license": "CC-BY-4.0",
+      "sourceHash": "sha256:8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "page": 28,
+      "section": "Classes — Barbarian — Core Barbarian Traits",
+      "modifications": "Transcribed selected core trait fields into normalized JSON; class progression/options omitted.",
+      "recordHash": "sha256:28ff8dd631082c44b2be4195401080866c388254887b1afe873a88b8db794e9e"
+    },
+    "recordHash": "sha256:28ff8dd631082c44b2be4195401080866c388254887b1afe873a88b8db794e9e"
+  },
+  {
+    "id": "srd521:condition:blinded",
+    "category": "condition",
+    "name": "Blinded",
+    "summary": "You can’t see and automatically fail any ability check that requires sight.",
+    "details": {
+      "effects": [
+        "You can’t see and automatically fail any ability check that requires sight.",
+        "Attack rolls against you have Advantage, and your attack rolls have Disadvantage."
+      ]
+    },
+    "provenance": {
+      "dataset": "SRD 5.2.1",
+      "license": "CC-BY-4.0",
+      "sourceHash": "sha256:8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "page": 177,
+      "section": "Rules Glossary — Blinded [Condition]",
+      "modifications": "Transcribed the condition’s two defined effects into normalized JSON.",
+      "recordHash": "sha256:6d17e62bd50d79ad5bfc678af716978c70bd5ea08926fe997304c3b688c09736"
+    },
+    "recordHash": "sha256:6d17e62bd50d79ad5bfc678af716978c70bd5ea08926fe997304c3b688c09736"
+  },
+  {
+    "id": "srd521:equipment:dagger",
+    "category": "equipment",
+    "name": "Dagger",
+    "summary": "1d4 Piercing; Finesse, Light, Thrown (Range 20/60); Nick; 1 lb.; 2 GP.",
+    "details": {
+      "damage": "1d4 Piercing",
+      "properties": [
+        "Finesse",
+        "Light",
+        "Thrown (Range 20/60)"
+      ],
+      "mastery": "Nick",
+      "weight": "1 lb.",
+      "cost": "2 GP"
+    },
+    "provenance": {
+      "dataset": "SRD 5.2.1",
+      "license": "CC-BY-4.0",
+      "sourceHash": "sha256:8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "page": 91,
+      "section": "Equipment — Weapons — Simple Melee Weapons — Dagger",
+      "modifications": "Transcribed one weapons-table row into normalized JSON; abbreviations and values retained.",
+      "recordHash": "sha256:995978c02592e3cc862162a0352da7906f3df5a8b2ab5672de45d91a3ac48afb"
+    },
+    "recordHash": "sha256:995978c02592e3cc862162a0352da7906f3df5a8b2ab5672de45d91a3ac48afb"
+  },
+  {
+    "id": "srd521:monster:bandit",
+    "category": "monster",
+    "name": "Bandit",
+    "summary": "Medium or Small Humanoid; Neutral.",
+    "stats": {
+      "size": "Medium or Small",
+      "armorClass": 12,
+      "hitPoints": 11,
+      "speed": 30,
+      "strength": 11,
+      "dexterity": 12,
+      "constitution": 12,
+      "challengeRatingNumerator": 1,
+      "challengeRatingDenominator": 8,
+      "attacks": [
+        "Scimitar",
+        "Light Crossbow"
+      ]
+    },
+    "details": {
+      "creatureType": "Humanoid",
+      "alignment": "Neutral"
+    },
+    "provenance": {
+      "dataset": "SRD 5.2.1",
+      "license": "CC-BY-4.0",
+      "sourceHash": "sha256:8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "page": 261,
+      "section": "Monsters A–Z — Bandits — Bandit",
+      "modifications": "Transcribed selected stat-block fields into the catalog schema; omitted descriptive text and nonessential fields.",
+      "recordHash": "sha256:21b667c15e920cac2dbe13741d1b1c5a584754b739d633dad8a484e6e498bea9"
+    },
+    "recordHash": "sha256:21b667c15e920cac2dbe13741d1b1c5a584754b739d633dad8a484e6e498bea9"
+  },
+  {
+    "id": "srd521:species:dwarf",
+    "category": "species",
+    "name": "Dwarf",
+    "summary": "Humanoid, Medium (about 4–5 feet tall), Speed 30 feet.",
+    "details": {
+      "creatureType": "Humanoid",
+      "size": "Medium (about 4–5 feet tall)",
+      "speed": "30 feet",
+      "traits": {
+        "Darkvision": "120 feet",
+        "Dwarven Resilience": "Resistance to Poison damage; Advantage on saving throws to avoid or end the Poisoned condition.",
+        "Dwarven Toughness": "Hit Point maximum increases by 1, and it increases by 1 again whenever you gain a level."
+      }
+    },
+    "provenance": {
+      "dataset": "SRD 5.2.1",
+      "license": "CC-BY-4.0",
+      "sourceHash": "sha256:8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "page": 84,
+      "section": "Character Origins — Character Species — Dwarf",
+      "modifications": "Transcribed selected species identity and trait fields into normalized JSON; omitted remaining trait detail.",
+      "recordHash": "sha256:bd601d9c212abf70a0e55cac2073ce495776752b85aa9edd89b046870198945e"
+    },
+    "recordHash": "sha256:bd601d9c212abf70a0e55cac2073ce495776752b85aa9edd89b046870198945e"
+  },
+  {
+    "id": "srd521:spell:acid-splash",
+    "category": "spell",
+    "name": "Acid Splash",
+    "summary": "Evocation cantrip; 60 feet; one creature in a 5-foot-radius Sphere makes a Dexterity save or takes 1d6 Acid damage.",
+    "details": {
+      "level": 0,
+      "school": "Evocation",
+      "classes": [
+        "Sorcerer",
+        "Wizard"
+      ],
+      "castingTime": "Action",
+      "range": "60 feet",
+      "components": [
+        "V",
+        "S"
+      ],
+      "duration": "Instantaneous",
+      "effect": "Create an acidic bubble at a point within range, where it explodes in a 5-foot-radius Sphere. Each creature in that Sphere must succeed on a Dexterity saving throw or take 1d6 Acid damage."
+    },
+    "provenance": {
+      "dataset": "SRD 5.2.1",
+      "license": "CC-BY-4.0",
+      "sourceHash": "sha256:8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "page": 107,
+      "section": "Spells — Spell Descriptions — Acid Splash",
+      "modifications": "Transcribed spell metadata and base effect into normalized JSON; Cantrip Upgrade omitted.",
+      "recordHash": "sha256:bc58c81b620109935f35511bf091bfbabff8b76d2090f174c06450cdfab89050"
+    },
+    "recordHash": "sha256:bc58c81b620109935f35511bf091bfbabff8b76d2090f174c06450cdfab89050"
+  }
+]

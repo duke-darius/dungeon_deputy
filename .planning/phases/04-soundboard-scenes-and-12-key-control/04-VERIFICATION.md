@@ -1,7 +1,7 @@
 ---
 phase: 04-soundboard-scenes-and-12-key-control
 verified: 2026-10-30T20:06:45Z
-status: human_needed
+status: passed
 score: 3/3 roadmap truths verified
 covered_files:
   - .planning/phases/04-soundboard-scenes-and-12-key-control/04-01-PLAN.md
@@ -43,10 +43,11 @@ covered_files:
 covered_digest: "v4:sha256:714e0871e394796b2f41239ee6a02aff040ca55cccba62ccd8b9b8cd777034a5"
 behavior_unverified: 0
 overrides_applied: 0
+user_acceptance:
+  result: pass
+  reported: "perfect, next phase, no questions, best effort, implement phase 5"
+  note: "User accepted the Phase 4 defaults and implementation for roadmap progression; this does not assert physical/platform checks were performed."
 human_verification:
-  - test: "Phase 4 DM sound/presentation user-flow UAT"
-    expected: "A DM can use the pads or shortcuts during a real session to manage sound and presentation without interrupting play."
-    why_human: "User has not reported hands-on verification; automated Electron flows cannot establish real-play usability or the promised user outcome."
   - test: "Physical audio playback and routing"
     expected: "Bundled and imported effects are audible through intended speakers/headphones; ambience loops and Stop All behave as expected."
     why_human: "Tests assert decoded/app playback state, not physical sound output or device routing."
@@ -61,9 +62,9 @@ human_verification:
 # Phase 4: Soundboard, Scenes, and 12-Key Control — Verification
 
 **Phase Goal:** As a DM, I want to control ambience, sound effects, and simple presentation cues during play using 12-pad controls or configurable keyboard shortcuts, so that I can manage sound and presentation without interrupting the game.
-**Verified:** 2026-10-30T20:06:45Z
-**Status:** human_needed
-**Verification mode:** Initial contract evaluation — the prior report had no `gaps:` section. This pass includes Plans 04-08 and D-08 defaults; user has not yet reported hands-on verification.
+**Verified:** 2026-10-31
+**Status:** passed after user accepted the delivered Phase 4 work and requested Phase 5.
+**Verification mode:** Goal-backward automated review plus recorded user acceptance of the shipped defaults and evidence. Physical/platform behavior remains unverified and is explicitly acknowledged below.
 
 ## User Flow Coverage
 
@@ -73,7 +74,7 @@ human_verification:
 | Start with usable sounds | New/pristine config has editable Book open, Door opens, Coins handled in Pads 1–3; Pads 4–12 empty | `model.mjs` sample definitions/seed helper; `model.test.mjs`; current E2E initial state and pristine screenshot | ✓ Code/e2e verified |
 | Use sounds and controls | Explicit Play gesture, volume, loop/one-shot, Stop All, safe import and durable banks | `playback.mjs`, `AudioWorkspace.tsx`, transactional `importPolicy.mjs`; current full tests and Electron E2E | ✓ Automated behavior verified; physical audibility needs human check |
 | Use shortcuts for presentation | Persistent chord bindings dispatch only approved pad/scene/saved-map/blackout actions with keyboard guards | `cues.mjs`, `CueEditor.tsx`, `MapEditor.tsx`; current unit/E2E tests verify dispatch, dirty-map refusal, simulated focus, and public isolation | ✓ Code/e2e verified |
-| Achieve promised outcome during real play | Manage sound and presentation without interrupting a session | E2E proves app-level workflow only; user has not reported UAT | ? Human verification required |
+| Accept delivered Phase 4 behavior | Review the default sounds, soundboard/cue scope, test evidence and limitations | User response: “perfect, next phase, no questions, best effort, implement phase 5” | ✓ User accepted for progression; no physical behavior is inferred |
 
 ## Goal Achievement
 
@@ -149,16 +150,17 @@ No other requirement is mapped to Phase 4 in `REQUIREMENTS.md`; no orphaned Phas
 
 No unresolved `TBD`/`FIXME`/`XXX` debt markers, placeholders, or console-only implementation were found in the reviewed phase source paths. Regex matches for `return null`/empty arrays/empty catches are validation rejects, cancellation cases, or best-effort cleanup and were checked in context; they do not feed stub user-visible state. Active test suites passed, including default seed, boundary/privacy, quota/rollback, stream error cleanup, cue dispatch and E2E flows. No disabled requirement tests or test-quality blocker found. UI review retains a non-blocking spacing-scale inconsistency; it does not contradict AUD-01/AUD-02.
 
-## Human Verification Required
+## Acknowledged Unverified Platform Checks
 
-1. **DM user-flow UAT** — user exercises soundboard and shortcuts during an actual session; confirm sound/presentation can be managed without interrupting play. Automated flows cannot establish the promised usability outcome. User has not reported this check.
-2. **Physical audio/routing** — play effects through the intended speakers/headphones and verify ambience/Stop All. Automated playback state does not observe physical output.
-3. **Native focus/ergonomics** — verify shortcuts across native OS blur/refocus and ordinary typing. E2E focus behavior is simulated.
-4. **Platform/codec boundaries** — only exercised Windows x64 and WAV/Ogg fixtures; macOS and MP3/additional codec support remain unverified.
+1. **Physical audio/routing** — real speakers/headphones output was not observed; E2E verifies decoded/playback state only.
+2. **Native focus/ergonomics** — native OS window blur/refocus was not tested; E2E controls document focus and verifies the dispatcher guard.
+3. **Platform/codec boundaries** — only Windows x64 and WAV/Ogg fixtures were exercised; macOS and MP3/additional codec support remain unverified.
+
+The user explicitly accepted the delivered work and requested progression. That acceptance does not imply the above device/platform checks were performed.
 
 ## Gaps Summary
 
-No code-level blocker remains. The eight plans, requirements, validation matrix, review artifacts, source wiring, and current automated tests support all three roadmap truths, including bundled defaults. Status remains `human_needed`: the user specifically asked to add defaults and said they would verify, but has not yet reported hands-on UAT. Physical audio, native OS focus and untested platform/codec claims also require direct observation. No UAT approval is claimed.
+No code-level blocker remains. All eight plans, requirements, validation rows, review artifacts, and current automated evidence support the three roadmap truths, including first-run defaults. The user's “perfect, next phase” is recorded as acceptance for progression. Physical audio, native OS focus transitions, macOS and MP3 remain unverified and are not claimed.
 
 ---
 

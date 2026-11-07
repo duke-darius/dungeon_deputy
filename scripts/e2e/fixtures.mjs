@@ -16,14 +16,34 @@ const children = [];
 const dataRoots = new Set([dataRoot]);
 const logs = [];
 const rendererErrors = [];
+const externalRequests = new Set();
 let ownedVite = false;
   const { DUNGEON_DEPUTY_E2E_AUDIO_SAVE_DELAY_MS: _ignoredDelay, DUNGEON_DEPUTY_E2E_AUDIO_SAVE_FAIL_FIRST: _ignoredFailure, DUNGEON_DEPUTY_E2E_AUDIO_INVALID_FIXTURE: _invalidFixture, DUNGEON_DEPUTY_E2E_AUDIO_FAIL_IMPORT_FIRST: _failImport, DUNGEON_DEPUTY_E2E_AUDIO_FIXTURE: _audioFixture, DUNGEON_DEPUTY_E2E_AUDIO_FIXTURES: _audioFixtures, ...childEnvironment } = process.env;
 
 function note(text) { const line=`${new Date().toISOString()} ${text}`;logs.push(line);try{appendFileSync(join(evidence,'run.log'),line+'\n');}catch{} }
+export function redactUrl(value) {
+  try {
+    const url = new URL(value);
+    for (const key of ['invite', 'access_token']) if (url.searchParams.has(key)) url.searchParams.set(key, '[REDACTED]');
+    return url.href;
+  } catch { return String(value).replace(/([?&](?:invite|access_token)=)[^&#\s]*/gi, '$1[REDACTED]'); }
+}
 function treeKill(child) {
   if (!child?.pid || child.exitCode !== null) return;
   if (process.platform === 'win32') spawnSync('taskkill', ['/PID', String(child.pid), '/T', '/F'], { stdio: 'ignore' });
   else { try { process.kill(-child.pid, 'SIGTERM'); } catch { child.kill('SIGTERM'); } }
+}
+function localTarget(host) {
+  const value = host.toLowerCase().replace(/^\[|\]$/g, '');
+  if (value === 'localhost' || value === '::1' || value.startsWith('127.') || value.startsWith('10.') || value.startsWith('fc') || value.startsWith('fd') || value.startsWith('fe80:')) return true;
+  const ipv4 = value.match(/^(\d+)\.(\d+)\./);
+  return !!ipv4 && (Number(ipv4[1]) === 192 && Number(ipv4[2]) === 168 || Number(ipv4[1]) === 172 && Number(ipv4[2]) >= 16 && Number(ipv4[2]) <= 31);
+}
+function observeUrl(value) {
+  try {
+    const url = new URL(value);
+    if (['http:', 'https:', 'ws:', 'wss:'].includes(url.protocol) && !localTarget(url.hostname)) externalRequests.add(redactUrl(url.href));
+  } catch {}
 }
 async function dashboardIsHere() {
   try { const r=await fetch('http://127.0.0.1:5173/index.html',{signal:AbortSignal.timeout(2500)});const s=await r.text();return r.ok&&s.includes('Starting Dungeon Deputy')&&s.includes('/src/main.tsx'); }
@@ -57,9 +77,23 @@ export async function launch(testDataRoot = dataRoot, injectFirstFailure = true)
   await mkdir(testDataRoot, { recursive: true });
   const require=createRequire(import.meta.url);const { _electron: electron }=require('playwright-core');
   const executable=join(root,'node_modules/electron/dist/electron.exe');
-   const app=await electron.launch({executablePath:executable,args:[`--user-data-dir=${join(testDataRoot,'chromium-profile')}`,root],cwd:root,env:{...childEnvironment,DUNGEON_DEPUTY_E2E:'1',DUNGEON_DEPUTY_DATA_DIR:testDataRoot,DUNGEON_DEPUTY_BACKEND_ROOT:backendRoot,DUNGEON_DEPUTY_DEV_URL:'http://127.0.0.1:5173',...(process.env.DUNGEON_DEPUTY_E2E_AUDIO_FIXTURE?{DUNGEON_DEPUTY_E2E_AUDIO_FIXTURE:process.env.DUNGEON_DEPUTY_E2E_AUDIO_FIXTURE}:{}),...(process.env.DUNGEON_DEPUTY_E2E_AUDIO_FIXTURES?{DUNGEON_DEPUTY_E2E_AUDIO_FIXTURES:process.env.DUNGEON_DEPUTY_E2E_AUDIO_FIXTURES}:{}),...(injectFirstFailure&&process.env.DUNGEON_DEPUTY_E2E_AUDIO_INVALID_FIXTURE?{DUNGEON_DEPUTY_E2E_AUDIO_INVALID_FIXTURE:process.env.DUNGEON_DEPUTY_E2E_AUDIO_INVALID_FIXTURE,DUNGEON_DEPUTY_E2E_AUDIO_FAIL_IMPORT_FIRST:'1'}:{}),DUNGEON_DEPUTY_E2E_AUDIO_SAVE_DELAY_MS:'700',...(injectFirstFailure?{DUNGEON_DEPUTY_E2E_AUDIO_SAVE_FAIL_FIRST:'1'}:{})},timeout:30000,dumpio:true});
+   const app=await electron.launch({executablePath:executable,args:[`--user-data-dir=${join(testDataRoot,'chromium-profile')}`,root],cwd:root,env:{...childEnvironment,DUNGEON_DEPUTY_E2E:'1',DUNGEON_DEPUTY_E2E_OFFLINE:'1',DUNGEON_DEPUTY_DATA_DIR:testDataRoot,DUNGEON_DEPUTY_BACKEND_ROOT:backendRoot,DUNGEON_DEPUTY_DEV_URL:'http://127.0.0.1:5173',...(process.env.DUNGEON_DEPUTY_E2E_AUDIO_FIXTURE?{DUNGEON_DEPUTY_E2E_AUDIO_FIXTURE:process.env.DUNGEON_DEPUTY_E2E_AUDIO_FIXTURE}:{}),...(process.env.DUNGEON_DEPUTY_E2E_AUDIO_FIXTURES?{DUNGEON_DEPUTY_E2E_AUDIO_FIXTURES:process.env.DUNGEON_DEPUTY_E2E_AUDIO_FIXTURES}:{}),...(injectFirstFailure&&process.env.DUNGEON_DEPUTY_E2E_AUDIO_INVALID_FIXTURE?{DUNGEON_DEPUTY_E2E_AUDIO_INVALID_FIXTURE:process.env.DUNGEON_DEPUTY_E2E_AUDIO_INVALID_FIXTURE,DUNGEON_DEPUTY_E2E_AUDIO_FAIL_IMPORT_FIRST:'1'}:{}),DUNGEON_DEPUTY_E2E_AUDIO_SAVE_DELAY_MS:'700',...(injectFirstFailure?{DUNGEON_DEPUTY_E2E_AUDIO_SAVE_FAIL_FIRST:'1'}:{})},timeout:30000,dumpio:true});
   app.on('console',msg=>{const line=`ELECTRON CONSOLE ${msg.type()}: ${msg.text()}`;note(line);if(msg.type()==='error'&&!msg.text().includes('Soundboard save failed. Your previous settings were restored; try again.'))rendererErrors.push(line);});
-  app.on('window',page=>{page.on('console',m=>{const line=`${page.url()} CONSOLE ${m.type()}: ${m.text()}`;note(line);if(m.type()==='error')rendererErrors.push(line);});page.on('pageerror',e=>{const line=`${page.url()} PAGE ERROR ${e.stack??e}`;note(line);rendererErrors.push(line);});page.on('requestfailed',r=>{const line=`${page.url()} REQUEST FAILED ${r.url()} ${r.failure()?.errorText}`;note(line);rendererErrors.push(line);});page.on('response',r=>{if(r.url().includes('/api/'))note(`API ${r.status()} ${r.url()}`);});});
+   app.on('window',page=>{
+     void page.route('**/*', async route => {
+       observeUrl(route.request().url());
+       let allowed = true;
+       try { const url = new URL(route.request().url()); allowed = !['http:', 'https:'].includes(url.protocol) || localTarget(url.hostname); } catch {}
+       if (!allowed) { externalRequests.add(redactUrl(route.request().url())); await route.abort('blockedbyclient'); }
+       else await route.continue();
+     });
+     page.on('request',request=>observeUrl(request.url()));
+     page.on('websocket',socket=>observeUrl(socket.url()));
+     page.on('console',m=>{const line=`${redactUrl(page.url())} CONSOLE ${m.type()}: ${redactUrl(m.text())}`;note(line);if(m.type()==='error')rendererErrors.push(line);});
+     page.on('pageerror',e=>{const line=`${redactUrl(page.url())} PAGE ERROR ${redactUrl(e.stack??e)}`;note(line);rendererErrors.push(line);});
+     page.on('requestfailed',r=>{const line=`${redactUrl(page.url())} REQUEST FAILED ${redactUrl(r.url())} ${redactUrl(r.failure()?.errorText??'')}`;note(line);rendererErrors.push(line);});
+     page.on('response',r=>{if(r.url().includes('/api/'))note(`API ${r.status()} ${redactUrl(r.url())}`);});
+   });
   children.push(app.process());
   const deadline=Date.now()+30000;
   while(Date.now()<deadline){const pages=app.windows();if(pages.length>=2&&pages.every(p=>p.url().includes('127.0.0.1:5173')))return {app,pages};await new Promise(r=>setTimeout(r,250));}
@@ -77,4 +111,5 @@ export async function cleanup({success=false}={}) {
 export function log(text){note(text);}
 export function getRendererErrors(){return [...rendererErrors];}
 export function getLogLines(){return [...logs];}
+export function getExternalRequests(){return [...externalRequests];}
 export { root };

@@ -2,6 +2,11 @@ using System.Net;
 using DungeonDeputy.Api;
 using DungeonDeputy.Api.Encounters;
 using DungeonDeputy.Api.Maps;
+using DungeonDeputy.Api.Srd;
+using DungeonDeputy.Api.Characters;
+using DungeonDeputy.Api.PlayerSessions;
+using DungeonDeputy.Api.Realtime;
+using Microsoft.AspNetCore.Mvc;
 
 var builder = WebApplication.CreateBuilder(args);
 var dataDirectory = builder.Configuration["DUNGEON_DEPUTY_DATA_DIR"] ?? Environment.GetEnvironmentVariable("DUNGEON_DEPUTY_DATA_DIR");
@@ -14,9 +19,16 @@ if (!int.TryParse(portValue, out var port) || port is < 1 or > 65535)
 
 builder.WebHost.ConfigureKestrel(options => options.Listen(IPAddress.Loopback, port));
 builder.Services.AddSingleton<PresentationState>();
+builder.Services.AddSingleton<PublicDisplayCredentialService>();
 builder.Services.AddSingleton(new MapService(builder.Configuration));
 builder.Services.AddSingleton<MapVisualMutationGate>();
 builder.Services.AddSingleton<IConditionCatalog, BuiltInConditionCatalog>();
+builder.Services.AddSingleton<SrdCatalog>();
+builder.Services.AddSingleton<CharacterService>();
+builder.Services.AddSingleton(sp => new PlayerSessionService(Path.GetFullPath(dataDirectory)));
+builder.Services.AddSingleton<PlayerAuthorization>();
+builder.Services.AddSingleton<PlayerSheetService>();
+builder.Services.AddSingleton<PlayerListenerService>();
 builder.Services.AddSingleton(sp => new EncounterService(builder.Configuration, sp.GetRequiredService<MapService>(), sp.GetRequiredService<IConditionCatalog>()));
 var app = builder.Build();
 
@@ -44,6 +56,78 @@ app.MapPost("/api/blackout", (PresentationState state) =>
 {
     state.Blackout();
     return Results.Ok(state.PublicPresentation);
+});
+app.MapGet("/api/srd/search", (string? q, string? category, SrdCatalog catalog) => Results.Ok(catalog.Search(q, category)));
+app.MapGet("/api/srd/records/{id}", (string id, SrdCatalog catalog) => catalog.Find(id) is { } record ? Results.Ok(record) : Results.NotFound());
+app.MapGet("/api/srd/coverage", (SrdCatalog catalog) => Results.Ok(catalog.Coverage));
+app.MapGet("/api/srd/metadata", (SrdCatalog catalog) => Results.Ok(catalog.Manifest));
+app.MapGet("/api/characters", (CharacterService characters) => Results.Ok(characters.List()));
+app.MapGet("/api/characters/{id}", (string id, CharacterService characters) => characters.Get(id) is { } record ? Results.Ok(record) : Results.NotFound());
+app.MapPost("/api/characters", (CharacterInput? input, CharacterService characters) =>
+{
+    var record = characters.Create(input);
+    return record is null ? Results.BadRequest() : Results.Created($"/api/characters/{record.Id}", record);
+}).WithMetadata(new RequestSizeLimitAttribute(16_384));
+app.MapPut("/api/characters/{id}", (string id, CharacterInput? input, CharacterService characters) =>
+{
+    var record = characters.Update(id, input);
+    return record is null ? Results.BadRequest() : Results.Ok(record);
+}).WithMetadata(new RequestSizeLimitAttribute(16_384));
+app.MapDelete("/api/characters/{id}", (string id, CharacterService characters) => characters.Delete(id) ? Results.NoContent() : Results.NotFound());
+app.MapGet("/api/player-session", (PlayerSessionService sessions, PlayerListenerService listener) => Results.Ok(new { session = sessions.GetActiveSession(), listener = listener.Status }));
+app.MapPost("/api/player-session/display-token", (PlayerSessionService sessions, PlayerListenerService listener, PublicDisplayCredentialService credentials) =>
+{
+    if (sessions.GetActiveSession() is null || !listener.Status.Enabled) return Results.Conflict();
+    try { return Results.Ok(new { token = credentials.Issue(), listener.Status.Origin }); }
+    catch (InvalidOperationException) { return Results.StatusCode(StatusCodes.Status429TooManyRequests); }
+});
+app.MapGet("/api/player-session/interfaces", () => Results.Ok(PlayerListenerService.GetPrivateAddresses()));
+app.MapGet("/api/player-session/players", (PlayerSessionService sessions) => { var active = sessions.GetActiveSession(); return Results.Ok(active is null ? Array.Empty<PlayerAssignmentView>() : sessions.GetAssignments(active.Id)); });
+app.MapPost("/api/player-session/start", async (StartPlayerSessionCommand? command, PlayerSessionService sessions, PlayerListenerService listener) =>
+{
+    if (command is null || string.IsNullOrWhiteSpace(command.Address)) return Results.BadRequest();
+    if (listener.Status.Enabled) return Results.Conflict();
+    var session = sessions.Start();
+    try { var status = await listener.StartAsync(command.Address); return Results.Ok(new { session, listener = status, transportWarning = "HTTP is unencrypted. Other users on this Wi-Fi may observe or interfere with traffic; use only a trusted private LAN." }); }
+    catch (Exception error) when (error is InvalidOperationException or IOException or System.Net.Sockets.SocketException)
+    { sessions.Stop(session.Id); return Results.BadRequest(); }
+}).WithMetadata(new RequestSizeLimitAttribute(2048));
+app.MapPost("/api/player-session/stop", async (PlayerSessionService sessions, PlayerListenerService listener) =>
+{
+    var active = sessions.GetActiveSession();
+    if (active is not null) sessions.Stop(active.Id);
+    await listener.StopAsync();
+    return Results.NoContent();
+});
+app.MapPost("/api/player-session/invites", (CreatePlayerInviteCommand? command, PlayerSessionService sessions, PlayerListenerService listener, CharacterService characters) =>
+{
+    var session = sessions.GetActiveSession(); var status = listener.Status;
+    if (command is null || string.IsNullOrWhiteSpace(command.CharacterId) || session is null || !status.Enabled || characters.Get(command.CharacterId) is null) return Results.BadRequest();
+    var invite = sessions.CreateInvite(session.Id, command.CharacterId);
+    return invite is null ? Results.Conflict() : Results.Ok(new { invite.Id, invite.CharacterId, invite.Secret, invite.ExpiresAt, Url = $"{status.Origin}/join?invite={Uri.EscapeDataString(invite.Secret)}", warning = "One use only. This HTTP invitation is not encrypted; share only on a trusted private LAN." });
+}).WithMetadata(new RequestSizeLimitAttribute(2048));
+app.MapPost("/api/player-session/revoke", async (RevokePlayerCommand? command, PlayerSessionService sessions, PlayerListenerService listener) =>
+{
+    var session = sessions.GetActiveSession();
+    if (command is null || string.IsNullOrWhiteSpace(command.PlayerId) || session is null) return Results.BadRequest();
+    if (!sessions.Revoke(session.Id, command.PlayerId)) return Results.NotFound();
+    await listener.RevokePlayerAsync(command.PlayerId);
+    return Results.NoContent();
+}).WithMetadata(new RequestSizeLimitAttribute(2048));
+app.MapPut("/api/player-session/players/{playerId}/hp", async (string playerId, SetAssignedHitPointsCommand? command, PlayerSessionService sessions, PlayerListenerService listener, CharacterService characters) =>
+{
+    var session = sessions.GetActiveSession();
+    var assignment = session is null ? null : sessions.GetAssignments(session.Id).SingleOrDefault(player => player.PlayerId == playerId);
+    var character = assignment is null ? null : characters.Get(assignment.CharacterId);
+    if (command is null || assignment is null || character is null || command.CurrentHitPoints < 0 || command.CurrentHitPoints > character.HitPointMaximum) return Results.BadRequest();
+    if (!sessions.SetCurrentHitPoints(session!.Id, playerId, command.CurrentHitPoints, character.HitPointMaximum)) return Results.NotFound();
+    await listener.PublishSheetAsync(playerId);
+    return Results.Ok(new { currentHitPoints = command.CurrentHitPoints });
+}).WithMetadata(new RequestSizeLimitAttribute(2048));
+app.MapPost("/api/encounter/monsters", (SrdAddMonsterCommand? command, SrdCatalog catalog, EncounterService encounters) =>
+{
+    if (command is null || string.IsNullOrWhiteSpace(command.MonsterId) || catalog.Find(command.MonsterId) is not { } record) return Results.BadRequest();
+    return encounters.AddMonster(record) ? Results.Ok(encounters.Get()) : Results.BadRequest();
 });
 app.MapGet("/api/map", (MapService maps) => Results.Ok(maps.Get()));
 app.MapPut("/api/map/draft", (MapDocument map, MapService maps) => maps.Save(map) ? Results.NoContent() : Results.BadRequest());
@@ -103,6 +187,14 @@ app.MapPost("/api/encounter/dice", (DiceCommand command, EncounterService encoun
 {
     var result = encounters.RollDice(command);
     return result is null ? Results.BadRequest() : Results.Ok(new { result.Sides, result.Face, result.Modifier, result.Total });
+});
+
+app.Lifetime.ApplicationStopping.Register(() =>
+{
+    var sessions = app.Services.GetRequiredService<PlayerSessionService>();
+    var active = sessions.GetActiveSession();
+    if (active is not null) sessions.Stop(active.Id);
+    app.Services.GetRequiredService<PlayerListenerService>().StopAsync().GetAwaiter().GetResult();
 });
 
 app.Run();
