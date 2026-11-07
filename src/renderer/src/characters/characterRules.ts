@@ -1,8 +1,8 @@
 export const characterRuleAvailability = {
-  inventory: 'Unavailable: no equipment options have been enabled in this audited rules subset.',
-  spells: 'Unavailable: no spellcasting options are enabled in this audited rules subset.',
-  resources: 'Unavailable: resource tracking is not enabled in this audited rules subset.',
-  level: 'Only level 1 is supported; other levels are unavailable.',
+  inventory: 'Starting packages only; no shopping, encumbrance, or custom items.',
+  spells: 'Wizard entries are name/ID bookkeeping only; spell descriptions and effects are not implemented.',
+  resources: 'Rage, Stonecunning, spell slots, rests, and level-1 Arcane Recovery are tracked.',
+  level: 'Barbarian levels 1–20 derive from XP; Wizard is bounded to level 1.',
 } as const;
 
 export function formatAbilityModifier(value: number): string {

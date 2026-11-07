@@ -49,7 +49,7 @@ Tests were rerun after these corrections. No new npm dependencies were added.
 | macOS x64 / arm64 | **Unverified** | No macOS host was used. |
 | Physical HDMI / external display and fullscreen behavior | **Unverified** | Automated same-window regression is covered by tests; no physical display was exercised. |
 
-One Electron Forge Node deprecation warning about child-process shell arguments appeared during package smoke; packaging and all assertions completed successfully. `playwright-core@1.64.1` is the only additional direct test dependency for Electron E2E; it does not download a browser. Phase 2 was explicitly approved by the user before Phase 3 began. Physical display/macOS caveats remain; see [Phase 2 demo](phase-2-demo.md).
+One Electron Forge Node deprecation warning about child-process shell arguments appeared during package smoke; packaging and all assertions completed successfully. `playwright-core@1.64.1` is the only additional direct test dependency for Electron E2E; it does not download a browser. Physical display/macOS caveats remain; see [Phase 2 demo](phase-2-demo.md). Historical Phase 3 implementation exists in this repository, but this does not establish that the Phase 2 user visual-review checkpoint occurred; acceptance remains pending.
 
 ## Phase 3 verification status (Windows x64 host)
 
@@ -63,6 +63,30 @@ One Electron Forge Node deprecation warning about child-process shell arguments 
 | macOS x64 / arm64 | **Unverified** | No macOS host was used. |
 
 Phase 3 implementation and automated verification cover ENCT-01/02/03 within the local-first desktop scope. Follow [Phase 3 demo](phase-3-demo.md) for the visible workflow and manual display caveats. The Almanac, player clients, SignalR, line-of-sight, and complex spell automation remain deferred as planned.
+
+### Phase 2 Plan 02-06 rerun (Windows x64, 2026-11-07)
+
+| Check | Result | Scope / caveat |
+|---|---|---|
+| `npm run test:e2e` | **Passed** | Actual Electron manager/player windows and isolated backend. Stage 1 scene preview/Show/change/blackout and display enumeration, Stage 2 seven-token tavern edits, blank map, private/public separation, blackout, SQLite/app restart, and independent draft/approved restore passed. The shared harness also continues through later-phase regression journeys. Evidence: `artifacts/e2e/2026-11-07T13-00-12.619Z-686f4ddc/` (ignored test-only output). |
+| Display enumeration | **Automated enumeration exercised** | Electron enumerated available display targets and UI options matched. This is not physical HDMI/hot-plug or real fullscreen verification. |
+| `npm test` | **Passed: 96 Node tests, 51 .NET tests** | No skipped tests. |
+| `npm run build` | **Passed** | TypeScript, Electron output, Vite production renderer, and .NET Release backend; 0 backend warnings/errors. |
+| macOS x64 / arm64; physical HDMI/display behavior | **Unverified** | Neither macOS nor physical display behavior was exercised during this run. No user visual review is claimed. |
+
+The existing Stage 2 E2E implementation was reused rather than duplicated; `scripts/e2e.mjs` is shared and now also drives later-phase regression scenarios. The audited `playwright-core@1.64.1` was already present; no package was installed during this rerun.
+
+### Phase 2 Plan 02-05 rerun (Windows x64, 2026-11-07)
+
+| Check | Result | Scope / caveat |
+|---|---|---|
+| `npm run package:smoke` | **Passed on Windows x64** | Built and packaged the app, loaded the actual self-contained packaged backend, verified unauthenticated `/api/map` returns 401, saved authenticated SQLite-backed map state, independently restored the edited seven-token draft and approved snapshot after stopping/restarting the backend against the same per-run user-data directory, then explicitly re-published the edited draft. The database is outside packaged resources. No SQL was used to fabricate app state. |
+| `npm test` | **Passed: 96 Node tests, 51 .NET tests** | Zero failures or skipped tests. |
+| `npm run build` | **Passed** | TypeScript, Electron, Vite renderer, and .NET Release backend; 0 backend warnings/errors. |
+| `npm run test:e2e` | **Not rerun by 02-05** | The immediately preceding Plan 02-06 Windows run passed; see the dated evidence above. |
+| macOS x64 / arm64; physical HDMI/display; user visual review | **Unverified / pending** | No macOS host, physical display, or user review occurred during this execution. Automated display enumeration does not count as physical verification. |
+
+Forge emitted a non-fatal Node child-process `shell` deprecation warning; package-smoke assertions all passed. No dependencies were installed. Phase 2 user acceptance remains pending; Phase 3 was not started or changed by this documentation/verification pass (although Phase 3 implementation already exists in the repository).
 
 ## Phase 4 verification status (Windows x64 host)
 

@@ -16,7 +16,7 @@
     {
       "number": "3",
       "name": "Fog of War and Encounter Control",
-      "status": "in_progress"
+      "status": "complete"
     },
     {
       "number": "4",
@@ -31,18 +31,18 @@
     {
       "number": "6",
       "name": "SRD Characters and Local Player Sheets",
-      "status": "pending"
+      "status": "in_progress"
     },
     {
       "number": "7",
       "name": "Optional AI Preparation and Map Proposals",
-      "status": "pending"
+      "status": "in_progress"
     }
   ],
   "next": {
-    "command": "/gsd-discuss-phase",
-    "label": "Discuss the first phase",
-    "reason": "Project initialized — plan your first phase"
+    "command": "/gsd-progress --next",
+    "label": "Review outstanding external and hardware acceptance gates",
+    "reason": "All Phase 7 plans are implementation-verified; Phase 2 display/macOS and Phase 6 CHAR-02..04 phone/operator acceptance remain open"
   },
-  "updated_at": "2026-11-04T16:49:42.563Z"
+  "updated_at": "2026-11-07T17:44:00.000Z"
 }

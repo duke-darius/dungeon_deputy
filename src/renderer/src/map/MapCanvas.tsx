@@ -4,19 +4,26 @@ import { useEffect, useRef } from 'react';
 import tavernArt from '../../../../assets/maps/tavern.svg?url';
 import heroArt from '../../../../assets/tokens/hero.svg?url';
 import goblinArt from '../../../../assets/tokens/goblin.svg?url';
-import type { MapToken } from './types';
+import type { MapGeometry, MapToken } from './types';
 import type { FogStamp, FogStroke } from './types';
 import { screenToMap, zoomAt } from './camera.mjs';
 import type { Camera } from './camera.mjs';
 import { attachCanvas, registerPointerLifecycle, createRedrawGeneration } from './canvasPolicy.mjs';
 import { rasterizeFogMask } from './fogMask.mjs';
 
-export async function rasterizePublicMap(image: string, fogEnabled: boolean, fogStrokes: FogStroke[]): Promise<string> {
+export async function rasterizePublicMap(image: string, fogEnabled: boolean, fogStrokes: FogStroke[], geometry: MapGeometry[] = []): Promise<string> {
   const canvas = document.createElement('canvas'); canvas.width = 1200; canvas.height = 760;
   const context = canvas.getContext('2d'); if (!context) throw new Error('Canvas rasterization is unavailable.');
   if (image === 'tavern.svg') {
     const source = new Image(); source.src = tavernArt; await source.decode(); context.drawImage(source, 0, 0, 1200, 760);
   }
+  context.save(); context.strokeStyle = '#b89255'; context.lineWidth = 5;
+  for (const shape of geometry) {
+    const x = shape.x * 1.2, y = shape.y * .76, width = shape.width * 1.2, height = shape.height * .76;
+    if (shape.kind === 'line') { context.beginPath(); context.moveTo(x, y); context.lineTo(x + width, y + height); context.stroke(); }
+    else context.strokeRect(x, y, width, height);
+  }
+  context.restore();
   if (fogEnabled) {
     const mask = rasterizeFogMask(1200, 760, fogStrokes);
     const pixels = context.getImageData(0, 0, 1200, 760);
@@ -26,10 +33,10 @@ export async function rasterizePublicMap(image: string, fogEnabled: boolean, fog
   return canvas.toDataURL('image/png');
 }
 
-export function MapCanvas({ image, gridVisible, scale, tokens, fogEnabled, fogStrokes, fogTool, brushSize, onStroke, onMove }: { image:string; gridVisible:boolean; scale:number; tokens:MapToken[]; fogEnabled:boolean; fogStrokes:FogStroke[]; fogTool:'reveal'|'hide'|null; brushSize:number; onStroke:(stamps:FogStamp[])=>void; onMove:(id:string,x:number,y:number)=>void }) {
+export function MapCanvas({ image, gridVisible, scale, tokens, geometry = [], fogEnabled, fogStrokes, fogTool, brushSize, onStroke, onMove }: { image:string; gridVisible:boolean; scale:number; tokens:MapToken[]; geometry?:MapGeometry[]; fogEnabled:boolean; fogStrokes:FogStroke[]; fogTool:'reveal'|'hide'|null; brushSize:number; onStroke:(stamps:FogStamp[])=>void; onMove:(id:string,x:number,y:number)=>void }) {
   const host = useRef<HTMLDivElement>(null);
   const drawRef = useRef<() => Promise<void>>(async () => {});
-  const latest = useRef({ image, gridVisible, scale, tokens, fogEnabled, fogStrokes, fogTool, brushSize, onStroke, onMove }); latest.current = { image, gridVisible, scale, tokens, fogEnabled, fogStrokes, fogTool, brushSize, onStroke, onMove };
+  const latest = useRef({ image, gridVisible, scale, tokens, geometry, fogEnabled, fogStrokes, fogTool, brushSize, onStroke, onMove }); latest.current = { image, gridVisible, scale, tokens, geometry, fogEnabled, fogStrokes, fogTool, brushSize, onStroke, onMove };
   useEffect(() => {
     let cancelled = false; let app: Application | undefined; let lifecycleRef: {dispose:()=>void}|undefined; let detachPointers: (()=>void)|undefined; let detachWheel:(()=>void)|undefined; let detachKeyboard:(()=>void)|undefined;
     void (async () => {
@@ -46,12 +53,14 @@ export function MapCanvas({ image, gridVisible, scale, tokens, fogEnabled, fogSt
           preview=undefined;keyboardPreview=undefined;
          const state = latest.current;
          if (state.fogTool === null || !state.fogEnabled) { painting=false; stamps=[]; discardPreview(); }
-         if (state.image) { const tex = await Assets.load(tavernArt); if (!isCurrent()) return; const art = new Sprite(tex); art.width=1200; art.height=760; if (!isCurrent()) { art.destroy(); return; } world.addChild(art); }
-         if (state.fogEnabled) {
+          if (state.image) { const tex = await Assets.load(tavernArt); if (!isCurrent()) return; const art = new Sprite(tex); art.width=1200; art.height=760; if (!isCurrent()) { art.destroy(); return; } world.addChild(art); }
+          if (state.fogEnabled) {
            const canvas=document.createElement('canvas'); canvas.width=1200; canvas.height=760;
            const context=canvas.getContext('2d')!; const data=context.createImageData(1200,760); data.data.set(rasterizeFogMask(1200,760,state.fogStrokes)); context.putImageData(data,0,0);
-           const mask=new Sprite(Texture.from(canvas)); mask.width=1200; mask.height=760; world.addChild(mask);
-         }
+            const mask=new Sprite(Texture.from(canvas)); mask.width=1200; mask.height=760; world.addChild(mask);
+          }
+          // DM geometry remains visible as an editable overlay; public rasterization applies fog after drawing it.
+          if (state.geometry.length) { const shapes = new Graphics(); for (const shape of state.geometry) { const x=shape.x*1.2,y=shape.y*.76,w=shape.width*1.2,h=shape.height*.76; if(shape.kind==='line') shapes.moveTo(x,y).lineTo(x+w,y+h); else shapes.rect(x,y,w,h); } shapes.stroke({color:0xb89255,width:5}); world.addChild(shapes); }
          if (state.gridVisible) { const g = new Graphics(); for(let x=0;x<=1200;x+=state.scale) g.moveTo(x,0).lineTo(x,760); for(let y=0;y<=760;y+=state.scale) g.moveTo(0,y).lineTo(1200,y); g.stroke({color:0xf2e6cf,alpha:.26,width:1}); world.addChild(g); }
          for (const token of state.tokens.filter(token=>token.visible !== false)) { const texture=await Assets.load(token.artwork==='goblin.svg'?goblinArt:heroArt); if (!isCurrent()) return; const g = new Sprite(texture); g.anchor.set(.5); g.width=46;g.height=46;g.position.set(token.x,token.y);g.tint=token.color;g.eventMode='static';g.cursor='grab';g.on('pointerdown',e=>{if(latest.current.fogEnabled&&latest.current.fogTool)return;dragging=token.id;panning=false;last={x:e.global.x,y:e.global.y};});if (!isCurrent()) { g.destroy(); return; } world.addChild(g); }
         if (!isCurrent()) return;
@@ -105,6 +114,6 @@ export function MapCanvas({ image, gridVisible, scale, tokens, fogEnabled, fogSt
     })();
     return ()=>{cancelled=true;detachPointers?.();detachWheel?.();detachKeyboard?.();if(lifecycleRef) lifecycleRef.dispose(); else app?.destroy(true,{children:true});};
   }, []);
-    useEffect(()=>{ void drawRef.current(); },[image,gridVisible,scale,tokens,fogEnabled,fogStrokes,fogTool,brushSize]);
+  useEffect(()=>{ void drawRef.current(); },[image,gridVisible,scale,tokens,geometry,fogEnabled,fogStrokes,fogTool,brushSize]);
   return <div className="map-canvas" ref={host} tabIndex={0} aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight Space Enter" aria-label="Map canvas. Focus here, use arrow keys to pan or move the fog brush, and press Space or Enter to reveal or hide one brush dab." role="application" />;
 }

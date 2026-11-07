@@ -120,7 +120,7 @@ export default function MapEditor() {
     if (changingVisibility) setVisibilityBusyId(id);
     try {
       const visibilityImage = changingVisibility && draft
-        ? await rasterizePublicMap(draft.image, draft.fogEnabled ?? false, draft.fogStrokes ?? [])
+        ? await rasterizePublicMap(draft.image, draft.fogEnabled ?? false, draft.fogStrokes ?? [], draft.geometry ?? [])
         : undefined;
       const saved = 'visible' in change
         ? await command(`/api/map/token/${id}/visibility`, 'PATCH', { visible: change.visible, imageData: visibilityImage })
@@ -157,7 +157,7 @@ export default function MapEditor() {
     if (!draft) return;
     try {
       if (dirty) await command('/api/map/draft', 'PUT', draft);
-      const imageData = await rasterizePublicMap(draft.image, draft.fogEnabled ?? false, draft.fogStrokes ?? []);
+      const imageData = await rasterizePublicMap(draft.image, draft.fogEnabled ?? false, draft.fogStrokes ?? [], draft.geometry ?? []);
       const approved = await publishMapRaster({ imageData }) as MapState;
       applySavedMap(approved);
       setPublicPresentation({ mode: 'map', sceneId: null });
@@ -174,7 +174,7 @@ export default function MapEditor() {
       const fogStrokes = path.endsWith('/strokes') && body && typeof body === 'object' && 'stamps' in body
         ? [...draft.fogStrokes ?? [], { mode: (body as any).mode, stamps: (body as any).stamps }]
         : [];
-      const imageData = await rasterizePublicMap(draft.image, true, path.endsWith('/strokes') ? fogStrokes : []);
+      const imageData = await rasterizePublicMap(draft.image, true, path.endsWith('/strokes') ? fogStrokes : [], draft.geometry ?? []);
       const payload = path.endsWith('/strokes') ? { ...(body as object), imageData } : { imageData };
       const saved = await command(path, 'POST', payload) as MapState;
       applySavedMap(saved);
@@ -247,7 +247,7 @@ export default function MapEditor() {
         if (dirty) { notify('Current encounter cue refused: save the map first; unsaved changes were not published.', 6000); throw new Error('Map has unsaved changes.'); }
         if (!state?.draft) { notify('Current encounter cue refused: no saved map is available.', 6000); throw new Error('No saved map.'); }
         try {
-          const imageData = await rasterizePublicMap(state.draft.image, state.draft.fogEnabled ?? false, state.draft.fogStrokes ?? []);
+          const imageData = await rasterizePublicMap(state.draft.image, state.draft.fogEnabled ?? false, state.draft.fogStrokes ?? [], state.draft.geometry ?? []);
           const shown = await publishMapRaster({ imageData }, true) as Presentation;
           setPublicPresentation(shown); notify('Saved encounter shown on table.');
         } catch { notify(RETRY_MESSAGE, 6000); throw new Error('Could not show saved encounter.'); }
@@ -327,8 +327,18 @@ export default function MapEditor() {
           <button className="quiet-action" onClick={() => void refresh()}>Reload saved map</button>
         </div>
         {draft
-          ? <MapCanvas image={draft.image} gridVisible={draft.gridVisible} scale={draft.scale} tokens={draft.tokens} fogEnabled={draft.fogEnabled ?? false} fogStrokes={draft.fogStrokes ?? []} fogTool={fogTool} brushSize={brushSize} onStroke={stamps => void applyFogCommand('/api/map/fog/strokes', { mode: fogTool, stamps })} onMove={(id, x, y) => void tokenChange(id, { x, y })} />
+          ? <MapCanvas image={draft.image} gridVisible={draft.gridVisible} scale={draft.scale} tokens={draft.tokens} geometry={draft.geometry ?? []} fogEnabled={draft.fogEnabled ?? false} fogStrokes={draft.fogStrokes ?? []} fogTool={fogTool} brushSize={brushSize} onStroke={stamps => void applyFogCommand('/api/map/fog/strokes', { mode: fogTool, stamps })} onMove={(id, x, y) => void tokenChange(id, { x, y })} />
           : <div className="map-loading" role="status">Loading saved map…</div>}
+        <section className="map-geometry-editor" aria-label="Private map geometry">
+          <h2>Map geometry · DM draft</h2><p>Geometry stays private until Show encounter. Edit these labeled shapes or remove them; public raster updates only on Show.</p>
+          {(draft?.geometry ?? []).map((shape, index) => <fieldset key={`${index}-${shape.label}`}><legend>{shape.kind}: {shape.label || `Shape ${index + 1}`}</legend>
+            <label>Type <select aria-label={`Geometry ${index + 1} type`} value={shape.kind} onChange={event => update({ geometry: draft!.geometry!.map((item, i) => i === index ? { ...item, kind: event.target.value as 'line'|'rectangle' } : item) })}><option value="line">Line</option><option value="rectangle">Rectangle</option></select></label>
+            {(['x','y','width','height'] as const).map(key => <label key={key}>{key}<input aria-label={`Geometry ${index + 1} ${key}`} type="number" min={key === 'width' || key === 'height' ? 1 : 0} max={1000} value={shape[key]} onChange={event => update({ geometry: draft!.geometry!.map((item, i) => i === index ? { ...item, [key]: Number(event.target.value) } : item) })} /></label>)}
+            <label>Label <input aria-label={`Geometry ${index + 1} label`} maxLength={80} value={shape.label} onChange={event => update({ geometry: draft!.geometry!.map((item, i) => i === index ? { ...item, label: event.target.value } : item) })} /></label>
+            <button className="quiet-action" onClick={() => update({ geometry: draft!.geometry!.filter((_, i) => i !== index) })}>Remove {shape.label || `shape ${index + 1}`}</button>
+          </fieldset>)}
+          <button disabled={(draft?.geometry?.length ?? 0) >= 40} onClick={() => update({ geometry: [...draft?.geometry ?? [], { kind: 'rectangle', x: 20, y: 20, width: 80, height: 60, label: 'New shape' }] })}>Add geometry</button>
+        </section>
         <div className="token-tray" aria-label="Tokens on map">
           <span className="tray-title">Tokens <small>{draft?.tokens.length ?? 0}</small></span>
           {draft?.tokens.map(token => <button key={token.id} aria-label={`${token.name}, ${token.kind}, ${token.visible === false ? 'hidden' : 'visible'}`} style={{ '--token': token.color } as React.CSSProperties} onClick={() => selectToken(token.id)}>{token.name}{token.visible === false && <small className="visibility-badge">Hidden</small>}</button>)}

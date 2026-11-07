@@ -51,6 +51,24 @@ Forge places packaged artifacts under `out/make/` (Windows Squirrel installer ou
 
 For an installed package, launch it using the installer/application produced under `out/make/`. The Windows package smoke command builds the Electron and renderer assets, stages the Windows package resources, and starts/probes the packaged backend; it is not a physical display acceptance test.
 
+## Optional AI preparation
+
+AI preparation is optional and is not required for local campaign use. To enable the OpenAI Responses provider, set all three process environment variables before launching Electron (the model has no default):
+
+```text
+DUNGEON_DEPUTY_AI_ENABLED=1
+OPENAI_API_KEY=<your key>
+DUNGEON_DEPUTY_AI_MODEL=<supported model id>
+```
+
+The backend consumes the key; it is never entered in the renderer or saved in campaign data. AI status is local and does not contact the provider. Without the enable flag, key, model, or network connectivity, AI requests remain unavailable while local maps, encounters, compendium, characters, scenes, and display controls continue to work.
+
+Each generation requires a fresh consent action. The prompt and only explicitly selected local SRD excerpts/provenance are sent to the configured provider. Never include player sheets, hidden map/fog state, encounter state, or other campaign secrets in the prompt. `store:false` disables Responses API application-state retention for that request; it does not prevent transmission, provider processing, abuse monitoring, or other retention under provider policy.
+
+AI output is a private, editable proposal, not a rules authority. Acceptance is separate and revalidated. Only supported records in the local monster catalog can become encounter actors; current catalog coverage is limited, so do not assume arbitrary generated creatures are mechanically supported. Accepted tokens/geometry remain private until the DM separately uses Show.
+
+Automated checks passed: `npm test` (102 Node and 99 .NET tests), `npm run build`, deterministic credential-free `npm run test:e2e`, and Windows x64 `npm run package:smoke`. E2E exercises the local fake provider and records no external requests. No live provider key, API call, model compatibility, or provider retention behavior has been verified. Phase 6 CHAR-02..04 physical phone/operator UAT remains outstanding. Physical HDMI/display behavior and macOS runtime remain unverified; see [Phase 7 verification](.planning/phases/07-optional-ai-preparation-and-map-proposals/07-VERIFICATION.md).
+
 ## Phase review
 
-Phase 2 was approved before Phase 3 work began. Phase 3 automated verification passed after its concurrency fix, and Phase 4's automated audio/cue flow passes on Windows x64. Run the [Phase 3 demo](docs/phase-3-demo.md), [Phase 4 audio guide](docs/phase-4-audio.md), and read [verification status](docs/verification-status.md) plus [known limitations](docs/known-limitations.md). Physical HDMI/readability, native focus behavior, audible speaker output, untested codecs, and macOS runtime remain unverified.
+Phase 2 automated checks have passed, but the user visual-review/acceptance checkpoint remains pending; later Phase 3 and Phase 4 implementation is present in this repository and does not imply that review occurred. Run the [Phase 2 demo](docs/phase-2-demo.md), [Phase 3 demo](docs/phase-3-demo.md), [Phase 4 audio guide](docs/phase-4-audio.md), and read [verification status](docs/verification-status.md) plus [known limitations](docs/known-limitations.md). Physical HDMI/readability, native focus behavior, audible speaker output, untested codecs, and macOS runtime remain unverified.

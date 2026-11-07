@@ -34,12 +34,24 @@ public sealed class PlayerListenerService(PlayerSessionService sessions, PlayerS
     private bool _networkChangeSubscribed;
     private PresentationPublisher? _publisher;
 
-    public static IReadOnlyList<PlayerHostAddress> GetPrivateAddresses() => NetworkInterface.GetAllNetworkInterfaces()
-        .Where(n => n.OperationalStatus == OperationalStatus.Up && n.NetworkInterfaceType is not NetworkInterfaceType.Loopback)
-        .SelectMany(n => n.GetIPProperties().UnicastAddresses.Select(a => (Nic: n, Address: a.Address)))
-        .Where(a => IsPrivateLanAddress(a.Address))
-        .Select(a => new PlayerHostAddress(a.Address.ToString(), a.Nic.Name))
-        .DistinctBy(a => a.Address).OrderBy(a => a.InterfaceName, StringComparer.Ordinal).ThenBy(a => a.Address, StringComparer.Ordinal).ToArray();
+    private static bool E2ELoopbackOnly =>
+        Environment.GetEnvironmentVariable("DUNGEON_DEPUTY_E2E") == "1" &&
+        Environment.GetEnvironmentVariable("DUNGEON_DEPUTY_E2E_AI_FAKE") == "1";
+
+    public static IReadOnlyList<PlayerHostAddress> GetPrivateAddresses()
+    {
+        // Automated LAN-flow tests must not bind a private NIC: every E2E run uses
+        // a fresh backend executable path, which can make Windows Firewall prompt
+        // again for the same scenario. Production keeps the explicit private-NIC
+        // opt-in and never exposes this test-only loopback option.
+        if (E2ELoopbackOnly) return [new PlayerHostAddress(IPAddress.Loopback.ToString(), "E2E loopback only")];
+        return NetworkInterface.GetAllNetworkInterfaces()
+            .Where(n => n.OperationalStatus == OperationalStatus.Up && n.NetworkInterfaceType is not NetworkInterfaceType.Loopback)
+            .SelectMany(n => n.GetIPProperties().UnicastAddresses.Select(a => (Nic: n, Address: a.Address)))
+            .Where(a => IsPrivateLanAddress(a.Address))
+            .Select(a => new PlayerHostAddress(a.Address.ToString(), a.Nic.Name))
+            .DistinctBy(a => a.Address).OrderBy(a => a.InterfaceName, StringComparer.Ordinal).ThenBy(a => a.Address, StringComparer.Ordinal).ToArray();
+    }
 
     public static bool IsPrivateLanAddress(IPAddress address)
     {
@@ -56,7 +68,7 @@ public sealed class PlayerListenerService(PlayerSessionService sessions, PlayerS
 
     public async Task<PlayerListenerStatus> StartAsync(string address, CancellationToken cancellationToken = default)
     {
-        if (!IPAddress.TryParse(address, out var ip) || !IsPrivateLanAddress(ip) || !GetPrivateAddresses().Any(candidate => candidate.Address == ip.ToString()))
+        if (!IPAddress.TryParse(address, out var ip) || !(IsPrivateLanAddress(ip) || E2ELoopbackOnly && IPAddress.IsLoopback(ip)) || !GetPrivateAddresses().Any(candidate => candidate.Address == ip.ToString()))
             throw new InvalidOperationException("Select an active private LAN interface address.");
         await _gate.WaitAsync(cancellationToken);
         try

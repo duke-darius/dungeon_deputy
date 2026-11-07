@@ -30,7 +30,7 @@ Use only a private network whose participants and access point you trust. Do not
 
 ## Automated evidence and environment
 
-Latest full local automation for this plan was run on a Windows x64 host with .NET 10, Node 24.11.1, and the project’s Electron/Chromium E2E runtime. E2E selected an active private IPv4 interface on the same host and launched two isolated local browser contexts plus the Electron DM/display. Renderer network requests were observed/blocked outside the allowed local addresses; no external-origin request was observed. This is not an OS-wide firewall denial or internet-isolation certification.
+Latest full local automation runs on a Windows x64 host with .NET 10, Node 24.11.1, and the project’s Electron/Chromium E2E runtime. To avoid repeated Windows Firewall prompts from the per-run packaged backend executable path, automated E2E is explicitly test-gated to bind the player listener to `127.0.0.1` only, then exercises two independent browser principals and SignalR connections. It does not bind a private NIC, prove external-device Wi-Fi reachability, or validate Windows Firewall rules. Renderer network requests are observed/blocked outside local origins; this is not an OS-wide firewall denial or internet-isolation certification. Production still binds a selected private interface only after the DM explicitly starts LAN access.
 
 Commands and exact results from the latest completed run:
 

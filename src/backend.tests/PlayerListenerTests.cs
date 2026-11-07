@@ -9,21 +9,28 @@ namespace DungeonDeputy.Api.Tests;
 public sealed class PlayerSessionListenerTests
 {
     [Fact]
-    public async Task ListenerBindsOnlyAnEnumeratedPrivateInterfaceAndStopClosesIt()
+    public async Task ListenerUsesTestOnlyLoopbackAndStopClosesIt()
     {
         Assert.False(PlayerListenerService.IsPrivateLanAddress(IPAddress.Loopback));
         Assert.False(PlayerListenerService.IsPrivateLanAddress(IPAddress.Parse("169.254.1.2")));
         Assert.True(PlayerListenerService.IsPrivateLanAddress(IPAddress.Parse("192.168.1.5")));
-        var address = PlayerListenerService.GetPrivateAddresses().FirstOrDefault();
-        Assert.NotNull(address);
+        var previousE2E = Environment.GetEnvironmentVariable("DUNGEON_DEPUTY_E2E");
+        var previousFake = Environment.GetEnvironmentVariable("DUNGEON_DEPUTY_E2E_AI_FAKE");
+        Environment.SetEnvironmentVariable("DUNGEON_DEPUTY_E2E", "1");
+        Environment.SetEnvironmentVariable("DUNGEON_DEPUTY_E2E_AI_FAKE", "1");
         var data = Path.Combine(Path.GetTempPath(), "dd-player-listener-" + Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(data);
-        using var sessions = new PlayerSessionService(data);
-        var active = sessions.Start();
-        var invite = sessions.CreateInvite(active.Id, "character-1")!;
-        var listener = new PlayerListenerService(sessions);
         try
         {
+            var address = PlayerListenerService.GetPrivateAddresses().FirstOrDefault();
+            Assert.NotNull(address);
+            Assert.Equal(IPAddress.Loopback.ToString(), address!.Address);
+            Directory.CreateDirectory(data);
+            using var sessions = new PlayerSessionService(data);
+            var active = sessions.Start();
+            var invite = sessions.CreateInvite(active.Id, "character-1")!;
+            var listener = new PlayerListenerService(sessions);
+            try
+            {
             var status = await listener.StartAsync(address!.Address);
             Assert.True(status.Enabled);
             using var client = new HttpClient { BaseAddress = new Uri(status.Origin!) };
@@ -46,12 +53,18 @@ public sealed class PlayerSessionListenerTests
             await listener.StopAsync();
             Assert.False(listener.Status.Enabled);
             await Assert.ThrowsAnyAsync<HttpRequestException>(async () => await client.GetAsync("/api/player/health"));
+            }
+            finally
+            {
+                await listener.DisposeAsync();
+                sessions.Stop(active.Id);
+                SqliteCleanup();
+            }
         }
         finally
         {
-            await listener.DisposeAsync();
-            sessions.Stop(active.Id);
-            SqliteCleanup();
+            Environment.SetEnvironmentVariable("DUNGEON_DEPUTY_E2E", previousE2E);
+            Environment.SetEnvironmentVariable("DUNGEON_DEPUTY_E2E_AI_FAKE", previousFake);
             try { Directory.Delete(data, true); } catch { }
         }
     }

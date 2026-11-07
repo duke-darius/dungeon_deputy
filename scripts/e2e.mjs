@@ -5,6 +5,8 @@ import { setup, launch, cleanup, evidence, log, getRendererErrors, getLogLines, 
 import { createHash } from 'node:crypto';
 import { HubConnectionBuilder } from '@microsoft/signalr';
 import { pairIndependentBrowser, assertAssignedSheetProjection, assertNoPrivateRouteEnumeration } from './e2e/player-lan.test.mjs';
+import { verifyWizardCharacterProfile } from './e2e/characters.test.mjs';
+import { verifyTavernAmbushAcceptance, PRIVATE_PROMPT_SENTINEL } from './e2e/ai-preparation.test.mjs';
 
 let success = false;
 let app;
@@ -90,18 +92,24 @@ try {
   await manager.getByRole('heading', { name: 'Mira Vale', exact: true }).waitFor();
   await manager.getByRole('button', { name: /Mira Vale/ }).click();
   await manager.getByLabel('Constitution').fill('16');
+  await manager.getByLabel('Total XP').fill('6500');
   await manager.getByRole('button', { name: 'Save changes' }).click();
-  await manager.getByText('Proficiency +2 · HP 16 · AC 15', { exact: true }).waitFor();
+  await manager.getByText('XP 6500 · Level 5 · Proficiency +3 · HP 60 · AC 15', { exact: true }).waitFor();
   await manager.getByRole('button', { name: /Mira Vale/ }).click();
-  await manager.getByText('Proficiency +2 · HP 16 · AC 15', { exact: true }).waitFor();
+  await manager.getByText('XP 6500 · Level 5 · Proficiency +3 · HP 60 · AC 15', { exact: true }).waitFor();
   const characterSupport = await manager.evaluate(() => window.dungeonDeputy.command('/api/characters'));
   assert.equal(characterSupport.length, 1, 'the supported character is persisted by the authenticated backend');
+  assert.equal(characterSupport[0].level, 5);
+  assert.equal(characterSupport[0].proficiencyBonus, 3);
   assert.match(characterSupport[0].support.pdfSha256, /^sha256:[a-f0-9]{64}$/);
-    assert.equal(characterSupport[0].support.citations.class.includes('PDF p. 28'), true, 'calculation support includes the official SRD citation');
-    assert.equal(await manager.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), true, 'character workspace has no horizontal overflow');
-   const playerInterfaces = await manager.evaluate(() => window.dungeonDeputy.command('/api/player-session/interfaces'));
-   if (playerInterfaces.length) {
-      const playerSession = await manager.evaluate(address => window.dungeonDeputy.command('/api/player-session/start', 'POST', { address }), playerInterfaces[0].address);
+  assert.equal(characterSupport[0].support.citations.class.includes('PDF pp. 28-29'), true, 'calculation support includes the official SRD citation');
+  await verifyWizardCharacterProfile(manager);
+  assert.equal(await manager.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), true, 'character workspace has no horizontal overflow');
+    const playerInterfaces = await manager.evaluate(() => window.dungeonDeputy.command('/api/player-session/interfaces'));
+    assert.deepEqual(playerInterfaces.map(item => item.address), ['127.0.0.1'], 'E2E exercises the player listener over loopback only and never binds a Windows private NIC');
+    if (playerInterfaces.length) {
+       const playerSession = await manager.evaluate(address => window.dungeonDeputy.command('/api/player-session/start', 'POST', { address }), playerInterfaces[0].address);
+       assert.equal(playerSession.listener.boundAddress ?? playerSession.listener.address, '127.0.0.1', 'the test-only player listener stays on loopback');
       assert.match(playerSession.transportWarning, /HTTP is unencrypted/i, 'session start response truthfully identifies the unencrypted transport');
      try {
        const savedCharacter = (await manager.evaluate(() => window.dungeonDeputy.command('/api/characters')))[0];
@@ -253,7 +261,7 @@ try {
     await manager.setViewportSize({ width: 390, height: 844 });
    const characterPhoneOverflow = await manager.evaluate(() => ({ width: document.documentElement.clientWidth, scrollWidth: document.documentElement.scrollWidth, elements: [...document.querySelectorAll('body *')].filter(element => element.getBoundingClientRect().right > document.documentElement.clientWidth + 1).slice(0, 8).map(element => ({ tag: element.tagName, className: typeof element.className === 'string' ? element.className : '', right: Math.round(element.getBoundingClientRect().right), width: Math.round(element.getBoundingClientRect().width) })) }));
    assert.ok(characterPhoneOverflow.scrollWidth <= characterPhoneOverflow.width, `phone character workspace overflow: ${JSON.stringify(characterPhoneOverflow)}`);
-   await manager.getByText(/no equipment options have been enabled/).waitFor();
+    await manager.getByText(/Starting packages only/).waitFor();
    await manager.getByRole('button', { name: /Mira Vale/ }).waitFor();
    await manager.setViewportSize({ width: 1280, height: 900 });
   await manager.getByRole('button', { name: 'Audio · DM only' }).click();
@@ -811,10 +819,20 @@ try {
   assert.deepEqual(afterSrdAdd.presentation,beforeSrdAdd.presentation,'Compendium Add must not alter public presentation');
   assert.equal(await player.locator('.public-map').count(),1,'Compendium Add leaves the public display unchanged');
 
-  const rendererErrors = getRendererErrors().filter(error=>!error.includes('/maps/tavern.svg'));
+  // Run the AI acceptance tracer in a separate fresh database. Its provider is an isolated
+  // deterministic fake selected only by the E2E launch environment; external requests stay blocked.
+  await app.close();
+  ({ manager, player } = await launchPair(join(evidence, 'ai-data'), false));
+  await verifyTavernAmbushAcceptance(manager, player);
+  await assertWindowsStable();
+  log('AI ACCEPTANCE: deterministic tavern ambush preview, invalid-reject, private accept/edit/local-turn and separate Show verified.');
+
+  const rendererErrors = getRendererErrors().filter(error=>!error.includes('/maps/tavern.svg')&&!error.includes('Presentation service returned 400.'));
   assert.deepEqual(rendererErrors, [], `unexpected Electron renderer errors: ${rendererErrors.join('\n')}`);
   assert.deepEqual(getExternalRequests(), [], `offline E2E attempted external network access: ${getExternalRequests().join(', ')}`);
   const diagnosticText = getLogLines().join('\n');
+  assert.equal(diagnosticText.includes(PRIVATE_PROMPT_SENTINEL), false, 'private proposal prompts must not enter E2E logs/artifacts');
+  assert.equal(diagnosticText.includes('P7_TEST_KEY_SENTINEL'), false, 'credential sentinels must not enter E2E logs/artifacts');
   for (const secret of observedCapabilities)
     assert.equal(diagnosticText.includes(secret), false, 'invite, player, and display capabilities never appear in E2E diagnostics');
   success = true;

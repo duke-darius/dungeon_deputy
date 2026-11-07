@@ -17,7 +17,7 @@ DungeonDeputy grows through seven independently runnable, user-visible stages, f
 ## Phase Details
 
 ### Phase 1: Safe Two-Screen Scene Presentation
-**Goal**: The DM can launch DungeonDeputy, privately preview a bundled scene, explicitly show or change it on the table display, and safely blackout public output.
+**Goal**: As a Dungeon Master, I want to preview bundled scenes privately, explicitly show or change the selected scene on the table display, and black out public output, so that I can control what players see without exposing DM-only content.
 **Mode:** mvp
 **Depends on**: Nothing (first phase)
 **Requirements**: DISP-01, DISP-02, DISP-03, DISP-04, DISP-05
@@ -27,7 +27,7 @@ DungeonDeputy grows through seven independently runnable, user-visible stages, f
   3. The DM can privately preview one of the bundled demo scenes, explicitly publish it, and change the public scene without exposing private controls or content.
   4. The DM can immediately blackout the player display, and disconnect/reconnect/reassignment leaves public output in a safe recoverable state.
   5. The app works offline, remembers appropriate preferences, and has reproducible run instructions; Windows/macOS verification is reported only for platforms physically tested.
-**Plans:** 5/6 plans executed
+**Plans:** 5/5 plans complete
 Plans:
 - [x] 01-01-PLAN.md — Verify audited npm package identities before installation
 - [x] 01-02-PLAN.md — Establish verified stack, runnable scripts, and backend contract
@@ -45,14 +45,14 @@ Plans:
   1. The DM can create/edit a map with an optional square grid and adjust zoom, pan, and scale.
   2. The DM can build a tavern encounter with four heroes and three goblins, add/move/rename/recolor/remove tokens, and show the approved map state on HDMI.
   3. The DM can save a campaign/session, quit and relaunch, and recover that map and all token positions.
-**Plans:** 4/6 plans executed
+**Plans:** 6/6 plans complete; physical-display/macOS limitations remain documented
 Plans:
 - [x] 02-01-PLAN.md — Review and pin the approved PixiJS package
 - [x] 02-02-PLAN.md — Build the saved tavern/blank map editing tracer
 - [x] 02-03-PLAN.md — Add full token editing, bundled artwork attribution, and explicit public map approval
 - [x] 02-04-PLAN.md — Publish an allowlisted map in the existing player window
-- [ ] 02-06-PLAN.md — Exercise Stage 1 and Stage 2 workflows through Electron/backend E2E
-- [ ] 02-05-PLAN.md — Verify packaged save/reload, document demo, and review Stage 2
+- [x] 02-06-PLAN.md — Exercise Stage 1 and Stage 2 workflows through Electron/backend E2E
+- [x] 02-05-PLAN.md — Verify packaged save/reload, document demo, and review Stage 2
 **UI hint**: yes
 
 ### Phase 3: Fog of War and Encounter Control
@@ -64,7 +64,7 @@ Plans:
   1. The DM can manually hide and reveal map regions and tokens, and players see no hidden token or unrevealed information.
   2. The DM can manage actor HP and simple conditions, set initiative, advance turns, and make basic dice rolls.
   3. The DM can complete a basic encounter without leaving the main dashboard while only approved visual state is public.
-**Plans:** 7/8 plans executed
+**Plans:** 7/7 plans complete
 Plans:
 - [x] 03-01-PLAN.md — Trace persisted fog and filtered public visibility end-to-end
 - [x] 03-04-PLAN.md — Close fog rendering, brush lifecycle, and authenticated publication gaps
@@ -123,43 +123,53 @@ Plans:
   2. Players can join from phones on the local network using a session code or QR invitation without registration or internet access.
   3. Two players can join from phones on the same Wi-Fi, view their assigned sheets, and submit permitted inventory/resource edits that appear on the DM laptop; a DM HP change synchronizes back to the relevant player without exposing other players' or hidden data.
   4. SignalR immediately pushes DM-approved scene changes and blackout to the table display and connected player sheets without polling delay; each client receives only its authorized public state.
-**Plans:** 4/7 plans executed
+**Plans:** 8/8 plans executed; physical-phone/operator UAT remains outstanding
 
 Plans:
 - [x] 06-01-PLAN.md — DM character create/edit end-to-end tracer
 - [x] 06-02-PLAN.md — Bounded SRD character calculations and sheet editing
 - [x] 06-03-PLAN.md — Managed LAN pairing and scoped player identity
 - [x] 06-04-PLAN.md — Assigned-only player sheets and permitted actions
-- [ ] 06-05-PLAN.md — Verify/pin SignalR package and implement authorized Hub publication
-- [ ] 06-06-PLAN.md — Connect public display and assigned player clients to SignalR
-- [ ] 06-07-PLAN.md — Adversarial E2E, package smoke and physical-phone UAT
+- [x] 06-05-PLAN.md — Verify/pin SignalR package and implement authorized Hub publication
+- [x] 06-06-PLAN.md — Connect public display and assigned player clients to SignalR
+- [x] 06-07-PLAN.md — Adversarial E2E, package smoke and physical-phone UAT
+- [x] 06-08-PLAN.md — Close source-backed character calculation gaps for the explicitly supported subset
 **UI hint**: yes
 
 ### Phase 7: Optional AI Preparation and Map Proposals
-**Goal**: The DM can optionally turn AI-generated preparation into editable campaign content only after explicit review and acceptance.
+**Goal**: As a Dungeon Master, I want to generate and review optional AI suggestions for NPCs, encounters, short adventures, scenes and map geometry, so that I can selectively accept them as editable campaign drafts while keeping normal play local, private and under my control.
 **Mode:** mvp
-**Depends on**: Phase 6 (preserves the staged delivery order; relies on established map, encounter, and SRD concepts)
+**Depends on**: Phase 6 implementation artifacts (map, encounter, and SRD concepts); physical phone/operator UAT is not a prerequisite to Phase 7 execution and remains an overall final acceptance gate
 **Requirements**: AI-01, AI-02, AI-03
 **Success Criteria** (what must be TRUE):
   1. With a configured provider/key, the DM can request structured NPCs, encounter ideas, short adventures, scene descriptions, and editable map geometry proposals.
-  2. The DM can prompt for a tavern ambush, review and explicitly accept the proposed NPC/encounter/map layout into the campaign, then edit tokens and run it on HDMI; rules output is grounded in local SRD data and distinguished from invented narrative.
+  2. The DM can prompt for a tavern ambush, privately preview it, explicitly accept selected locally catalogued monster record IDs through the normal encounter path, create/edit supported bounded map tokens, then run the normal encounter and publish to HDMI only through the separate existing Show action; rules output is grounded in local SRD data and distinguished from invented narrative. No campaign state is sent to AI.
   3. The DM can continue normal play and use existing campaigns when AI is disabled, unavailable, or has no configured key.
-**Plans**: TBD
+**Plans:** 8/8 plans executed
+Plans:
+- [x] 07-01-PLAN.md — Trace secure keyless-testable backend NPC generation and provider configuration
+- [x] 07-02-PLAN.md — Add all bounded proposal types and catalog-verified SRD grounding
+- [x] 07-03-PLAN.md — Build DM-only consent, private preview, and editing workflow
+- [x] 07-04-PLAN.md — Accept proposals only into validated private editable drafts
+- [x] 07-05-PLAN.md — Prove offline/security E2E and record complete source audit
+- [x] 07-06-PLAN.md — Render and edit private accepted map geometry
+- [x] 07-07-PLAN.md — Run deterministic offline Electron/backend tavern ambush E2E
+- [x] 07-08-PLAN.md — Persist accepted NPC/encounter/adventure/scene narrative as private editable campaign content
 **UI hint**: yes
 
 ## Progress
 
 **Execution Order:**
-Phase 5 was explicitly user-authorized out of sequence after accepted Phase 4 on 2026-10-31. User accepted Phase 5 after its current E2E passed on 2026-11-04 and explicitly authorized Phase 6 next. Phase 2 and Phase 3 remaining plan paperwork and status are unchanged and non-blocking only where the map and encounter authority functionality needed by Phase 6 already exists in the current service. Phase 6 starts out of order; do not treat unfinished Phase 2/3 paperwork as shipped functionality or alter their counters/statuses. Current phase is Phase 6 planning/executing. Stop after Phase 6 automated verification for the documented physical two-phone/operator security review; CHAR-02..04 remain pending until physical phone/operator transport UAT passes.
+User authorized autonomous progression through all roadmap phases and final integration on 2026-11-07. Plan counts now reflect Phase 1 5/5, Phase 2 6/6 (physical display gap remains), Phase 3 7/7, Phase 4 8/8, Phase 5 4/4, Phase 6 8/8 (physical UAT outstanding), and Phase 7 8/8. Phase 6 implementation and Phase 7 implementation have automated evidence, but CHAR-02..04 remain unverified until physical two-phone/private-Wi-Fi and operator transport UAT passes; local loopback E2E is not physical evidence. Physical HDMI/display, macOS, and live AI-provider usage are also not claimed as verified. Do not mark the overall project complete by proxy; retain these acceptance gates after the full automated integration run.
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Safe Two-Screen Scene Presentation | 5/5 | Complete (user approved) | 2026-10-28 |
-| 2. Playable Digital Battle Map | 4/6 | In Progress | - |
-| 3. Fog of War and Encounter Control | 7/7 | In Progress | - |
+| 2. Playable Digital Battle Map | 6/6 | Implementation verified; physical display behavior remains unverified | - |
+| 3. Fog of War and Encounter Control | 7/7 | Verification passed; progression acceptance recorded | - |
 | 4. Soundboard, Scenes, and 12-Key Control | 8/8 | Complete    | 2026-10-31 |
 | 5. Offline 2024 SRD Compendium | 4/4 | Complete    | 2026-11-04 |
-| 6. SRD Characters and Local Player Sheets | 4/7 | Planning / Executing | - |
-| 7. Optional AI Preparation and Map Proposals | 0/TBD | Not started | - |
+| 6. SRD Characters and Local Player Sheets | 8/8 | In Progress; CHAR-01 covered for bounded subset; phone/operator UAT outstanding | - |
+| 7. Optional AI Preparation and Map Proposals | 8/8 | Implementation verified; live provider and overall hardware acceptance remain unverified | - |
 
 **Phase 5 completion gate:** Keep Phase 5 and SRD-01 pending/in progress unless every required category (spells, conditions, actions, monsters, equipment, classes, and species) has at least one genuine, legally redistributable, provenance-verified searchable record. A category may remain visibly unavailable and its licensing/provenance blocker documented, but that fallback does not satisfy SRD-01 or permit Phase 5 completion. When a category is blocked, pause the phase, retain the incomplete status in this table and the SRD-01 traceability row, and escalate for explicit user approval of a scope change or until verified records are added; only then update completion status.

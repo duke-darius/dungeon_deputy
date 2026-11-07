@@ -15,6 +15,25 @@ test('main owns Electron display and backend lifecycle securely', () => {
   assert.match(main, /resolve\(app\.getPath\('userData'\), 'data'\)/);
   assert.match(main, /DUNGEON_DEPUTY_DATA_DIR: dataDirectory/);
 });
+test('AI provider environment is forwarded only to the backend process and never preload or renderer data', () => {
+  assert.match(main, /OPENAI_API_KEY/);
+  assert.match(main, /DUNGEON_DEPUTY_AI_MODEL/);
+  assert.match(main, /DUNGEON_DEPUTY_AI_ENABLED/);
+  assert.match(main, /'DUNGEON_DEPUTY_AI_ENABLED', 'OPENAI_API_KEY', 'DUNGEON_DEPUTY_AI_MODEL'/);
+  assert.match(main, /spawn\(path, \[\], \{ env:/);
+  assert.match(main, /const backendEnvironment = Object\.fromEntries/);
+  assert.doesNotMatch(main, /\.\.\.process\.env/);
+  assert.doesNotMatch(preload, /OPENAI_API_KEY|DUNGEON_DEPUTY_AI_MODEL/);
+});
+test('deterministic fake provider is restricted to unpackaged E2E and strips real credentials from test descendants', async () => {
+  const fixture = await readFile(new URL('../scripts/e2e/fixtures.mjs', import.meta.url), 'utf8');
+  const fake = await readFile(new URL('./backend/AiPreparation/E2eFakeAiPreparationService.cs', import.meta.url), 'utf8');
+  assert.match(main, /e2e && !app\.isPackaged && process\.env\.DUNGEON_DEPUTY_E2E_AI_FAKE === '1'/);
+  assert.match(main, /e2eFakeAi \? \{ DUNGEON_DEPUTY_E2E: '1', DUNGEON_DEPUTY_E2E_AI_FAKE: '1' \}/);
+  assert.match(fake, /Deterministic fake provider/);
+  assert.match(fixture, /OPENAI_API_KEY: _neverInE2e/);
+  assert.match(fixture, /DUNGEON_DEPUTY_E2E_AI_FAKE:'1'/);
+});
 test('package smoke publishes to an isolated staging directory', async () => {
   const smoke = await readFile(new URL('../scripts/package-smoke.mjs', import.meta.url), 'utf8');
   const publisher = await readFile(new URL('../scripts/package-backend.mjs', import.meta.url), 'utf8');
@@ -40,12 +59,12 @@ test('public preload exposes only public presentation retrieval', () => {
   assert.match(main, /allowedSender\('public', event\)/);
   assert.doesNotMatch(preload.slice(preload.indexOf('? Object.freeze'), preload.indexOf(': Object.freeze')), /command:|preferences:|displays:/);
 });
-test('DM IPC command allowlist permits only the local SRD catalog endpoints needed by the compendium', () => {
+test('DM IPC command allowlist permits only private AI preparation request routes and local SRD catalog', () => {
   const allowlist = main.match(/!\/(?:\\\/|[^/])+\/(?:[dgimsuvy]*)\.test\(path\)/)?.[0];
   assert.ok(allowlist, 'DM command handler must retain an explicit path allowlist');
   const patternSource = allowlist.slice(2, allowlist.lastIndexOf('/.test'));
   const policy = new RegExp(patternSource);
-  for (const path of ['/api/srd/search?q=Bandit&category=monster', '/api/srd/coverage', '/api/srd/metadata', '/api/srd/records/srd521:monster:bandit', '/api/encounter/monsters']) {
+  for (const path of ['/api/srd/search?q=Bandit&category=monster', '/api/srd/coverage', '/api/srd/metadata', '/api/srd/records/srd521:monster:bandit', '/api/encounter/monsters', '/api/ai/status', '/api/ai/npc', '/api/ai/encounter', '/api/ai/adventure', '/api/ai/scene', '/api/ai/geometry', '/api/ai/accept', '/api/ai/accepted', '/api/ai/accepted/0123456789abcdef0123456789abcdef']) {
     assert.equal(policy.test(path), true, `${path} should be available to the private DM renderer`);
   }
   for (const path of ['/api/srd/admin', '/api/srd/records/..%2fsecret', '/api/srd/search/other']) assert.equal(policy.test(path), false, `${path} must remain denied`);

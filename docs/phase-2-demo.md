@@ -27,7 +27,7 @@ npm run package:smoke
 
 `npm test` includes nested `src/renderer/src/map/*.test.mjs` coverage. Package smoke launches the actual packaged Windows x64 backend with authenticated requests, a unique per-run token and temporary per-run user-data directory; it saves a draft, explicitly publishes it, changes the draft without publishing, stops and restarts the backend, checks independent draft/approved recovery, and explicitly publishes the saved edit. It does not use SQL to manufacture test state.
 
-`npm run test:e2e` launches the actual Electron app and per-run packaged backend, then drives both windows through the Stage 1 scene workflow and Stage 2 map workflow. It verifies screenshots, private/public boundaries, token and camera actions, persistence, and stable windows while capturing paired manager/player screenshots and logs under ignored `artifacts/e2e/<run-id>/`. E2E windows are intentionally hidden and windowed to preserve the user's desktop; it is not a physical HDMI or fullscreen acceptance test. The current host enumerated two non-primary display targets, so the display selector/persistence path was exercised; physical display wiring and hot-plug remain unverified.
+`npm run test:e2e` launches the actual Electron app and per-run packaged backend, then drives both windows through the Stage 1 scene workflow and Stage 2 map workflow. It verifies screenshots, private/public boundaries, token and camera actions, persistence, and stable windows while capturing paired manager/player screenshots and logs under ignored `artifacts/e2e/<run-id>/`. E2E windows are intentionally hidden and windowed to preserve the user's desktop; it is not a physical HDMI or fullscreen acceptance test. Display enumeration was exercised in the 2026-11-07 run; physical display wiring, hot-plug, and fullscreen behavior remain unverified.
 
 ## Artwork source and rights
 
@@ -52,4 +52,4 @@ Critique rejected a generic cream-and-serif interface as inconsistent with the e
 - [ ] Confirm blackout and the same fullscreen player window remain safe during map updates.
 - [ ] Review the automated/platform evidence in [verification status](verification-status.md) and [known limitations](known-limitations.md).
 
-**Human review is pending.** Phase 2 stops here until the user confirms acceptance. Phase 3 is proposed only and has not started. Phase 2 uses current request/response refresh only: no SignalR or immediate push was added. `CHAR-04` remains assigned to Phase 6.
+**Human visual review is pending.** Automated verification does not constitute user acceptance. This plan makes no Phase 3 changes; Phase 3 implementation already exists elsewhere in this repository, so it is not accurate to describe Phase 3 as unstarted. Phase 2 uses current request/response refresh only: no SignalR or immediate push was added here. `CHAR-04` remains assigned to Phase 6. macOS and physical display behavior are unverified.

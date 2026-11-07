@@ -1,7 +1,7 @@
 ---
 phase: 04-soundboard-scenes-and-12-key-control
-verified: 2026-10-30T20:06:45Z
-status: passed
+verified: 2026-11-07T19:49:47Z
+status: human_needed
 score: 3/3 roadmap truths verified
 covered_files:
   - .planning/phases/04-soundboard-scenes-and-12-key-control/04-01-PLAN.md
@@ -20,7 +20,6 @@ covered_files:
   - .planning/phases/04-soundboard-scenes-and-12-key-control/04-07-SUMMARY.md
   - .planning/phases/04-soundboard-scenes-and-12-key-control/04-08-PLAN.md
   - .planning/phases/04-soundboard-scenes-and-12-key-control/04-08-SUMMARY.md
-  - artifacts/e2e/2026-10-30T20-04-45.449Z-3240e0e0/run.log
   - assets/audio-defaults/License.txt
   - assets/audio-defaults/README.md
   - assets/audio-defaults/book-open.wav
@@ -29,18 +28,23 @@ covered_files:
   - docs/phase-4-audio.md
   - forge.config.ts
   - scripts/e2e.mjs
-  - scripts/e2e/open-audio/License.txt
-  - scripts/e2e/open-audio/README.md
-  - scripts/e2e/open-audio/bookOpen.ogg
-  - scripts/e2e/open-audio/doorOpen_1.ogg
-  - scripts/e2e/open-audio/handleCoins.ogg
   - scripts/package-smoke.mjs
   - src/main.test.mjs
   - src/main.ts
+  - src/preload.cts
+  - src/renderer/src/api.ts
   - src/renderer/src/audio/AudioWorkspace.tsx
+  - src/renderer/src/audio/CueEditor.tsx
+  - src/renderer/src/audio/cues.mjs
+  - src/renderer/src/audio/cues.test.mjs
+  - src/renderer/src/audio/importPolicy.mjs
+  - src/renderer/src/audio/importPolicy.test.mjs
   - src/renderer/src/audio/model.mjs
   - src/renderer/src/audio/model.test.mjs
-covered_digest: "v4:sha256:714e0871e394796b2f41239ee6a02aff040ca55cccba62ccd8b9b8cd777034a5"
+  - src/renderer/src/audio/playback.mjs
+  - src/renderer/src/audio/playback.test.mjs
+  - src/renderer/src/map/MapEditor.tsx
+covered_digest: "v4:sha256:805dc6d8329aaed9747c914299854959062431efa4a800014f237ed57817cbb0"
 behavior_unverified: 0
 overrides_applied: 0
 user_acceptance:
@@ -62,9 +66,9 @@ human_verification:
 # Phase 4: Soundboard, Scenes, and 12-Key Control — Verification
 
 **Phase Goal:** As a DM, I want to control ambience, sound effects, and simple presentation cues during play using 12-pad controls or configurable keyboard shortcuts, so that I can manage sound and presentation without interrupting the game.
-**Verified:** 2026-10-31
-**Status:** passed after user accepted the delivered Phase 4 work and requested Phase 5.
-**Verification mode:** Goal-backward automated review plus recorded user acceptance of the shipped defaults and evidence. Physical/platform behavior remains unverified and is explicitly acknowledged below.
+**Verified:** 2026-11-07T19:49:47Z
+**Status:** human_needed. Automated checks pass; physical and native-platform observations below remain unverified.
+**Verification mode:** Goal-backward review against the MVP user story and roadmap success criteria. Prior user acceptance is context, not proof of physical/platform behavior.
 
 ## User Flow Coverage
 
@@ -82,17 +86,17 @@ human_verification:
 
 | # | Roadmap success criterion | Status | Evidence |
 |---|---|---|---|
-| 1 | DM can load sounds into a 12-pad board, organize named banks, adjust volume, loop ambience, play one-shots, and stop all audio. | ✓ VERIFIED | Current `npm test`: 72 Node + 21 backend tests pass. `npm run test:e2e` freshly passed (run below), including bundled defaults first-run, direct play, import/restart/clear; `npm run package:smoke` passed with resource assertions. Core import, quota and playback paths are wired in `main.ts`, `importPolicy.mjs`, and `playback.mjs`. |
-| 2 | DM can bind persistent shortcuts to sound and scene/show/reveal/blackout cues without unnecessarily disrupting ordinary typing. | ✓ VERIFIED | Cue model/dispatcher and UI are wired in private workspace. Current tests/E2E exercise persistence, editable/IME/repeat/consumed input guards, simulated visible/focused state, allowed cue dispatch, and refusal on dirty map. Native OS focus remains a human check. |
-| 3 | During a live map DM can trigger sound/presentation cues; platform claims are limited to tested platforms. | ✓ VERIFIED | Current Windows Electron E2E log ends PASS and tests live-map sound/cues, public privacy, and responsive layout. Package smoke validates actual Windows x64 package resources. Evidence claims remain limited to exercised Windows runtime, WAV and Ogg samples; no hardware/macOS/MP3 result inferred. |
+| 1 | DM can load sounds into a 12-pad board, organize named banks, adjust volume, loop ambience, play one-shots, and stop all audio. | ✓ VERIFIED | Re-ran `npm test`: 102 Node + 101 .NET passed (0 skipped/failures); `npm run build` succeeded; Windows E2E exercises defaults/import/playback state; Windows package smoke passed. Import, quota and playback paths are wired in `main.ts`, `importPolicy.mjs`, and `playback.mjs`. |
+| 2 | DM can bind persistent shortcuts to sound and scene/show/reveal/blackout cues without unnecessarily disrupting ordinary typing. | ✓ VERIFIED | Cue model/dispatcher and UI are wired in private workspace. Tests cover persistence, editable/IME/repeat/consumed input guards and simulated visibility/focus; E2E covers shortcuts. Native OS focus remains a human check. |
+| 3 | During a live map DM can trigger sound/presentation cues; platform claims are limited to tested platforms. | ✓ VERIFIED | Windows E2E at `artifacts/e2e/2026-11-07T18-21-53.682Z-fb4cbeeb/run.log` ends PASS and contains soundboard, shortcuts and live-map evidence. Windows x64 package smoke passed. No physical audio/macOS/MP3 result inferred. |
 
-**Score:** 3/3 roadmap truths verified (behavior_unverified: 0; user-facing UAT and physical/platform observations remain in Human Verification).
+**Score:** 3/3 roadmap truths verified (behavior_unverified: 0; human confirmation is still required for physical/native-platform observations).
 
 ## D-08 Default Samples: Direct Verification
 
 - `model.mjs` declares three safe sample metadata records and pure pristine eligibility/seed helpers; `model.test.mjs` asserts Pads 1–3 assignment, Pads 4–12 empty, and no re-seeding of already seeded state.
 - `main.ts` selects packaged `process.resourcesPath/audio-defaults` vs development `app.getAppPath()/assets/audio-defaults`; startup copies bounded files into app-owned data, commits config before marker, catches resource failure, and keeps marker independent from pad assignments. Main tests verify custom-config/migration/failure-marker behavior and isolate seeding from the injected save failure seam.
-- E2E at `artifacts/e2e/2026-10-30T20-04-45.449Z-3240e0e0/run.log` passed the first-run defaults, explicit playback, restart-silence/persistence, invalid-WAV discard then valid-WAV import, Ogg fixture imports into empty pads, clear/reclaim and relaunch/no-reseed sequence. `00-audio-defaults-manager.png` captures the initial state; later captures are post-interaction states.
+- Latest complete integration E2E at `artifacts/e2e/2026-11-07T18-21-53.682Z-fb4cbeeb/run.log` passed and records the initial defaults screen, CC0 Ogg import/decode and playback state, soundboard/shortcut screenshots and integrated PASS. This proves app state, not audible output.
 - Forge config includes exactly the defaults directory as extra resource. The current actual Windows x64 package smoke passed checks for exact runtime files, PCM format, SHA-256, provenance README/license. Existing Ogg import fixtures and their CC0 provenance remain separate.
 - No autoplay and no public audio exposure are asserted. Automated playback/decode is not equivalent to audible output.
 
@@ -132,10 +136,10 @@ human_verification:
 
 | Behavior | Command | Result | Status |
 |---|---|---|---|
-| Full Node/backend tests | `npm test` | 72 Node passed, 21 backend passed; zero failures/skips | ✓ PASS |
-| Build | `npm run build` | Success; backend 0 warnings/errors | ✓ PASS |
-| Integrated Electron E2E | `npm run test:e2e` | PASS; `artifacts/e2e/2026-10-30T20-04-45.449Z-3240e0e0`; defaults/import/no-reseed and existing phase flows passed | ✓ PASS |
-| Windows x64 package smoke | `npm run package:smoke` | PASS; actual package contains all three PCM defaults and valid hashes/provenance; backend smoke passed | ✓ PASS |
+| Full Node/backend tests | `npm test` | Independently rerun: 102 Node passed, then 101 .NET passed; zero failures/skips | ✓ PASS (2026-11-07T19:49Z) |
+| Build | `npm run build` | Success; Release backend 0 warnings/errors | ✓ PASS (rerun 2026-11-07) |
+| Integrated Electron E2E | `npm run test:e2e` | PASS; `artifacts/e2e/2026-11-07T18-21-53.682Z-fb4cbeeb`; first-run audio/defaults, imported/decoded Ogg playback state, controls/shortcuts and integrated flows | ✓ PASS (artifact inspected) |
+| Windows x64 package smoke | `npm run package:smoke` | PASS; actual Forge package resources and backend smoke verified | ✓ PASS (rerun 2026-11-07) |
 
 ## Requirements Coverage
 
@@ -150,19 +154,33 @@ No other requirement is mapped to Phase 4 in `REQUIREMENTS.md`; no orphaned Phas
 
 No unresolved `TBD`/`FIXME`/`XXX` debt markers, placeholders, or console-only implementation were found in the reviewed phase source paths. Regex matches for `return null`/empty arrays/empty catches are validation rejects, cancellation cases, or best-effort cleanup and were checked in context; they do not feed stub user-visible state. Active test suites passed, including default seed, boundary/privacy, quota/rollback, stream error cleanup, cue dispatch and E2E flows. No disabled requirement tests or test-quality blocker found. UI review retains a non-blocking spacing-scale inconsistency; it does not contradict AUD-01/AUD-02.
 
-## Acknowledged Unverified Platform Checks
+## Human Verification Required
 
-1. **Physical audio/routing** — real speakers/headphones output was not observed; E2E verifies decoded/playback state only.
-2. **Native focus/ergonomics** — native OS window blur/refocus was not tested; E2E controls document focus and verifies the dispatcher guard.
-3. **Platform/codec boundaries** — only Windows x64 and WAV/Ogg fixtures were exercised; macOS and MP3/additional codec support remain unverified.
+### 1. Physical audio/routing
 
-The user explicitly accepted the delivered work and requested progression. That acceptance does not imply the above device/platform checks were performed.
+**Test:** Play bundled and imported effects and ambience through physical speakers/headphones; try Stop All and verify routing.
+**Expected:** Sounds are audible on the intended output; loops stop and one-shots finish as expected.
+**Why human:** E2E checks decoded/playback application state only, not physical output or device routing.
+
+### 2. Native OS shortcut focus/ergonomics
+
+**Test:** Blur and refocus the native app window while shortcuts are configured; type in ordinary text fields and use shortcuts only while the app is focused.
+**Expected:** No cue dispatches while the app is not active; intended chords work when active without disrupting ordinary typing.
+**Why human:** E2E simulates document visibility/focus; it does not prove native OS window focus or ergonomics.
+
+### 3. Platform and codec boundaries
+
+**Test:** Repeat supported playback and shortcut checks on macOS and test claimed formats beyond the Windows WAV/Ogg fixtures (including MP3 if claimed).
+**Expected:** Support documentation matches observed platform/codec behavior.
+**Why human:** Evidence is Windows x64 and WAV/Ogg only; other operating systems (including macOS) and MP3/additional codec behavior were not run.
+
+Prior user acceptance remains recorded for progression. It does not imply the above physical/native-platform checks were performed; these remain human verification items.
 
 ## Gaps Summary
 
-No code-level blocker remains. All eight plans, requirements, validation rows, review artifacts, and current automated evidence support the three roadmap truths, including first-run defaults. The user's “perfect, next phase” is recorded as acceptance for progression. Physical audio, native OS focus transitions, macOS and MP3 remain unverified and are not claimed.
+No code-level blocker was found. All eight plans, AUD-01/AUD-02, wiring, data flow and current automated evidence support the roadmap truths, including first-run defaults. Physical audio, native OS focus transitions, macOS and MP3 remain unverified and are not claimed; human confirmation remains required.
 
 ---
 
-_Verified: 2026-10-30T20:06:45Z_
+_Verified: 2026-11-07T19:49:47Z_
 _Verifier: the agent (gsd-verifier)_

@@ -38,16 +38,16 @@
 
 ### Characters and player companion
 
-- [ ] **CHAR-01**: The DM can create/edit SRD-only characters for a supported selection of classes/species, with supported ability, proficiency, HP, AC, inventory, spell/resource, and level calculations in the .NET domain layer.
+- [x] **CHAR-01**: The DM can create/edit SRD-only characters for a supported selection of classes/species, with supported ability, proficiency, HP, AC, inventory, spell/resource, and level calculations in the .NET domain layer.
 - [ ] **CHAR-02**: Players can join from a phone on the local network using a session code or QR invitation, without account registration or internet access.
 - [ ] **CHAR-03**: Players can view their assigned sheets and submit permitted edits/actions; changes sync with the DM, while the DM remains authoritative for combat and hidden information.
 - [ ] **CHAR-04**: In the SignalR stage, DM-approved scene changes and blackout are pushed immediately to the table display and connected player sheets without polling delay; each client receives only its authorized public state.
 
 ### Optional AI assistance
 
-- [ ] **AI-01**: With a configured provider/key, the DM can generate structured NPCs, encounter ideas, short adventures, scene descriptions, and editable map geometry.
-- [ ] **AI-02**: The DM must preview and explicitly accept generated content before it enters campaign state; rules-related output is grounded in local SRD data and separated from invented narrative.
-- [ ] **AI-03**: The app remains fully usable when AI is disabled, unavailable, or has no configured key.
+- [x] **AI-01**: With a configured provider/key, the DM can generate structured NPCs, encounter ideas, short adventures, scene descriptions, and editable map geometry.
+- [x] **AI-02**: The DM must preview and explicitly accept generated content before it enters campaign state; rules-related output is grounded in local SRD data and separated from invented narrative. Accepted NPC, encounter, adventure and scene narrative is private, durable, editable and revalidated against the current local catalog.
+- [x] **AI-03**: The app remains fully usable when AI is disabled, unavailable, or has no configured key.
 
 ## v2 Requirements
 
@@ -86,14 +86,14 @@ None currently identified beyond the staged roadmap. Additional licensed rule co
 | SRD-01 | Phase 5 | Complete (supported subset; no completeness claim) |
 | SRD-02 | Phase 5 | Complete |
 | SRD-03 | Phase 5 | Complete |
-| CHAR-01 | Phase 6 | Pending |
+| CHAR-01 | Phase 6 | Complete |
 | CHAR-02 | Phase 6 | Pending |
 | CHAR-03 | Phase 6 | Pending |
 | CHAR-04 | Phase 6 | Pending |
-| AI-01 | Phase 7 | Pending |
-| AI-02 | Phase 7 | Pending |
-| AI-03 | Phase 7 | Pending |
+| AI-01 | Phase 7 | Complete |
+| AI-02 | Phase 7 | Complete (07-08 persistence, DM lifecycle and current-reference tests passed) |
+| AI-03 | Phase 7 | Complete (automated keyless/offline evidence; no live-provider claim) |
 
 ---
 *Requirements defined: 2026-10-28*  
-*Last updated: 2026-10-28 after roadmap creation*  
+*Last updated: 2026-11-07 after Phase 7 Plan 07-08 automated verification; CHAR-02..04 remain pending physical phone/operator UAT*

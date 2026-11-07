@@ -18,7 +18,11 @@ const logs = [];
 const rendererErrors = [];
 const externalRequests = new Set();
 let ownedVite = false;
-  const { DUNGEON_DEPUTY_E2E_AUDIO_SAVE_DELAY_MS: _ignoredDelay, DUNGEON_DEPUTY_E2E_AUDIO_SAVE_FAIL_FIRST: _ignoredFailure, DUNGEON_DEPUTY_E2E_AUDIO_INVALID_FIXTURE: _invalidFixture, DUNGEON_DEPUTY_E2E_AUDIO_FAIL_IMPORT_FIRST: _failImport, DUNGEON_DEPUTY_E2E_AUDIO_FIXTURE: _audioFixture, DUNGEON_DEPUTY_E2E_AUDIO_FIXTURES: _audioFixtures, ...childEnvironment } = process.env;
+export function e2eChildEnvironment(environment = process.env) {
+  const { DUNGEON_DEPUTY_E2E_AUDIO_SAVE_DELAY_MS: _ignoredDelay, DUNGEON_DEPUTY_E2E_AUDIO_SAVE_FAIL_FIRST: _ignoredFailure, DUNGEON_DEPUTY_E2E_AUDIO_INVALID_FIXTURE: _invalidFixture, DUNGEON_DEPUTY_E2E_AUDIO_FAIL_IMPORT_FIRST: _failImport, DUNGEON_DEPUTY_E2E_AUDIO_FIXTURE: _audioFixture, DUNGEON_DEPUTY_E2E_AUDIO_FIXTURES: _audioFixtures, OPENAI_API_KEY: _neverInE2e, DUNGEON_DEPUTY_AI_ENABLED: _disableAi, DUNGEON_DEPUTY_AI_MODEL: _noModel, DUNGEON_DEPUTY_E2E_AI_FAKE: _fakeAi, ...childEnvironment } = environment;
+  return childEnvironment;
+}
+const childEnvironment = e2eChildEnvironment();
 
 function note(text) { const line=`${new Date().toISOString()} ${text}`;logs.push(line);try{appendFileSync(join(evidence,'run.log'),line+'\n');}catch{} }
 export function redactUrl(value) {
@@ -77,7 +81,7 @@ export async function launch(testDataRoot = dataRoot, injectFirstFailure = true)
   await mkdir(testDataRoot, { recursive: true });
   const require=createRequire(import.meta.url);const { _electron: electron }=require('playwright-core');
   const executable=join(root,'node_modules/electron/dist/electron.exe');
-   const app=await electron.launch({executablePath:executable,args:[`--user-data-dir=${join(testDataRoot,'chromium-profile')}`,root],cwd:root,env:{...childEnvironment,DUNGEON_DEPUTY_E2E:'1',DUNGEON_DEPUTY_E2E_OFFLINE:'1',DUNGEON_DEPUTY_DATA_DIR:testDataRoot,DUNGEON_DEPUTY_BACKEND_ROOT:backendRoot,DUNGEON_DEPUTY_DEV_URL:'http://127.0.0.1:5173',...(process.env.DUNGEON_DEPUTY_E2E_AUDIO_FIXTURE?{DUNGEON_DEPUTY_E2E_AUDIO_FIXTURE:process.env.DUNGEON_DEPUTY_E2E_AUDIO_FIXTURE}:{}),...(process.env.DUNGEON_DEPUTY_E2E_AUDIO_FIXTURES?{DUNGEON_DEPUTY_E2E_AUDIO_FIXTURES:process.env.DUNGEON_DEPUTY_E2E_AUDIO_FIXTURES}:{}),...(injectFirstFailure&&process.env.DUNGEON_DEPUTY_E2E_AUDIO_INVALID_FIXTURE?{DUNGEON_DEPUTY_E2E_AUDIO_INVALID_FIXTURE:process.env.DUNGEON_DEPUTY_E2E_AUDIO_INVALID_FIXTURE,DUNGEON_DEPUTY_E2E_AUDIO_FAIL_IMPORT_FIRST:'1'}:{}),DUNGEON_DEPUTY_E2E_AUDIO_SAVE_DELAY_MS:'700',...(injectFirstFailure?{DUNGEON_DEPUTY_E2E_AUDIO_SAVE_FAIL_FIRST:'1'}:{})},timeout:30000,dumpio:true});
+   const app=await electron.launch({executablePath:executable,args:[`--user-data-dir=${join(testDataRoot,'chromium-profile')}`,root],cwd:root,env:{...childEnvironment,DUNGEON_DEPUTY_E2E:'1',DUNGEON_DEPUTY_E2E_OFFLINE:'1',DUNGEON_DEPUTY_E2E_AI_FAKE:'1',DUNGEON_DEPUTY_DATA_DIR:testDataRoot,DUNGEON_DEPUTY_BACKEND_ROOT:backendRoot,DUNGEON_DEPUTY_DEV_URL:'http://127.0.0.1:5173',...(process.env.DUNGEON_DEPUTY_E2E_AUDIO_FIXTURE?{DUNGEON_DEPUTY_E2E_AUDIO_FIXTURE:process.env.DUNGEON_DEPUTY_E2E_AUDIO_FIXTURE}:{}),...(process.env.DUNGEON_DEPUTY_E2E_AUDIO_FIXTURES?{DUNGEON_DEPUTY_E2E_AUDIO_FIXTURES:process.env.DUNGEON_DEPUTY_E2E_AUDIO_FIXTURES}:{}),...(injectFirstFailure&&process.env.DUNGEON_DEPUTY_E2E_AUDIO_INVALID_FIXTURE?{DUNGEON_DEPUTY_E2E_AUDIO_INVALID_FIXTURE:process.env.DUNGEON_DEPUTY_E2E_AUDIO_INVALID_FIXTURE,DUNGEON_DEPUTY_E2E_AUDIO_FAIL_IMPORT_FIRST:'1'}:{}),DUNGEON_DEPUTY_E2E_AUDIO_SAVE_DELAY_MS:'700',...(injectFirstFailure?{DUNGEON_DEPUTY_E2E_AUDIO_SAVE_FAIL_FIRST:'1'}:{})},timeout:30000,dumpio:true});
   app.on('console',msg=>{const line=`ELECTRON CONSOLE ${msg.type()}: ${msg.text()}`;note(line);if(msg.type()==='error'&&!msg.text().includes('Soundboard save failed. Your previous settings were restored; try again.'))rendererErrors.push(line);});
    app.on('window',page=>{
      void page.route('**/*', async route => {

@@ -6,6 +6,7 @@ using DungeonDeputy.Api.Srd;
 using DungeonDeputy.Api.Characters;
 using DungeonDeputy.Api.PlayerSessions;
 using DungeonDeputy.Api.Realtime;
+using DungeonDeputy.Api.AiPreparation;
 using Microsoft.AspNetCore.Mvc;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -24,12 +25,17 @@ builder.Services.AddSingleton(new MapService(builder.Configuration));
 builder.Services.AddSingleton<MapVisualMutationGate>();
 builder.Services.AddSingleton<IConditionCatalog, BuiltInConditionCatalog>();
 builder.Services.AddSingleton<SrdCatalog>();
+var useE2eFakeAi = Environment.GetEnvironmentVariable("DUNGEON_DEPUTY_E2E") == "1" && Environment.GetEnvironmentVariable("DUNGEON_DEPUTY_E2E_AI_FAKE") == "1";
+if (useE2eFakeAi) builder.Services.AddSingleton<IAiPreparationService, E2eFakeAiPreparationService>();
+else builder.Services.AddSingleton<IAiPreparationService>(_ => new AiPreparationService(new HttpClient(new HttpClientHandler { AllowAutoRedirect = false })));
 builder.Services.AddSingleton<CharacterService>();
 builder.Services.AddSingleton(sp => new PlayerSessionService(Path.GetFullPath(dataDirectory)));
 builder.Services.AddSingleton<PlayerAuthorization>();
 builder.Services.AddSingleton<PlayerSheetService>();
 builder.Services.AddSingleton<PlayerListenerService>();
 builder.Services.AddSingleton(sp => new EncounterService(builder.Configuration, sp.GetRequiredService<MapService>(), sp.GetRequiredService<IConditionCatalog>()));
+builder.Services.AddSingleton<AcceptedPreparationStore>();
+builder.Services.AddSingleton<ProposalAcceptanceService>();
 var app = builder.Build();
 
 app.Use(async (context, next) =>
@@ -61,6 +67,40 @@ app.MapGet("/api/srd/search", (string? q, string? category, SrdCatalog catalog) 
 app.MapGet("/api/srd/records/{id}", (string id, SrdCatalog catalog) => catalog.Find(id) is { } record ? Results.Ok(record) : Results.NotFound());
 app.MapGet("/api/srd/coverage", (SrdCatalog catalog) => Results.Ok(catalog.Coverage));
 app.MapGet("/api/srd/metadata", (SrdCatalog catalog) => Results.Ok(catalog.Manifest));
+app.MapGet("/api/ai/status", (IAiPreparationService ai) => Results.Ok(ai.GetStatus()));
+app.MapPost("/api/ai/{kind}", async (string kind, AiGenerationRequest? request, SrdCatalog catalog, IAiPreparationService ai, CancellationToken cancellationToken) =>
+{
+    if (request is null || request.SelectedSrdRecordIds is null || request.SelectedSrdRecordIds.Length > 3 || request.SelectedSrdRecordIds.Any(string.IsNullOrWhiteSpace) || request.SelectedSrdRecordIds.Distinct(StringComparer.Ordinal).Count() != request.SelectedSrdRecordIds.Length || kind is not ("npc" or "encounter" or "adventure" or "scene" or "geometry")) return Results.BadRequest(new { error = "Invalid request." });
+    var records = new List<AiSelectedSrdRecord>();
+    foreach (var id in request.SelectedSrdRecordIds)
+    {
+        var record = catalog.Find(id);
+        if (record is null || record.Summary.Length > 2000) return Results.BadRequest(new { error = "Selected local SRD record is unavailable." });
+        records.Add(new AiSelectedSrdRecord(record.Id, record.Name, record.Summary, $"{record.Provenance.Dataset}, {record.Provenance.License}, p. {record.Provenance.Page}"));
+    }
+    var result = await ai.GenerateAsync(request with { Kind = kind }, records, cancellationToken);
+    return result.Failure is null ? Results.Ok(result.StructuredProposal) : Results.Json(new { error = result.Message }, statusCode: result.Failure switch
+    {
+        AiPreparationFailure.Disabled or AiPreparationFailure.NotConfigured => StatusCodes.Status503ServiceUnavailable,
+        AiPreparationFailure.ConsentRequired => StatusCodes.Status400BadRequest,
+        AiPreparationFailure.InvalidRequest => StatusCodes.Status400BadRequest,
+        AiPreparationFailure.InvalidProviderResponse => StatusCodes.Status502BadGateway,
+        _ => StatusCodes.Status503ServiceUnavailable
+    });
+}).WithMetadata(new RequestSizeLimitAttribute(16_384));
+app.MapPost("/api/ai/accept", (ProposalAcceptanceRequest? request, ProposalAcceptanceService acceptance) =>
+{
+    var result = acceptance.Accept(request);
+    return result.Accepted ? Results.Ok(result) : Results.BadRequest(new { error = result.Message });
+}).WithMetadata(new RequestSizeLimitAttribute(65_536));
+app.MapGet("/api/ai/accepted", (ProposalAcceptanceService acceptance) => Results.Ok(acceptance.ListAccepted()));
+app.MapGet("/api/ai/accepted/{id}", (string id, ProposalAcceptanceService acceptance) =>
+    acceptance.GetAccepted(id) is { } record ? Results.Ok(record) : Results.NotFound());
+app.MapPut("/api/ai/accepted/{id}", (string id, AcceptedPreparationEdit? edit, ProposalAcceptanceService acceptance) =>
+    acceptance.UpdateAccepted(id, edit) is { } record ? Results.Ok(record) : Results.BadRequest(new { error = "The edited preparation or one of its current local references is invalid." }))
+    .WithMetadata(new RequestSizeLimitAttribute(65_536));
+app.MapDelete("/api/ai/accepted/{id}", (string id, ProposalAcceptanceService acceptance) =>
+    acceptance.DeleteAccepted(id) ? Results.NoContent() : Results.NotFound());
 app.MapGet("/api/characters", (CharacterService characters) => Results.Ok(characters.List()));
 app.MapGet("/api/characters/{id}", (string id, CharacterService characters) => characters.Get(id) is { } record ? Results.Ok(record) : Results.NotFound());
 app.MapPost("/api/characters", (CharacterInput? input, CharacterService characters) =>
@@ -73,6 +113,15 @@ app.MapPut("/api/characters/{id}", (string id, CharacterInput? input, CharacterS
     var record = characters.Update(id, input);
     return record is null ? Results.BadRequest() : Results.Ok(record);
 }).WithMetadata(new RequestSizeLimitAttribute(16_384));
+app.MapPost("/api/characters/{id}/rest", (string id, CharacterRestCommand? command, CharacterService characters) =>
+{
+    if (command is null) return Results.BadRequest();
+    if ((command.ResourceAction is not null && (command.LongRest || command.ArcaneRecovery)) || (command.LongRest && command.ArcaneRecovery)) return Results.BadRequest();
+    var record = command.ResourceAction is null
+        ? characters.Rest(id, command.LongRest, command.ArcaneRecovery)
+        : characters.UseResource(id, command.ResourceAction);
+    return record is null ? Results.BadRequest() : Results.Ok(record);
+}).WithMetadata(new RequestSizeLimitAttribute(2048));
 app.MapDelete("/api/characters/{id}", (string id, CharacterService characters) => characters.Delete(id) ? Results.NoContent() : Results.NotFound());
 app.MapGet("/api/player-session", (PlayerSessionService sessions, PlayerListenerService listener) => Results.Ok(new { session = sessions.GetActiveSession(), listener = listener.Status }));
 app.MapPost("/api/player-session/display-token", (PlayerSessionService sessions, PlayerListenerService listener, PublicDisplayCredentialService credentials) =>

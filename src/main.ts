@@ -32,6 +32,7 @@ const withAudioLock = createSerialLock();
 let invalidFixtureConsumed = false;
 let e2eAudioFixtureIndex = 0;
 const e2e = process.env.DUNGEON_DEPUTY_E2E === '1';
+const e2eFakeAi = e2e && !app.isPackaged && process.env.DUNGEON_DEPUTY_E2E_AI_FAKE === '1';
 const e2eAudioFixtures: string[] = (() => {
   if (!e2e || app.isPackaged || !process.env.DUNGEON_DEPUTY_E2E_AUDIO_FIXTURES) return [];
   try {
@@ -41,7 +42,12 @@ const e2eAudioFixtures: string[] = (() => {
       : [];
   } catch { return []; }
 })();
-const { DUNGEON_DEPUTY_E2E_AUDIO_SAVE_DELAY_MS: _audioDelaySetting, DUNGEON_DEPUTY_E2E_AUDIO_SAVE_FAIL_FIRST: _audioFailSetting, DUNGEON_DEPUTY_E2E_AUDIO_FIXTURE: _audioFixture, DUNGEON_DEPUTY_E2E_AUDIO_FIXTURES: _audioFixtures, DUNGEON_DEPUTY_E2E_AUDIO_INVALID_FIXTURE: _invalidAudioFixture, DUNGEON_DEPUTY_E2E_AUDIO_FAIL_IMPORT_FIRST: _failAudioImport, ...backendEnvironment } = process.env;
+const { DUNGEON_DEPUTY_E2E_AUDIO_SAVE_DELAY_MS: _audioDelaySetting, DUNGEON_DEPUTY_E2E_AUDIO_SAVE_FAIL_FIRST: _audioFailSetting, DUNGEON_DEPUTY_E2E_AUDIO_FIXTURE: _audioFixture, DUNGEON_DEPUTY_E2E_AUDIO_FIXTURES: _audioFixtures, DUNGEON_DEPUTY_E2E_AUDIO_INVALID_FIXTURE: _invalidAudioFixture, DUNGEON_DEPUTY_E2E_AUDIO_FAIL_IMPORT_FIRST: _failAudioImport } = process.env;
+const backendEnvironment = Object.fromEntries(
+  ['PATH', 'SystemRoot', 'WINDIR', 'TEMP', 'TMP', 'HOME', 'DOTNET_ROOT', 'DOTNET_MULTILEVEL_LOOKUP', 'DOTNET_BUNDLE_EXTRACT_BASE_DIR', 'DUNGEON_DEPUTY_AI_ENABLED', 'OPENAI_API_KEY', 'DUNGEON_DEPUTY_AI_MODEL']
+    .filter(name => process.env[name] !== undefined)
+    .map(name => [name, process.env[name]!]),
+);
 const audioSaveTestPolicy = saveTestPolicy({
   e2e,
   isPackaged: app.isPackaged,
@@ -264,7 +270,7 @@ async function startBackend() {
   const dataDirectory = e2e ? resolve(e2eDataRoot!, 'backend-data') : resolve(app.getPath('userData'), 'data');
   const rendererDirectory = app.isPackaged ? join(process.resourcesPath, 'src', 'renderer', 'dist') : join(app.getAppPath(), 'src', 'renderer', 'dist');
   await mkdir(dataDirectory, { recursive: true });
-  backend = spawn(path, [], { env: { ...backendEnvironment, DUNGEON_DEPUTY_PORT: String(port), DUNGEON_DEPUTY_TOKEN: backendToken, DUNGEON_DEPUTY_DATA_DIR: dataDirectory, DUNGEON_DEPUTY_RENDERER_DIR: rendererDirectory }, stdio: 'ignore', windowsHide: true });
+  backend = spawn(path, [], { env: { ...backendEnvironment, ...(e2eFakeAi ? { DUNGEON_DEPUTY_E2E: '1', DUNGEON_DEPUTY_E2E_AI_FAKE: '1' } : {}), DUNGEON_DEPUTY_PORT: String(port), DUNGEON_DEPUTY_TOKEN: backendToken, DUNGEON_DEPUTY_DATA_DIR: dataDirectory, DUNGEON_DEPUTY_RENDERER_DIR: rendererDirectory }, stdio: 'ignore', windowsHide: true });
   backend.once('exit', () => { if (!quitting) { for (const win of windows.values()) if (!win.isDestroyed()) void win.webContents.executeJavaScript("document.body.style.background='black'"); app.quit(); } });
   await waitForBackend(backend);
 }
@@ -347,7 +353,7 @@ function installIpc() {
     });
   });
   ipcMain.handle('dm:command', async (event, path: unknown, method: unknown, body?: unknown) => {
-    if (!allowedSender('dm', event) || typeof path !== 'string' || !/^\/api\/(scenes|presentation|selection\/[a-z-]+|show\/[a-z-]+|blackout|map|map\/draft|map\/blank|map\/show|map\/show-encounter|map\/fog\/(?:enable|strokes)|map\/token(?:\/[a-zA-Z0-9-]+(?:\/(?:visibility|hp|conditions|initiative(?:\/roll)?|tie-break))?)?|srd\/(?:search|coverage|metadata|records\/[a-z0-9:-]+)|characters(?:\/[a-f0-9]{32})?|player-session(?:\/(?:interfaces|players|start|stop|invites|revoke|display-token)|\/players\/[a-f0-9]{32}\/hp)?|encounter(?:\/actors\/[a-zA-Z0-9-]+\/(?:hp|conditions|initiative(?:\/roll)?|tie-break)|\/turn\/end|\/dice|\/monsters)?)\/?(?:\?.*)?$/.test(path) || !['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].includes(String(method))) throw new Error('Denied');
+    if (!allowedSender('dm', event) || typeof path !== 'string' || !/^\/api\/(scenes|presentation|selection\/[a-z-]+|show\/[a-z-]+|blackout|map|map\/draft|map\/blank|map\/show|map\/show-encounter|map\/fog\/(?:enable|strokes)|map\/token(?:\/[a-zA-Z0-9-]+(?:\/(?:visibility|hp|conditions|initiative(?:\/roll)?|tie-break))?)?|srd\/(?:search|coverage|metadata|records\/[a-z0-9:-]+)|characters(?:\/[a-f0-9]{32}(?:\/rest)?)?|player-session(?:\/(?:interfaces|players|start|stop|invites|revoke|display-token)|\/players\/[a-f0-9]{32}\/hp)?|encounter(?:\/actors\/[a-zA-Z0-9-]+\/(?:hp|conditions|initiative(?:\/roll)?|tie-break)|\/turn\/end|\/dice|\/monsters)?|ai\/(?:status|npc|encounter|adventure|scene|geometry|accept|accepted(?:\/[a-f0-9]{32})?))\/?(?:\?.*)?$/.test(path) || !['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].includes(String(method))) throw new Error('Denied');
     const response = await api(path, String(method), body);
     if (e2e) console.info(`[E2E API] ${String(method)} ${path} ${response.status}`);
     if (!response.ok) throw new Error(`Presentation service returned ${response.status}.`);

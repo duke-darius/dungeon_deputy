@@ -1,6 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { e2eChildEnvironment } from './fixtures.mjs';
+
+test('E2E child environment strips real AI credentials and fake toggles',()=>{
+  const clean=e2eChildEnvironment({PATH:'safe',OPENAI_API_KEY:'not-a-real-key',DUNGEON_DEPUTY_AI_MODEL:'sentinel-model',DUNGEON_DEPUTY_AI_ENABLED:'1',DUNGEON_DEPUTY_E2E_AI_FAKE:'1'});
+  assert.deepEqual(clean,{PATH:'safe'});
+});
 
 test('E2E harness uses isolated roots and never shows windows as a screenshot fallback', async()=>{
   const [fixture,main]=await Promise.all([readFile(new URL('./fixtures.mjs',import.meta.url),'utf8'),readFile(new URL('../../src/main.ts',import.meta.url),'utf8')]);

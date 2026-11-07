@@ -1,4 +1,5 @@
 using System.Text.Json;
+using DungeonDeputy.Api.AiPreparation;
 using System.Text.Json.Serialization;
 using Microsoft.Data.Sqlite;
 using DungeonDeputy.Api.Maps;
@@ -52,6 +53,8 @@ public sealed class EncounterService
     private readonly IConditionCatalog _conditions;
     private readonly Func<int, int> _roll;
     private readonly SemaphoreSlim _writeGate = new(1, 1);
+    internal void EnterProposalAcceptanceLock() => _writeGate.Wait();
+    internal void ExitProposalAcceptanceLock() => _writeGate.Release();
 
     public EncounterService(IConfiguration config, MapService maps, IConditionCatalog conditions, Func<int, int>? roll = null)
     {
@@ -76,13 +79,14 @@ public sealed class EncounterService
         var value = cmd.ExecuteScalar();
         return value is null ? Empty(_maps.Get().Draft) : JsonSerializer.Deserialize<EncounterDocument>((string)value)!;
     }
-    private EncounterDocument Reconcile(EncounterDocument state)
+    private EncounterDocument Reconcile(EncounterDocument state, MapDocument? map = null)
     {
-        var tokens = _maps.Get().Draft.Tokens;
+        var tokens = (map ?? _maps.Get().Draft).Tokens;
         var existing = state.Actors.ToDictionary(a => a.TokenId, StringComparer.Ordinal);
         var actors = tokens.Select((token, i) => existing.TryGetValue(token.Id, out var actor)
             ? actor with { ConditionIds = actor.ConditionIds ?? [] }
-            : new EncounterActor(token.Id, ConditionIds: [], TieBreakOrder: i)).Concat(state.Actors.Where(a => a.SourceMonsterId is not null)).ToList();
+            : new EncounterActor(token.Id, ConditionIds: [], TieBreakOrder: i))
+            .Concat(state.Actors.Where(a => a.SourceMonsterId is not null && !tokens.Any(token => token.Id == a.TokenId))).ToList();
         var active = state.ActiveTokenId is not null && actors.Any(a => a.TokenId == state.ActiveTokenId) ? state.ActiveTokenId : null;
         return state with { Actors = actors, ActiveTokenId = active, Rolls = state.Rolls ?? [] };
     }
@@ -91,6 +95,68 @@ public sealed class EncounterService
         using var cmd = db.CreateCommand(); cmd.Transaction = tx;
         cmd.CommandText = "INSERT INTO private_encounter(id,document) VALUES(1,$doc) ON CONFLICT(id) DO UPDATE SET document=excluded.document";
         cmd.Parameters.AddWithValue("$doc", JsonSerializer.Serialize(state)); cmd.ExecuteNonQuery();
+    }
+    internal MapDocument? AcceptProposal(IReadOnlyList<SrdRecord> records, IReadOnlyList<MapGeometry> geometry,
+        (string Kind, JsonElement Content, IReadOnlyList<AiSelectedSrdRecord> References)? narrative = null,
+        AcceptedPreparationStore? acceptedStore = null)
+    {
+        // Global lock order for this cross-service operation: map writer, then encounter writer.
+        // No map writer calls into EncounterService, so this order cannot form a lock cycle.
+        _maps.EnterProposalAcceptanceLock();
+        try
+        {
+            _writeGate.Wait();
+            try
+            {
+                using var db = _maps.OpenAcceptanceConnection(); db.Open();
+                using var tx = db.BeginTransaction(deferred: false);
+                var draft = _maps.ReadDraft(db, tx);
+                using var read = db.CreateCommand(); read.Transaction = tx; read.CommandText = "SELECT document FROM private_encounter WHERE id=1";
+                var stored = read.ExecuteScalar();
+                var state = Reconcile(stored is null ? Empty(draft) : JsonSerializer.Deserialize<EncounterDocument>((string)stored)!, draft);
+                var next = state;
+                var actorsBySource = next.Actors.Where(a => a.SourceMonsterId is not null).ToDictionary(a => a.SourceMonsterId!, StringComparer.Ordinal);
+                foreach (var record in records)
+                {
+                    if (actorsBySource.ContainsKey(record.Id)) continue;
+                    var actor = AddMonster(record, next.Actors.Count);
+                    if (actor is null || next.Actors.Count >= 100) return null;
+                    next = next with { Actors = [.. next.Actors, actor] };
+                    actorsBySource[record.Id] = actor;
+                }
+                var tokens = draft.Tokens.ToList(); var index = 0;
+                foreach (var record in records)
+                {
+                    if (!actorsBySource.TryGetValue(record.Id, out var actor) || tokens.Any(t => t.Id == actor.TokenId)) continue;
+                    tokens.Add(new(actor.TokenId, record.Name, "monster", "#78906a", 650 + index++ * 35, 350, "goblin.svg"));
+                }
+                var shapes = (draft.Geometry ?? []).Concat(geometry).Distinct().ToList();
+                var updated = draft with { Tokens = tokens, Geometry = shapes };
+                if (!Valid(next) || !MapService.ValidDraft(updated)) return null;
+                if (narrative is { } acceptedContent)
+                {
+                    if (acceptedStore is null) return null;
+                    acceptedStore.InsertInTransaction(db, tx, acceptedContent.Kind, acceptedContent.Content,
+                        acceptedContent.References, draft.CampaignId, draft.SessionId);
+                }
+                // Write encounter first deliberately: a subsequent map write failure must roll both back.
+                if (records.Count > 0) Save(db, tx, next);
+                if ((records.Count > 0 || geometry.Count > 0) && !_maps.SaveDraftInTransaction(db, tx, updated)) return null;
+                tx.Commit();
+                return updated;
+            }
+            finally { _writeGate.Release(); }
+        }
+        finally { _maps.ExitProposalAcceptanceLock(); }
+    }
+    private static EncounterActor? AddMonster(SrdRecord record, int order)
+    {
+        if (record is null || record.Category != "monster" || record.Stats is not { } stats ||
+            stats.HitPoints is < 1 or > MaxHitPoints || stats.ArmorClass is < 1 or > 50 ||
+            stats.Strength is < 1 or > 30 || stats.Dexterity is < 1 or > 30 || stats.Constitution is < 1 or > 30 ||
+            string.IsNullOrWhiteSpace(record.Id) || record.Id.Length > 100 || record.Provenance.Dataset != "SRD 5.2.1") return null;
+        return new EncounterActor("srd-" + Guid.NewGuid().ToString("N"), stats.HitPoints, stats.HitPoints, [], null, null,
+            order, record.Id, "5.2.1", stats.ArmorClass, stats.Strength, stats.Dexterity, stats.Constitution);
     }
     private static bool Valid(EncounterDocument state) => state.Actors.Count <= 100 && (state.Rolls?.Count ?? 0) <= 100 &&
         state.Actors.Select(a => a.TokenId).Distinct(StringComparer.Ordinal).Count() == state.Actors.Count &&
@@ -142,16 +208,12 @@ public sealed class EncounterService
         Change(s => UpdateActor(s, id, a => a with { CurrentHp = command.Current, MaximumHp = command.Maximum }));
     public bool AddMonster(SrdRecord record)
     {
-        if (record is null || record.Category != "monster" || record.Stats is not { } stats ||
-            stats.HitPoints is < 1 or > MaxHitPoints || stats.ArmorClass is < 1 or > 50 ||
-            stats.Strength is < 1 or > 30 || stats.Dexterity is < 1 or > 30 || stats.Constitution is < 1 or > 30 ||
-            string.IsNullOrWhiteSpace(record.Id) || record.Id.Length > 100 || record.Provenance.Dataset != "SRD 5.2.1") return false;
-        var id = "srd-" + Guid.NewGuid().ToString("N");
+        var actor = AddMonster(record, 0);
+        if (actor is null) return false;
         // A retry for the same curated source record is idempotent: never create a second actor.
         return Change(s => s.Actors.Any(actor => actor.SourceMonsterId == record.Id) ? s : s.Actors.Count >= 100 ? null : s with
         {
-            Actors = [.. s.Actors, new EncounterActor(id, stats.HitPoints, stats.HitPoints, [], null, null,
-                s.Actors.Count, record.Id, "5.2.1", stats.ArmorClass, stats.Strength, stats.Dexterity, stats.Constitution)]
+            Actors = [.. s.Actors, actor with { TieBreakOrder = s.Actors.Count }]
         });
     }
     public bool SetConditions(string id, ConditionsCommand command) => command?.ConditionIds is { Count: <= 20 } ids && ids.Distinct(StringComparer.Ordinal).Count() == ids.Count && ids.All(id => _conditions.All.Any(c => c.Id == id)) &&

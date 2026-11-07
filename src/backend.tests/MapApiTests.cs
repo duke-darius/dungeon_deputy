@@ -73,6 +73,16 @@ public sealed class MapApiTests : IDisposable
         Assert.True(service.Save(map)); Assert.Equal("blank",Open().Get().Draft.Id);
     }
     [Fact]
+    public void BoundedPrivateGeometryPersistsAndRejectsOutOfRangeShapes()
+    {
+        var service = Open();
+        var map = service.Get().Draft;
+        var shape = new MapGeometry("rectangle", 12, 20, 80, 60, "Tavern room");
+        Assert.True(service.Save(map with { Geometry = [shape] }));
+        Assert.Equal(shape, Assert.Single(Open().Get().Draft.Geometry!));
+        Assert.False(service.Save(map with { Geometry = [shape with { X = 1001 }] }));
+    }
+    [Fact]
     public void DraftValidationRejectsInvalidTokenColorAndUnboundedCoordinates()
     {
         var service=Open(); var draft=service.Get().Draft;

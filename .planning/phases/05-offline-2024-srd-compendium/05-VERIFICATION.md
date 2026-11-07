@@ -1,10 +1,10 @@
 ---
 phase: 05-offline-2024-srd-compendium
-verified: 2026-11-04T14:18:54Z
-status: passed
+verified: 2026-11-07T18:51:07Z
+status: human_needed
 score: 6/6 must-haves verified
-covered_files: [".planning/phases/05-offline-2024-srd-compendium/05-01-PLAN.md", ".planning/phases/05-offline-2024-srd-compendium/05-01-SUMMARY.md", ".planning/phases/05-offline-2024-srd-compendium/05-02-PLAN.md", ".planning/phases/05-offline-2024-srd-compendium/05-02-SUMMARY.md", ".planning/phases/05-offline-2024-srd-compendium/05-03-PLAN.md", ".planning/phases/05-offline-2024-srd-compendium/05-03-SUMMARY.md", ".planning/phases/05-offline-2024-srd-compendium/05-04-PLAN.md", ".planning/phases/05-offline-2024-srd-compendium/05-04-SUMMARY.md", "assets/srd/2024/attribution.md", "assets/srd/2024/coverage.json", "assets/srd/2024/manifest.json", "assets/srd/2024/records.json", "assets/srd/2024/source/SRD_CC_v5.2.1.pdf", "docs/phase-5-srd-compendium.md", "scripts/e2e/srd-compendium.test.mjs", "scripts/package-smoke.mjs", "scripts/srd/import.mjs", "scripts/srd/import.test.mjs", "src/backend.tests/SrdCatalogTests.cs", "src/backend/Encounters/EncounterService.cs", "src/backend/Program.cs", "src/backend/Srd/SrdCatalog.cs", "src/main.test.mjs", "src/main.ts", "src/renderer/src/api.ts", "src/renderer/src/compendium/Compendium.tsx", "src/renderer/src/compendium/compendium.test.mjs", "src/renderer/src/map/MapEditor.tsx", "src/renderer/src/styles.css"]
-covered_digest: "v4:sha256:69e3cc45f5670b372587765e2d04a2be92717bdd6142ee0863798a5a1670b1d4"
+covered_files: [".planning/phases/05-offline-2024-srd-compendium/05-01-PLAN.md", ".planning/phases/05-offline-2024-srd-compendium/05-01-SUMMARY.md", ".planning/phases/05-offline-2024-srd-compendium/05-02-PLAN.md", ".planning/phases/05-offline-2024-srd-compendium/05-02-SUMMARY.md", ".planning/phases/05-offline-2024-srd-compendium/05-03-PLAN.md", ".planning/phases/05-offline-2024-srd-compendium/05-03-SUMMARY.md", ".planning/phases/05-offline-2024-srd-compendium/05-04-PLAN.md", ".planning/phases/05-offline-2024-srd-compendium/05-04-SUMMARY.md", "assets/srd/2024/attribution.md", "assets/srd/2024/coverage.json", "assets/srd/2024/manifest.json", "assets/srd/2024/records.json", "assets/srd/2024/source/SRD_CC_v5.2.1.pdf", "docs/phase-5-srd-compendium.md", "scripts/e2e/srd-compendium.test.mjs", "scripts/package-smoke.mjs", "scripts/srd/import.mjs", "scripts/srd/import.test.mjs", "src/backend.tests/SrdCatalogTests.cs", "src/backend/Encounters/EncounterService.cs", "src/backend/Program.cs", "src/main.test.mjs", "src/main.ts", "src/renderer/src/api.ts", "src/renderer/src/compendium/Compendium.tsx", "src/renderer/src/compendium/compendium.test.mjs", "src/renderer/src/map/MapEditor.tsx", "src/renderer/src/styles.css"]
+covered_digest: "v4:sha256:f25969a5d9a91d4775e1665e703fc43279ca3f5e4359ef66ec0dce6aed7c4d0f"
 behavior_unverified: 0
 overrides_applied: 0
 ---
@@ -12,9 +12,9 @@ overrides_applied: 0
 # Phase 5: Offline 2024 SRD Compendium Verification Report
 
 **Phase Goal:** As a DM, I want to search and use correctly attributed 2024 SRD-family reference data entirely offline, so I can look up supported rules and add a licensed monster to my encounter without relying on internet access.
-**Verified:** 2026-11-04T14:18:54Z
-**Status:** passed after the user accepted the Phase 5 implementation/evidence and directed progression to the next phase.
-**Re-verification:** User accepted current E2E evidence on 2026-11-04; visual, firewall, and macOS limits remain explicitly unverified.
+**Verified:** 2026-11-07T18:51:07Z
+**Status:** human_needed
+**Verification mode:** Fresh goal-backward rerun against current source and current evidence. The prior 2026-11-04 report had no `gaps:` section; no prior failure is carried forward.
 
 ## Goal Achievement
 
@@ -22,12 +22,12 @@ overrides_applied: 0
 
 | # | Truth | Status | Evidence |
 |---|---|---|---|
-| 1 | DM can search bundled data and open details for the supported spell, condition, action, monster, equipment, class, and species categories. | ✓ VERIFIED | `records.json` contains one record for each category; `SrdCatalog.Search` and `Compendium.tsx` wire category/query search and detail rendering. Authenticated category integration tests assert provenance. Latest E2E includes monster detail/provenance and capture; `npm test` passed 79 Node plus 23 .NET tests. |
-| 2 | Shipped records are genuine, cited, licensed, attributed, and explicitly presented as a partial subset rather than fabricated complete coverage. | ✓ VERIFIED | Recalculated PDF SHA-256: `8974902D109D6E63672D7C490BDE9CCF052410503D9CFA768237154FBC5E3D87`, matching manifest and record source hashes. Inspected the source PDF’s legal notice (PDF p.1) and record citations: Acid Splash p.107, Blinded and Dash p.177, Barbarian p.28, Dwarf p.84, Dagger p.91, Bandit p.261. Required attribution matches the PDF notice. Manifest/coverage/attribution disclose partial definitions and unreviewed entries; `completenessClaim` is false. The renderer labels results a reviewed subset. |
-| 3 | DM can explicitly add a supported monster with stat information to a persistent private encounter without implicitly creating a map token or changing public presentation. | ✓ VERIFIED | Current Electron E2E run `artifacts/e2e/2026-11-04T14-18-54.798Z-5897407b/` passes the compendium search/detail/Add flow and asserts durable private actor plus unchanged map/public presentation. |
-| 4 | Catalog access is local/offline-capable and does not require an internet service or remote fallback. | ✓ VERIFIED | Backend loads records/manifest/coverage from packaged asset paths (with a development-tree fallback); search and Add resolve only those loaded records. Renderer calls the authenticated loopback API. No remote data fetch appears in these traced paths. Importer validation test runs against the pinned local PDF and records. Packaged local-resource/search/Add smoke is recorded in `05-VALIDATION.md`; OS firewall denial was not tested (see Human Verification). |
-| 5 | Catalog and encounter operations remain behind the private authenticated application boundary; catalog data and private encounter details are not added to the public presentation projection. | ✓ VERIFIED | `src/main.ts` DM IPC path allowlist permits bounded SRD search/coverage/metadata/record and encounter-monster paths. `src/main.test.mjs` tests permitted paths and denies `/api/srd/admin`, traversal-shaped record routes, and `/api/srd/search/other`; these passed in the 79-test Node run. Backend auth tests and latest E2E assert private actor/map/public separation. |
-| 6 | Search, record detail, and Add are substantive and wired end-to-end within the DM workspace. | ✓ VERIFIED | `MapEditor.tsx` imports and renders `Compendium`; component calls `searchSrdRecords`, `getSrdMetadata`, `getSrdCoverage`, and `addSrdMonsterToEncounter`. Data flows from packaged JSON through `SrdCatalog` and authenticated loopback handlers to rendered results/details and private encounter state. The importer and Compendium test files contain active assertions and were included in the passing `npm test` run. |
+| 1 | DM can search bundled records and open details for supported spells, conditions, actions, monsters, equipment, class, and species categories. | ✓ VERIFIED | `records.json` contains one source-cited record per category; `SrdCatalog` serves bounded category/query search and detail from local JSON; `MapEditor` mounts `Compendium`. Current `npm test` passes 102 Node tests, including catalog/UI contracts and backend integration. |
+| 2 | Shipped rules are licensed, attributed, provenance-linked, and clearly described as a limited reviewed subset, with absent material not fabricated. | ✓ VERIFIED | Recomputed source PDF SHA-256 `8974902D109D6E63672D7C490BDE9CCF052410503D9CFA768237154FBC5E3D87` matches manifest and all record provenance. Each of seven records has a page/section and record hash; manifest and attribution carry CC-BY-4.0 attribution, modifications, and explicit omissions. `coverage.json` sets `completenessClaim: false`; class/species entries are explicitly partial. |
+| 3 | DM can deliberately add the supported monster and its stats to durable private encounter state without adding a map token or changing public presentation. | ✓ VERIFIED | Current E2E log `artifacts/e2e/2026-11-07T18-21-53.682Z-fb4cbeeb/run.log` shows local SRD search, `POST /api/encounter/monsters 200`, then encounter/map/presentation reads. `scripts/e2e/srd-compendium.test.mjs` asserts explicit Add, actor persistence, and unchanged map/public state; current backend tests passed. Windows x64 package smoke also tested Add, backend restart persistence, and map/public isolation. |
+| 4 | Catalog lookup and monster Add work from packaged local data without requiring a remote catalog/service. | ✓ VERIFIED | `SrdCatalog` resolves packaged asset files; its search/Add paths consume those records, and UI APIs call authenticated loopback endpoints. Current Windows x64 package smoke passed bundled search/Add and restart persistence. E2E log records offline catalog flow and no external renderer requests. This is evidence of local operation/no remote catalog dependency, **not** an OS-wide outbound-network denial test. |
+| 5 | Catalog and encounter functionality stays behind the private authenticated DM boundary; private catalog/encounter data is excluded from public projection. | ✓ VERIFIED | `src/main.ts` route allowlist admits bounded SRD/private encounter paths and rejects arbitrary/traversal requests in `src/main.test.mjs`; backend routes use existing authenticated middleware. E2E and backend assertions check private actor/map/public separation. |
+| 6 | Search/detail/Add are substantive and wired end-to-end in the DM workspace. | ✓ VERIFIED | `MapEditor.tsx` renders `Compendium`; component consumes `src/renderer/src/api.ts` search, coverage, metadata, and Add methods. Data flows from packaged JSON through `SrdCatalog`/authenticated API to displayed detail and private encounter service. Current suite and the cited E2E/package runs exercise these paths. |
 
 **Score:** 6/6 truths verified (0 present, behavior-unverified)
 
@@ -35,103 +35,103 @@ overrides_applied: 0
 
 | Artifact | Expected | Status | Details |
 |---|---|---|---|
-| `assets/srd/2024/source/SRD_CC_v5.2.1.pdf`, `records.json`, `manifest.json`, `coverage.json`, `attribution.md` | Pinned source and legally attributed, provenance-linked curated bundle | ✓ VERIFIED | Present; local PDF hash matches manifest; seven cited records and accurate release/license/attribution/gap metadata inspected. |
-| `scripts/srd/import.mjs`, `scripts/srd/import.test.mjs` | Offline validation/importer and negative/determinism tests | ✓ VERIFIED | Substantive validation for hash, metadata, IDs, citations, categories and stats; importer tests passed in `npm test`. CLI importer was not separately invoked because it writes normalized output files. |
-| `src/backend/Srd/SrdCatalog.cs`, `src/backend/Program.cs` | Local category search/details/metadata and authenticated Add path | ✓ VERIFIED | Service loads packaged assets, bounds search, and exposes the routes through the existing authenticated middleware. |
-| `src/renderer/src/compendium/Compendium.tsx`, `compendium.test.mjs`, `src/renderer/src/api.ts`, `src/renderer/src/map/MapEditor.tsx` | Reachable DM search/details and explicit monster Add | ✓ VERIFIED | Imported and rendered by MapEditor; API methods called by the component; renderer contract tests passed. |
-| `src/backend/Encounters/EncounterService.cs`, `src/backend.tests/SrdCatalogTests.cs` | Private durable monster stat snapshot and privacy tests | ✓ VERIFIED | Add implementation and named integration assertions exist and passed as part of the 23-test .NET run. |
-| `src/main.ts`, `src/main.test.mjs` | DM IPC allowlist for catalog/Add endpoints and rejection of arbitrary SRD routes | ✓ VERIFIED | Explicit route allowlist is wired to `dm:command`; positive endpoint and arbitrary/traversal negative assertions passed in latest `npm test`. |
-| `scripts/package-smoke.mjs`, `scripts/e2e/srd-compendium.test.mjs`, `docs/phase-5-srd-compendium.md` | Package behavior evidence and truthful demo/known-gap docs | ✓ VERIFIED | Package smoke passed; current Electron E2E is at `artifacts/e2e/2026-11-04T14-18-54.798Z-5897407b/`. Smoke verifies packaged assets/local operation, not outbound denial. |
+| `assets/srd/2024/source/SRD_CC_v5.2.1.pdf`, `records.json`, `manifest.json`, `coverage.json`, `attribution.md` | Pinned source and licensed, cited curated bundle | ✓ VERIFIED | Present; direct PDF hash recalculation matches metadata. Seven category records carry citations, hashes, license/version, and changes; partial coverage is explicit. |
+| `scripts/srd/import.mjs`, `scripts/srd/import.test.mjs` | Offline deterministic input validation | ✓ VERIFIED | Substantive provenance/schema/hash validation and rejection tests; tests included in current 102-test Node run. |
+| `src/backend/Srd/SrdCatalog.cs`, `src/backend/Program.cs` | Local catalog API and authenticated Add route | ✓ VERIFIED | Local asset loading, bounded search/details, metadata/coverage and validated catalog-ID Add; wired through authenticated routes. |
+| `src/backend/Encounters/EncounterService.cs`, `src/backend.tests/SrdCatalogTests.cs` | Persistent source-linked private monster actor and isolation checks | ✓ VERIFIED | Catalog-backed stat snapshot/Add service; integration assertions for persistence and privacy passed in current 101-test .NET run. |
+| `src/renderer/src/compendium/Compendium.tsx`, `compendium.test.mjs`, `api.ts`, `map/MapEditor.tsx` | Reachable DM search/detail/explicit Add interface | ✓ VERIFIED | Direct workspace render and API calls verified; tests cover provenance, accessible states, deliberate Add and text-only source rendering. |
+| `src/main.ts`, `src/main.test.mjs` | DM IPC route allowlist | ✓ VERIFIED | Positive allowlisted requests and arbitrary/traversal negative cases pass. |
+| `scripts/e2e/srd-compendium.test.mjs`, `scripts/package-smoke.mjs`, `docs/phase-5-srd-compendium.md` | Current workflow evidence and documented limits | ✓ VERIFIED | E2E log at `artifacts/e2e/2026-11-07T18-21-53.682Z-fb4cbeeb/`; package smoke rerun passed on Windows x64. Documentation retains subset and platform/network limits. |
 
 ### Key Link Verification
 
 | From | To | Via | Status | Details |
 |---|---|---|---|---|
-| Official PDF | Curated JSON and provenance | Per-record page/section and source hash; importer checks pinned PDF hash | ✓ WIRED | All seven category citations inspected in the official PDF; importer validates record/source hashes. |
-| Packaged JSON | `SrdCatalog` | Fixed local resource resolver and JSON load | ✓ WIRED | Constructor loads local records, manifest, and coverage; no remote fallback. Project and package smoke assert bundled resource presence. |
-| `MapEditor` DM workspace | `Compendium` | Import and conditional render on compendium mode | ✓ WIRED | Direct import/render confirmed at `MapEditor.tsx`. |
-| Compendium search/detail | Authenticated catalog endpoints | `src/renderer/src/api.ts` loopback command calls | ✓ WIRED | Category search, manifest, and coverage requests are consumed by the component. |
-| Confirmed Add action | Private encounter persistence | Authenticated request -> Electron DM IPC allowlist -> server-side catalog ID lookup -> `EncounterService.AddMonster` | ✓ WIRED | UI call, allowlisted local API route, server lookup, durable actor, unchanged map/public payload asserted in latest Electron run and backend tests. |
+| Pinned SRD PDF | curated bundle | source hash, citation, deterministic importer | ✓ WIRED | Recalculated PDF hash matches manifest; each record source hash agrees and includes page/section citation. |
+| Packaged JSON | `SrdCatalog` | local resource resolver and JSON load | ✓ WIRED | Packaged smoke found and used catalog files; no remote catalog fallback in traced search/Add path. |
+| `MapEditor` | `Compendium` | import and workspace render | ✓ WIRED | Current source connects the DM workspace component. |
+| Compendium | authenticated catalog API | `api.ts` loopback calls | ✓ WIRED | Search, coverage, and metadata results are consumed by UI. |
+| Confirmed Add | private encounter persistence | UI → DM IPC allowlist → authenticated API/catalog lookup → `EncounterService` | ✓ WIRED | Current E2E, backend tests, and packaged smoke exercise Add and actor persistence while retaining map/public isolation. |
 
 ### Data-Flow Trace (Level 4)
 
 | Artifact | Data Variable | Source | Produces Real Data | Status |
 |---|---|---|---|---|
-| `Compendium.tsx` | `result.records`, `selected`, `metadata`, `coverage` | Local packaged JSON via `SrdCatalog` and authenticated loopback calls | Yes | ✓ FLOWING |
-| Encounter service | actor source ID, ruleset version and stat snapshot | Server-side lookup of the selected bundled monster record | Yes | ✓ FLOWING |
-| Public presentation | public DTO | Existing allowlisted presentation projection, not encounter/catalog state | Yes | ✓ PRIVATE DATA EXCLUDED |
+| `Compendium.tsx` | result records, selected detail, metadata, coverage | Packaged catalog JSON through `SrdCatalog` and authenticated loopback API | Yes | ✓ FLOWING |
+| `EncounterService` | source ID/version and monster stat snapshot | Server-side lookup of selected bundled record | Yes | ✓ FLOWING |
+| Public presentation | allowlisted public projection | Existing public scene/map projection, not private encounter/catalog state | Yes | ✓ PRIVATE DATA EXCLUDED |
 
 ### Behavioral Spot-Checks
 
-| Behavior | Command | Result | Status |
+| Behavior | Command/evidence | Result | Status |
 |---|---|---|---|
-| Import validation, DM IPC allowlist/negative cases, category search, renderer contract and backend integration | `npm test` | Re-run exit 0: 79 Node tests and 23 .NET tests passed; 0 failed/skipped. Includes allowlist tests. | ✓ PASS |
-| Offline packaged catalog and private monster workflow | `npm run package:smoke` | Re-run exit 0 on Windows x64: packaged local catalog search/Add, actor restart persistence, map/public isolation and map/presentation round-trip passed. No firewall enforcement. | ✓ PASS (scope-limited) |
-| Full Electron user flow and responsive viewport contract | E2E evidence `artifacts/e2e/2026-11-04T14-18-54.798Z-5897407b/` | Latest run passed on Windows x64, including existing flows and Phase 5 compendium behavior. | ✓ PASS |
-| Production build | `npm run build` | Re-run exit 0; TypeScript/Electron/Vite/.NET Release build succeeded with zero backend warnings/errors. | ✓ PASS |
-| Direct OS-level outbound network denial | Not run | No firewall/network-denial acceptance evidence | ? SKIP — human verification |
+| Unit, renderer, importer, IPC and backend integration suite | `npm test` | Exit 0: 102 Node passed; .NET 101 passed, 0 failed/skipped | ✓ PASS |
+| Production build | `npm run build` | Exit 0; TypeScript/Electron/Vite/.NET Release build succeeded, 0 backend warnings/errors | ✓ PASS |
+| Packaged Windows x64 local catalog/Add/persistence/privacy workflow | `npm run package:smoke` | Exit 0; bundled search/Add, restart persistence, map/public isolation, authenticated draft/approved round-trip and black-until-Show passed | ✓ PASS (scope-limited) |
+| Electron SRD search/detail/Add flow | `artifacts/e2e/2026-11-07T18-21-53.682Z-fb4cbeeb/run.log` | Log records category search, successful Add, subsequent private encounter/map/presentation reads, and overall PASS | ✓ PASS |
+| Offline operation under explicit OS/firewall outbound denial | Not performed | No OS-wide network-denial result is asserted | ? HUMAN |
 
 ### Probe Execution
 
-Not applicable: no phase-declared or conventional probe script was identified in the phase plans or validation contract.
+Not applicable: no phase-declared or conventional probe was found.
 
 ### Requirements Coverage
 
 | Requirement | Source Plan | Description | Status | Evidence |
 |---|---|---|---|---|
-| SRD-01 | 05-01 through 05-04 | Offline supported reference categories, search/details | ✓ SATISFIED for the stated supported-subset minimum | One directly cited genuine record for each of seven categories; local category endpoint and UI wiring; passing category integration test. Explicitly not a completeness/parity claim. `.planning/REQUIREMENTS.md` remains Pending as instructed; no project state was advanced. |
-| SRD-02 | 05-01, 05-02, 05-03, 05-04 | Version, attribution, license, provenance and explicit missing-data handling | ✓ SATISFIED | Manifest, per-record citations/hashes, attribution, coverage and displayed known gaps; source PDF and hash directly inspected. |
-| SRD-03 | 05-01, 05-04 | Open monster detail and add stat-linked monster to encounter | ✓ SATISFIED | Explicit DM confirmation, authenticated server-side ID lookup, durable private stat snapshot, and tests for persistence/isolation. |
+| SRD-01 | 05-01 through 05-04 | Search supported offline rules categories and details | ✓ SATISFIED for the explicitly disclosed reviewed-subset scope | One genuine record in each of seven categories, citations and working search/detail; current tests pass. Not a completeness/parity claim. |
+| SRD-02 | 05-01 through 05-04 | Version, license, attribution, provenance and explicit missing-data handling | ✓ SATISFIED | Current manifest, records, coverage and attribution inspected; PDF hash independently recomputed. |
+| SRD-03 | 05-01, 05-04 | Inspect and add a monster with stats to encounter | ✓ SATISFIED | Current E2E, backend tests, and Windows x64 package smoke support private durable Add with map/public isolation. |
 
-No additional Phase 5 traceability requirements were found beyond SRD-01/02/03.
+No other Phase 5 requirement IDs appear in roadmap traceability.
 
 ### Decision Coverage
 
-Not evaluated: no Phase 5 `CONTEXT.md` decisions block was present to audit.
+Not evaluated: no Phase 5 `CONTEXT.md` decisions block is present.
 
 ### Test Quality Audit
 
 | Test File | Linked Req | Active | Skipped | Circular | Assertion Level | Verdict |
 |---|---|---:|---:|---|---|---|
-| `scripts/srd/import.test.mjs` | SRD-01, SRD-02 | Yes | 0 | No expected-value generator found | Value/behavioral (validation and category content) | PASS |
-| `src/backend.tests/SrdCatalogTests.cs` | SRD-01, SRD-02, SRD-03 | Yes | 0 | No expected-value generator found | Behavioral/integration (auth, seven categories, persistence/privacy) | PASS |
-| `src/renderer/src/compendium/compendium.test.mjs` | SRD-01, SRD-02, SRD-03 | Yes | 0 | No expected-value generator found | Contract/value and hostile-string behavior | PASS |
-| `src/main.test.mjs` | SRD-01, SRD-03 | Yes | 0 | No expected-value generator found | Allowlist positive and arbitrary/traversal route negative assertions | PASS |
+| `scripts/srd/import.test.mjs` | SRD-01, SRD-02 | Yes | 0 | No expected-value generator identified | Value/behavioral | PASS |
+| `src/backend.tests/SrdCatalogTests.cs` | SRD-01, SRD-02, SRD-03 | Yes | 0 | No expected-value generator identified | Behavioral/integration | PASS |
+| `src/renderer/src/compendium/compendium.test.mjs` | SRD-01, SRD-02, SRD-03 | Yes | 0 | No expected-value generator identified | Value/contract | PASS |
+| `src/main.test.mjs` | SRD-01, SRD-03 | Yes | 0 | No expected-value generator identified | Allowlist positive/negative | PASS |
 
-Disabled-test scan found no linked skipped tests. The source-record expected values are independently cited to the official PDF rather than generated by the application. `npm test` executed the active test set successfully.
+Disabled-test scan found no requirement-linked skipped test. Current `npm test` executed the Node and .NET suites successfully. Source-record values remain individually cited to the independent official PDF; they are not generated from application output.
 
 ### Anti-Patterns Found
 
 | File | Line | Pattern | Severity | Impact |
 |---|---:|---|---|---|
 
-No blocking TODO/FIXME/XXX markers or stub implementations were identified in the inspected phase implementation paths. Partial class/species definitions are explicitly documented data limits, not implementation stubs.
+No blocking debt markers or stubs found in inspected phase paths. The small sample count and omitted class/species details are expressly documented scope limits, not hidden placeholders.
 
-### Acknowledged Unverified Checks
+## Human Verification Required
 
-#### 1. Visual DM Compendium review
+### 1. Visual and interaction review of the DM Compendium
 
-**Test:** Review the captured DM Compendium screen (`artifacts/e2e/2026-11-04T14-18-54.798Z-5897407b/screenshots/11-offline-srd-compendium-manager.png`) and, in the packaged Windows application, navigate/search multiple categories; inspect provenance and verify narrow-window layout, keyboard focus/navigation, and status messages.
-**Expected:** The workspace is legible and operable, metadata and partial-subset caveats are clear, and Add remains deliberate and private.
-**Why human:** E2E now captures and exercises the Compendium workflow but automated assertions do not establish visual quality or screen-reader/focus usability; no human visual review was performed.
+**Test:** Review `artifacts/e2e/2026-11-07T18-21-53.682Z-fb4cbeeb/screenshots/11-offline-srd-compendium-manager.png`; in the packaged app, search multiple categories, inspect citations/coverage caveats, keyboard operation and a narrow window.
+**Expected:** The partial-subset nature is clear, provenance is legible, and the DM-only Add action is deliberate and usable.
+**Why human:** Automated contracts and screenshots do not establish visual quality, accessibility/focus usability, or clarity to a DM.
 
-#### 2. Network-denial acceptance
+### 2. Offline workflow with OS/firewall outbound access explicitly blocked
 
-**Test:** Run the packaged Windows workflow with outbound network access explicitly blocked by the OS/firewall while searching categories and adding a monster.
-**Expected:** Search/details/Add continue to work entirely from packaged assets, and no outbound request is attempted or required.
-**Why human:** The package smoke proves local-resource resolution and lack of remote catalog fallback in the inspected path; it did not enforce firewall/network denial.
+**Test:** On Windows, explicitly block outbound network access at OS/firewall level and run packaged catalog search, detail, and Add.
+**Expected:** The local catalog and Add remain usable without external requests or services.
+**Why human:** Package smoke verifies bundled local-resource resolution and a no-remote-catalog path; it does not enforce OS-wide network denial. No such denial is claimed.
 
-#### 3. macOS packaged verification
+### 3. macOS packaged verification
 
-**Test:** Package and run the same offline compendium/Add flow on each supported macOS target.
-**Expected:** Bundled source and catalog resolve correctly and private actor/presentation isolation remains intact.
-**Why human:** This workspace and recorded package smoke are Windows x64; macOS was not physically tested. Do not infer platform parity.
+**Test:** Package and run search/detail/Add on each supported macOS target.
+**Expected:** Bundled data resolves and private encounter/presentation isolation holds.
+**Why human:** Only Windows x64 package smoke was run; macOS behavior is not inferred.
 
-### Gaps Summary
+## Gaps Summary
 
-The roadmap’s Phase 5 goal and three success criteria are represented by working local catalog, provenance details, and a private monster-add path. All seven minimum categories have at least one genuine source-cited record; this is a deliberately small reviewed subset, not SRD completeness or parity. The official PDF hash, citation pages, source-license language, and exact attribution were inspected directly. Latest `npm test` (79 Node/23 .NET), `npm run build`, and Windows x64 `npm run package:smoke` passed. Current Electron E2E passed on 2026-11-04 at `artifacts/e2e/2026-11-04T14-18-54.798Z-5897407b/`. The user accepted this implementation/evidence for progression. This acceptance is not evidence of human visual usability review, OS firewall denial, or macOS verification; those remain unverified and are not claimed.
+Current source and tests establish a functioning local, licensed, source-cited compendium and private monster Add path. The catalog intentionally contains only seven reviewed records—one per requested category; remaining entries are unavailable/unreviewed and the data makes no completeness claim. The PDF SHA-256 matches its manifest. The current full suite (102 Node, 101 .NET), production build, Windows x64 package smoke, and current E2E artifact passed. This does not demonstrate OS-wide outbound network denial, human visual/accessibility acceptance, or macOS package operation. Those remain explicit human acceptance items, so status is `human_needed`, not `passed`.
 
 ---
 
-_Verified: 2026-11-04T14:18:54Z_
+_Verified: 2026-11-07T18:51:07Z_
 _Verifier: the agent (gsd-verifier)_
