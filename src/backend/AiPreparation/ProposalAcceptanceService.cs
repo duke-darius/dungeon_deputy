@@ -57,7 +57,9 @@ public sealed class ProposalAcceptanceService(EncounterService encounters, SrdCa
         catch (SqliteException) { return new(false, "The private draft could not be saved. No partial acceptance was committed."); }
         return updated is null
             ? new(false, "The selected content could not be applied within the current private map and encounter limits. No partial acceptance was saved.")
-            : new(true, "Accepted to the private editable map draft. Nothing was shown or published.", updated);
+            : new(true, proposal.Kind == "geometry" || records.Count > 0
+                ? "Accepted to the private editable map draft. Nothing was shown or published."
+                : "Accepted to private preparation. Nothing was shown or published.", updated);
     }
 
     private bool ResolveAndValidate(AiProposal proposal, out IReadOnlyList<AiSelectedSrdRecord> references)

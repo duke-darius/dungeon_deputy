@@ -10,7 +10,9 @@ const ALLOWED_SHEET_KEYS = [
 export async function pairIndependentBrowser(app, inviteUrl, partition, characterName) {
   const pagePromise = app.waitForEvent('window');
   await app.evaluate(({ BrowserWindow }, { url, sessionPartition }) => {
-    const phone = new BrowserWindow({ show: false, width: 390, height: 844, webPreferences: { partition: sessionPartition, contextIsolation: true, sandbox: true, nodeIntegration: false } });
+    const phone = new BrowserWindow({ show: false, title: sessionPartition, width: 390, height: 844, webPreferences: { partition: sessionPartition, contextIsolation: true, sandbox: true, nodeIntegration: false } });
+    globalThis.__dungeonDeputyE2ePlayerWindowIds ??= {};
+    globalThis.__dungeonDeputyE2ePlayerWindowIds[sessionPartition] = phone.id;
     void phone.loadURL(url);
   }, { url: inviteUrl, sessionPartition: partition });
   const page = await pagePromise;
@@ -22,6 +24,8 @@ export async function pairIndependentBrowser(app, inviteUrl, partition, characte
   const grant = await response.json();
   await page.getByRole('heading', { name: characterName, exact: true }).waitFor();
   await page.locator('.player-connection').filter({ hasText: 'Connected' }).waitFor();
+  const width = await page.evaluate(() => ({ client: document.documentElement.clientWidth, scroll: document.documentElement.scrollWidth }));
+  assert.ok(width.scroll <= width.client, `assigned phone sheet overflows horizontally (${width.scroll}px > ${width.client}px)`);
   assert.equal(new URL(page.url()).searchParams.has('invite'), false, 'invite secret leaves browser history after redemption');
   await page.getByText(/unencrypted HTTP/i).waitFor();
   return { page, grant };

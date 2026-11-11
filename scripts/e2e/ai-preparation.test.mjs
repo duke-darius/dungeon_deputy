@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 export const PRIVATE_PROMPT_SENTINEL = 'P7_PRIVATE_PROMPT_SENTINEL_3b8c7d';
 
 /** Full Electron/backend path using the isolated backend fake-provider seam; never calls OpenAI. */
-export async function verifyTavernAmbushAcceptance(manager, player) {
+export async function verifyTavernAmbushAcceptance(manager, player, capture = async () => {}) {
   const snapshot = () => manager.evaluate(async () => ({
     map: await window.dungeonDeputy.command('/api/map'),
     encounter: await window.dungeonDeputy.command('/api/encounter'),
@@ -15,7 +15,7 @@ export async function verifyTavernAmbushAcceptance(manager, player) {
       'proposal prose, geometry labels, provider status, and preview errors must never reach player/table text');
   };
   const original = await snapshot();
-  await manager.getByRole('button', { name: 'Preparation · AI optional · DM only' }).click();
+  await manager.getByRole('button', { name: 'Open DM-only AI preparation' }).click();
   await manager.locator('.preparation-status').getByText('Provider configured · Requests require your approval').waitFor();
   await manager.getByRole('button', { name: 'Map geometry' }).click();
   await manager.getByLabel('Prompt / constraints').fill(`${PRIVATE_PROMPT_SENTINEL} Tavern ambush: mark the room and the goblins’ approach.`);
@@ -24,8 +24,16 @@ export async function verifyTavernAmbushAcceptance(manager, player) {
   const banditRow = manager.locator('.preparation-srd li').filter({ hasText: 'srd521:monster:bandit' }).first();
   await banditRow.getByRole('checkbox').check();
   await manager.getByRole('checkbox', { name: /I understand and consent/ }).check();
+  await manager.evaluate(() => window.scrollTo(0, 0));
+  await capture('20-ai-request-and-consent');
+  await manager.locator('.preparation-disclosure').scrollIntoViewIfNeeded();
+  await capture('21-ai-sharing-disclosure');
   await manager.getByRole('button', { name: 'Generate proposal' }).click();
   await manager.locator('.preparation-main p[role="status"]').getByText('Private proposal ready for review').waitFor();
+  await manager.evaluate(() => window.scrollTo(0, 0));
+  await capture('22-ai-private-preview-top');
+  await manager.locator('.proposal-fields').scrollIntoViewIfNeeded();
+  await capture('23-ai-private-preview-fields');
   const afterGenerate = await snapshot();
   assert.deepEqual(afterGenerate, original, 'generation and private preview must leave map, encounter and public presentation unchanged');
   await assertPrivateContentNotProjected();
@@ -51,6 +59,7 @@ export async function verifyTavernAmbushAcceptance(manager, player) {
   const token = accepted.map.draft.tokens.find(item => item.id === actor.tokenId);
   assert.ok(token, 'actor token ID is the same as its map token ID');
   assert.equal(token.kind, 'monster');
+  await capture('24-ai-accepted-private-proposal');
 
   await manager.getByRole('button', { name: 'Return to map, scenes, encounters, compendium, characters and table display' }).click();
   await manager.getByLabel('Private map geometry').waitFor();
@@ -67,7 +76,10 @@ export async function verifyTavernAmbushAcceptance(manager, player) {
   assert.equal(edited.map.draft.geometry[0].label, 'Reviewed tavern room');
   assert.equal(edited.map.draft.tokens.find(item => item.id === token.id).name, 'Ambush Bandit · DM edited');
   assert.deepEqual(edited.public, original.public, 'geometry and token edits remain private until a separate Show');
+  const width = await manager.evaluate(() => ({ client: document.documentElement.clientWidth, scroll: document.documentElement.scrollWidth }));
+  assert.ok(width.scroll <= width.client, `map geometry editor causes horizontal overflow (${width.scroll}px > ${width.client}px)`);
   await assertPrivateContentNotProjected();
+  await capture('25-ai-map-geometry-private');
 
   await manager.getByRole('spinbutton', { name: 'Initiative' }).fill('12');
   await manager.getByRole('button', { name: 'Set initiative' }).click();
@@ -97,4 +109,21 @@ export async function verifyTavernAmbushAcceptance(manager, player) {
   });
   assert.equal(brassGeometryPixel, true, 'the separately shown public map raster contains accepted geometry');
   assert.equal(afterShowText.includes('Reviewed tavern room'), false, 'DM-only geometry labels are not projected into public text');
+  await capture('26-ai-ambush-shown', true);
+
+  await manager.getByRole('button', { name: 'Open DM-only AI preparation' }).click();
+  await manager.getByRole('heading', { name: 'Accepted preparations' }).waitFor();
+  await manager.getByRole('button', { name: 'NPC', exact: true }).click();
+  await manager.getByLabel('Prompt / constraints').fill('Create a cautious guide for the Crooked Tankard.');
+  await manager.getByRole('checkbox', { name: /I understand and consent/ }).check();
+  await manager.getByRole('button', { name: 'Generate proposal' }).click();
+  await manager.getByText('Mira Vale', { exact: true }).waitFor();
+  await capture('27-ai-npc-private-preview');
+  await manager.getByRole('button', { name: 'Accept and create private draft' }).click();
+  await manager.locator('.preparation-main p[role="status"]').getByText(/Accepted to private preparation/).waitFor();
+  const acceptedNarrative = manager.getByRole('button', { name: /npc ·/ });
+  await acceptedNarrative.waitFor();
+  await acceptedNarrative.click();
+  await manager.getByRole('heading', { name: 'Edit accepted npc' }).waitFor();
+  await capture('28-ai-accepted-narrative-editor');
 }

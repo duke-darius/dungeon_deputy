@@ -11,7 +11,7 @@ type Workspace = 'scenes' | 'map' | 'audio' | 'compendium' | 'characters';
 type Presentation = { mode: string; sceneId: string | null };
 const RETRY_MESSAGE = 'Couldn’t save this change. Your last saved state is unchanged; retry the action.';
 
-export default function MapEditor() {
+export default function MapEditor({ onOpenPreparation }: { onOpenPreparation: () => void }) {
   const [mode, setMode] = useState<Workspace>('map');
   const [sceneId, setSceneId] = useState('ashen-road');
   const [publicPresentation, setPublicPresentation] = useState<Presentation>({ mode: 'black', sceneId: null });
@@ -238,6 +238,7 @@ export default function MapEditor() {
       <button aria-pressed={mode === 'audio'} onClick={() => setMode('audio')}>Audio · DM only</button>
       <button aria-pressed={mode === 'compendium'} onClick={() => setMode('compendium')}>Compendium · DM only</button>
       <button aria-pressed={mode === 'characters'} onClick={() => setMode('characters')}>Characters · DM only</button>
+      <button className="preparation-entry" aria-label="Open DM-only AI preparation" onClick={onOpenPreparation}>Preparation · AI optional</button>
     </nav>
     {mode === 'compendium' && <Compendium />}
     {mode === 'characters' && <CharacterWorkspace />}

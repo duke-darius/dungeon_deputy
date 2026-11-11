@@ -41,15 +41,21 @@ export default function JoinPage({ initialInvite }: { initialInvite: string }) {
     else setMessage('This invite is no longer active. Your private sheet has been cleared. Ask the DM for a new invite.');
   }, []);
 
+  if (grant) return <main className="player-join player-joined">
+    <p className="player-warning player-warning-compact" role="note">This session uses unencrypted HTTP. Other people on this Wi-Fi may observe or interfere with traffic. Join only a trusted private LAN.</p>
+    <p className="player-paired-status" role="status">Paired · access expires {new Date(grant.expiresAt).toLocaleString()} or when the DM ends the session.</p>
+    <PlayerWorkspace token={grant.token} onAccessEnded={accessEnded} />
+  </main>;
+
   return <div className="player-join" aria-labelledby="join-heading">
     <header><p className="player-kicker">Dungeon Deputy · Player access</p><h1 id="join-heading">Join a local session</h1></header>
     <p className="player-warning" role="note">This session uses unencrypted HTTP. Other people on this Wi-Fi may observe or interfere with traffic. Join only a trusted private LAN.</p>
-    {grant ? <><section aria-live="polite"><h2>Paired</h2><p>Access expires {new Date(grant.expiresAt).toLocaleString()} or when the DM ends the session.</p></section><PlayerWorkspace token={grant.token} onAccessEnded={accessEnded} /></> : <form onSubmit={exchange}>
+    <form onSubmit={exchange}>
       <p>This invite can be used once and is for the character selected by your DM.</p>
       <label htmlFor="player-invite">One-time invite code</label>
       <input id="player-invite" required maxLength={64} autoComplete="off" value={invite} onChange={event => setInvite(event.target.value)} />
       <button type="submit" disabled={busy || invite.trim().length < 32}>{busy ? 'Connecting…' : 'Use this invite'}</button>
-    </form>}
+    </form>
     <p role="status" aria-live="polite">{message}</p>
   </div>;
 }

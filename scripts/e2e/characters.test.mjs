@@ -4,6 +4,7 @@ export async function verifyWizardCharacterProfile(manager) {
   await manager.getByRole('button', { name: 'New character' }).click();
   await manager.getByLabel('Character name').fill('Ira Wizard');
   await manager.getByLabel('Class').selectOption('wizard');
+  assert.equal(await manager.getByText('nature', { exact: true }).count(), 0, 'Wizard skill choices do not include the unsupported Nature proficiency');
   await manager.getByRole('button', { name: 'Save changes' }).click();
   await manager.getByText(/Wizard spellbook \(names\/IDs only\)/).waitFor();
   let wizardRecord = (await manager.evaluate(() => window.dungeonDeputy.command('/api/characters'))).find(item => item.class === 'wizard');

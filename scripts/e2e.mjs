@@ -58,6 +58,42 @@ async function assertWindowsStable() {
   const fullscreen=await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows().map(win=>win.isFullScreen()));
   assert.deepEqual(fullscreen,windowBaseline.fullscreen,'a content update changed fullscreen state');
 }
+async function capture(name, role, route, expectedVisual = false) {
+  const captured = await app.evaluate(async ({ BrowserWindow }, suffix) => {
+    const win = BrowserWindow.getAllWindows().find(candidate => new URL(candidate.webContents.getURL()).pathname.endsWith(suffix));
+    if (!win) throw new Error(`No Electron window found for ${suffix}`);
+    await win.webContents.executeJavaScript('new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))');
+    const image = await win.webContents.capturePage(undefined, { stayHidden: true });
+    const size = image.getSize();
+    const bitmap = image.toBitmap();
+    let litPixels = 0;
+    for (let i = 0; i < bitmap.length; i += 4) if (bitmap[i] > 8 || bitmap[i + 1] > 8 || bitmap[i + 2] > 8) litPixels++;
+    return { png: image.toPNG().toString('base64'), width: size.width, height: size.height, litPixels };
+  }, route);
+  if (!captured.width || !captured.height) throw new Error(`Hidden ${role} capture returned an empty surface.`);
+  if (role === 'player' && expectedVisual && captured.litPixels === 0) throw new Error(`Expected visible player content, but hidden capture was entirely black at ${name}.`);
+  const path = join(evidence, 'screenshots', `${name}-${role}.png`);
+  await writeFile(path, Buffer.from(captured.png, 'base64'));
+  log(`SCREENSHOT ${path} ${captured.width}x${captured.height} litPixels=${captured.litPixels}`);
+}
+async function screenshot(name, publicVisual = false) {
+  return Promise.all([capture(name, 'manager', 'index.html'), capture(name, 'player', 'public.html', publicVisual)]);
+}
+async function capturePlayerClient(name, partition, bottom = false) {
+  const captured = await app.evaluate(async ({ BrowserWindow }, { sessionPartition, bottom }) => {
+    const windowId = globalThis.__dungeonDeputyE2ePlayerWindowIds?.[sessionPartition];
+    const win = Number.isInteger(windowId) ? BrowserWindow.fromId(windowId) : undefined;
+    if (!win) throw new Error(`No hidden player window found for ${sessionPartition}`);
+    if (bottom) await win.webContents.executeJavaScript('window.scrollTo(0, document.documentElement.scrollHeight)');
+    await win.webContents.executeJavaScript('new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))');
+    const image = await win.webContents.capturePage(undefined, { stayHidden: true });
+    return { png: image.toPNG().toString('base64'), width: image.getSize().width, height: image.getSize().height };
+  }, { sessionPartition: partition, bottom });
+  if (!captured.width || !captured.height) throw new Error(`Hidden player capture returned an empty image: ${name}`);
+  const path = join(evidence, 'screenshots', `${name}.png`);
+  await writeFile(path, Buffer.from(captured.png, 'base64'));
+  log(`SCREENSHOT ${path} ${captured.width}x${captured.height} hidden-player-client`);
+}
 try {
   const wav = Buffer.alloc(44 + 800);
   wav.write('RIFF', 0); wav.writeUInt32LE(836, 4); wav.write('WAVEfmt ', 8); wav.writeUInt32LE(16, 16); wav.writeUInt16LE(1, 20); wav.writeUInt16LE(1, 22); wav.writeUInt32LE(8000, 24); wav.writeUInt32LE(16000, 28); wav.writeUInt16LE(2, 32); wav.writeUInt16LE(16, 34); wav.write('data', 36); wav.writeUInt32LE(800, 40);
@@ -104,6 +140,8 @@ try {
   assert.match(characterSupport[0].support.pdfSha256, /^sha256:[a-f0-9]{64}$/);
   assert.equal(characterSupport[0].support.citations.class.includes('PDF pp. 28-29'), true, 'calculation support includes the official SRD citation');
   await verifyWizardCharacterProfile(manager);
+  await manager.evaluate(() => window.scrollTo(0, 0));
+  await screenshot('19-character-sheet-workspace');
   assert.equal(await manager.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), true, 'character workspace has no horizontal overflow');
     const playerInterfaces = await manager.evaluate(() => window.dungeonDeputy.command('/api/player-session/interfaces'));
     assert.deepEqual(playerInterfaces.map(item => item.address), ['127.0.0.1'], 'E2E exercises the player listener over loopback only and never binds a Windows private NIC');
@@ -146,10 +184,13 @@ try {
         const otherInvite = await manager.evaluate(characterId => window.dungeonDeputy.command('/api/player-session/invites', 'POST', { characterId }), otherCharacter.id);
         observedCapabilities.push(otherInvite.secret);
         const secondPlayer = await pairIndependentBrowser(app, otherInvite.url, 'persist:e2e-player-oren', 'Oren Ash');
-        const phonePage = secondPlayer.page;
-        const secondGrant = secondPlayer.grant;
-        observedCapabilities.push(secondGrant.token);
-        const hub = new HubConnectionBuilder().withUrl(`${playerSession.listener.origin}/api/player/hub`, { accessTokenFactory: () => grant.token }).build();
+         const phonePage = secondPlayer.page;
+         const secondGrant = secondPlayer.grant;
+         observedCapabilities.push(secondGrant.token);
+         await capturePlayerClient('30-player-sheet-mira', 'persist:e2e-player-mira');
+         await capturePlayerClient('31-player-sheet-oren', 'persist:e2e-player-oren');
+         await capturePlayerClient('32-player-sheet-mira-actions', 'persist:e2e-player-mira', true);
+         const hub = new HubConnectionBuilder().withUrl(`${playerSession.listener.origin}/api/player/hub`, { accessTokenFactory: () => grant.token }).build();
         let initialSnapshot;
         let latestSheet;
         let approvedScene;
@@ -448,28 +489,6 @@ try {
   assert.equal(await player.locator('.public-stage .public-art, .public-stage .public-map').count(),0,'dirty current-encounter cue must leave blackout untouched');
   await manager.getByRole('button', { name: 'Reload saved map' }).click();
 
-  const capture = async (name, role, route, expectedVisual = false) => {
-    const captured = await app.evaluate(async ({ BrowserWindow }, suffix) => {
-      const win = BrowserWindow.getAllWindows().find(candidate => new URL(candidate.webContents.getURL()).pathname.endsWith(suffix));
-      if (!win) throw new Error(`No Electron window found for ${suffix}`);
-      await win.webContents.executeJavaScript('new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))');
-      const image = await win.webContents.capturePage(undefined, { stayHidden: true });
-      const size = image.getSize();
-      const bitmap = image.toBitmap();
-      let litPixels = 0;
-      for (let i = 0; i < bitmap.length; i += 4) if (bitmap[i] > 8 || bitmap[i + 1] > 8 || bitmap[i + 2] > 8) litPixels++;
-      return { png: image.toPNG().toString('base64'), width: size.width, height: size.height, litPixels };
-    }, route);
-    if (!captured.width || !captured.height) throw new Error(`Hidden ${role} capture returned an empty surface.`);
-    if (role === 'player' && expectedVisual && captured.litPixels === 0) throw new Error(`Expected visible player content, but hidden capture was entirely black at ${name}.`);
-    const path = join(evidence, 'screenshots', `${name}-${role}.png`);
-    await writeFile(path, Buffer.from(captured.png, 'base64'));
-    log(`SCREENSHOT ${path} ${captured.width}x${captured.height} litPixels=${captured.litPixels}`);
-  };
-  const screenshot = async (name, publicVisual = false) => Promise.all([
-    capture(name, 'manager', 'index.html'),
-    capture(name, 'player', 'public.html', publicVisual),
-  ]);
   captureFailure = () => screenshot('failure');
   await manager.getByRole('button', { name: 'Audio · DM only' }).click();
   await screenshot('15-audio-soundboard-top', false);
@@ -804,8 +823,10 @@ try {
   await manager.getByRole('button', { name: 'Open Bandit, monster' }).click();
   await manager.getByRole('heading', { name: 'Bandit' }).waitFor();
   await manager.getByText('PDF page 261', { exact: false }).waitFor();
-  await manager.locator('.compendium-detail').scrollIntoViewIfNeeded();
+  await manager.evaluate(() => window.scrollTo(0, 0));
   await screenshot('11-offline-srd-compendium');
+  await manager.locator('.compendium-detail').scrollIntoViewIfNeeded();
+  await screenshot('11a-offline-srd-compendium-provenance');
   const beforeSrdAdd=await manager.evaluate(async()=>({map:await window.dungeonDeputy.command('/api/map'),presentation:await window.dungeonDeputy.command('/api/presentation')}));
   manager.once('dialog', dialog=>void dialog.accept());
   await manager.getByRole('button', { name: 'Add to private encounter' }).click();
@@ -823,7 +844,7 @@ try {
   // deterministic fake selected only by the E2E launch environment; external requests stay blocked.
   await app.close();
   ({ manager, player } = await launchPair(join(evidence, 'ai-data'), false));
-  await verifyTavernAmbushAcceptance(manager, player);
+  await verifyTavernAmbushAcceptance(manager, player, screenshot);
   await assertWindowsStable();
   log('AI ACCEPTANCE: deterministic tavern ambush preview, invalid-reject, private accept/edit/local-turn and separate Show verified.');
 

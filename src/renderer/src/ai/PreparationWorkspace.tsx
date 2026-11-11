@@ -28,6 +28,7 @@ export default function PreparationWorkspace({ onBack }: { onBack: () => void })
   const [notice, setNotice] = useState('');
   const [accepting, setAccepting] = useState(false);
   const [acceptedMonsterIds, setAcceptedMonsterIds] = useState<string[]>([]);
+  const [acceptedRefresh, setAcceptedRefresh] = useState(0);
 
   useEffect(() => { let active = true; getPreparationStatus().then(value => { if (active) setStatus(value); }).catch(() => { if (active) setStatus({ state: 'unconfigured' }); }); return () => { active = false; }; }, []);
   const statusText = status?.state === 'configured' ? 'Provider configured · Requests require your approval' : status?.state === 'disabled' ? 'AI preparation is off. Existing campaign tools are available.' : status?.state === 'unconfigured' ? 'No provider key configured. AI proposals are unavailable.' : 'Checking local AI configuration';
@@ -44,7 +45,7 @@ export default function PreparationWorkspace({ onBack }: { onBack: () => void })
   const accept = async () => {
     if (!proposal || accepting) return;
     setAccepting(true); setFailure('');
-    try { const result = await acceptProposal(proposal, acceptedMonsterIds); setNotice(result.message); }
+    try { const result = await acceptProposal(proposal, acceptedMonsterIds); setNotice(result.message); setAcceptedRefresh(value => value + 1); }
     catch { setFailure('Acceptance was rejected. Your edited proposal is preserved; verify local catalog selections and try again.'); }
     finally { setAccepting(false); }
   };
@@ -73,24 +74,24 @@ export default function PreparationWorkspace({ onBack }: { onBack: () => void })
           <section className="proposal-references"><h3>{view?.referenceLabel}</h3>{proposal.references?.length ? proposal.references.map(ref => <article key={ref.id}><strong>{ref.name} ({ref.id})</strong><p>{ref.excerpt}</p><small>{ref.source}</small></article>) : <p>{view?.noReference}</p>}</section>
            <p className="accept-boundary">Accept applies only this edited proposal to a private map draft. Selected local monsters are added through the existing encounter workflow. It never shows or publishes; use the separate Show action afterward.</p>
            <fieldset className="preparation-srd"><legend>Explicitly accept supported local monsters (optional)</legend>{selected.filter(record => record.category === 'monster').length ? selected.filter(record => record.category === 'monster').map(record => <label key={record.id}><input type="checkbox" checked={acceptedMonsterIds.includes(record.id)} onChange={event => setAcceptedMonsterIds(ids => event.target.checked ? [...ids, record.id] : ids.filter(id => id !== record.id))} />Add {record.name} ({record.id}) to this encounter and private map</label>) : <p>No selected local monster records. Narrative characters and encounter ideas are not game actors.</p>}</fieldset>
-           <button className="preparation-primary" disabled={accepting || (proposal.kind !== 'geometry' && acceptedMonsterIds.length === 0)} onClick={accept}>{accepting ? 'Accepting private draft…' : 'Accept and create private draft'}</button>
+            <button className="preparation-primary" disabled={accepting} onClick={accept}>{accepting ? 'Accepting private draft…' : 'Accept and create private draft'}</button>
           {discarding ? <div className="discard-confirm" role="group" aria-label="Confirm discard"><p>Discard this private proposal and its edits? It has not changed your campaign.</p><button className="preparation-danger" onClick={() => { setProposal(null); setEditingRequest(false); setDiscarding(false); setNotice('Proposal discarded. Campaign unchanged.'); }}>Discard proposal</button><button onClick={() => setDiscarding(false)}>Keep editing</button></div> : regenerating ? <div className="discard-confirm" role="group" aria-label="Confirm regenerate"><p>Regenerating replaces this proposal and all of its edits. A new request requires fresh consent.</p><button className="preparation-primary" onClick={() => { setProposal(null); setEditingRequest(true); setRegenerating(false); setConsent(false); setNotice('Review the request and give fresh consent to regenerate.'); }}>Replace proposal</button><button onClick={() => setRegenerating(false)}>Keep editing</button></div> : <div className="proposal-actions"><button onClick={() => setEditingRequest(true)}>Adjust request</button><button onClick={() => setRegenerating(true)}>Regenerate</button><button className="preparation-danger" onClick={() => setDiscarding(true)}>Discard proposal</button></div>}
           {notice && <p role="status" aria-live="polite">{notice}</p>}{failure && <p role="alert">{failure}</p>}
         </>}
-         <AcceptedPreparations />
+          <AcceptedPreparations refreshKey={acceptedRefresh} />
        </section>
     </div><p className="preparation-live" role="status" aria-live="polite">{notice}</p>
   </main>;
 }
 
-function AcceptedPreparations() {
+function AcceptedPreparations({ refreshKey }: { refreshKey: number }) {
   const [items, setItems] = useState<AcceptedPreparation[]>([]);
   const [selectedId, setSelectedId] = useState('');
   const [draft, setDraft] = useState<AcceptedPreparation | null>(null);
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
   const reload = async () => setItems(await listAcceptedPreparations());
-  useEffect(() => { reload().catch(() => setMessage('Accepted preparations are unavailable.')); }, []);
+  useEffect(() => { reload().catch(() => setMessage('Accepted preparations are unavailable.')); }, [refreshKey]);
   const selected = items.find(item => item.id === selectedId) ?? null;
   const editing = draft ?? selected;
   const fields = editing ? proposalFields({ kind: editing.kind, content: editing.content, references: editing.references } as Proposal) : [];
